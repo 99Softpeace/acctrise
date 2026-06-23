@@ -1,0 +1,289 @@
+﻿<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="acctrise helps people buy social media services, rent verification numbers, and resell digital services from one simple wallet."
+    />
+    <title>acctrise | Social services, verification numbers, and digital resale</title>
+    <script>
+      tailwind = {
+        config: {
+          theme: {
+            extend: {
+              colors: {
+                ink: {
+                  950: "#050505",
+                  900: "#111111",
+                  800: "#1d1d1d",
+                  700: "#2c2c2c",
+                  600: "#4b4b4b",
+                  500: "#6c6c6c",
+                  400: "#9a9a9a",
+                  300: "#c7c7c7",
+                  200: "#e2e2e2",
+                  100: "#f2f2f2",
+                  50: "#f8f8f8"
+                },
+                settle: "#176f4d"
+              },
+              fontFamily: {
+                sans: ['Inter', 'ui-sans-serif', 'system-ui', 'Segoe UI', 'Arial', 'sans-serif'],
+                display: ['"IBM Plex Sans"', 'Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+                mono: ['"IBM Plex Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace']
+              },
+              boxShadow: {
+                soft: "0 18px 60px rgba(0,0,0,.08)",
+                line: "0 1px 0 rgba(255,255,255,.75) inset"
+              }
+            }
+          }
+        }
+      };
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="src/styles.css" />
+  </head>
+  <body class="bg-ink-50 text-ink-950 antialiased">
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="site-header" data-header>
+      <div class="mx-auto flex h-16 max-w-[1480px] items-center justify-between px-4 sm:px-6 xl:px-8">
+        <a href="#" class="brand-mark" aria-label="acctrise home">
+          <span class="brand-grid" aria-hidden="true"></span>
+          <span>acctrise</span>
+        </a>
+        <nav class="hidden items-center gap-7 text-sm font-medium text-ink-600 lg:flex" aria-label="Primary">
+          <a href="#services">Services</a>
+          <a href="#trust">Network</a>
+          <a href="#pricing">Pricing</a>
+          <a href="#dashboard">Dashboard</a>
+        </nav>
+        <div class="flex items-center gap-2">
+          <button class="btn btn-quiet hidden sm:inline-flex" data-scroll-target="#dashboard">View dashboard</button>
+          <button class="btn btn-dark" data-open-console>Start instantly</button>
+        </div>
+      </div>
+    </header>
+
+    <main id="main">
+      <section class="hero-section">
+        <div class="mx-auto grid max-w-[1480px] gap-10 px-4 pb-12 pt-24 sm:px-6 lg:grid-cols-[0.84fr_1.16fr] lg:gap-14 lg:pb-20 xl:px-8">
+          <div class="hero-copy">
+            <div class="eyebrow">All your digital services in one wallet</div>
+            <h1>Buy social growth, rent numbers, and manage digital services without the confusion.</h1>
+            <p>
+              acctrise brings social media services, SMS verification numbers, and resale tools into one clean
+              account. Add funds, choose a service, place an order, and track everything from a simple dashboard.
+            </p>
+            <div class="hero-actions">
+              <button class="btn btn-dark" data-open-console>Start using acctrise</button>
+              <button class="btn btn-line" data-scroll-target="#services">Explore services</button>
+            </div>
+            <dl class="hero-metrics" aria-label="Platform performance metrics">
+              <div>
+                <dt>Uptime</dt>
+                <dd>99.97%</dd>
+              </div>
+              <div>
+                <dt>Avg. dispatch</dt>
+                <dd>4.8s</dd>
+              </div>
+              <div>
+                <dt>Coverage</dt>
+                <dd>145+ regions</dd>
+              </div>
+            </dl>
+          </div>
+
+          <div class="terminal-visual" aria-label="Live acctrise dashboard preview">
+            <div class="terminal-topline">
+              <div>
+                <span class="muted-label">Dashboard preview</span>
+                <strong>Everything easy to track</strong>
+              </div>
+              <span class="status-pill">Normal load</span>
+            </div>
+            <div class="terminal-grid">
+              <div class="console-pane span-2">
+                <div class="pane-head">
+                  <span>Recent orders</span>
+                  <span class="mono">Updated now</span>
+                </div>
+                <div class="order-stream" id="hero-stream"></div>
+              </div>
+              <div class="console-pane">
+                <div class="pane-head">
+                  <span>Wallet</span>
+                  <span class="mono">NGN/USD</span>
+                </div>
+                <div class="wallet-figure">$12,840.55</div>
+                <div class="meter"><span style="width: 72%"></span></div>
+                <p class="pane-note">Auto-refill guard active at $2,500 threshold.</p>
+              </div>
+              <div class="console-pane">
+                <div class="pane-head">
+                  <span>Verification code</span>
+                  <span class="mono">OTP</span>
+                </div>
+                <div class="otp-code">482-901</div>
+                <p class="pane-note">Telegram code received. Copy it before the number expires.</p>
+              </div>
+              <div class="console-pane span-2">
+                <div class="pane-head">
+                  <span>Popular services</span>
+                  <span class="mono">145 regions</span>
+                </div>
+                <div class="coverage-grid" aria-hidden="true">
+                  <span></span><span></span><span></span><span></span><span></span><span></span>
+                  <span></span><span></span><span></span><span></span><span></span><span></span>
+                  <span></span><span></span><span></span><span></span><span></span><span></span>
+                  <span></span><span></span><span></span><span></span><span></span><span></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="services" class="section-band">
+        <div class="mx-auto max-w-[1480px] px-4 py-16 sm:px-6 xl:px-8">
+          <div class="section-heading">
+            <span class="eyebrow">What you can do</span>
+            <h2>Three useful tools, one simple account.</h2>
+            <p>Use acctrise for everyday orders, verification needs, and resale work without jumping between panels.</p>
+          </div>
+          <div class="service-grid">
+            <article class="service-card">
+              <span class="service-index">01</span>
+              <h3>Social media services</h3>
+              <p>Order followers, views, likes, members, watch time, and other growth services with clear status updates.</p>
+              <ul>
+                <li>Instagram, TikTok, YouTube, X, Telegram</li>
+                <li>Simple order form and live status</li>
+                <li>Refill and delivery notes where available</li>
+              </ul>
+            </article>
+            <article class="service-card">
+              <span class="service-index">02</span>
+              <h3>Verification numbers</h3>
+              <p>Rent a number for an app or website, receive the OTP code, and copy it directly from your inbox.</p>
+              <ul>
+                <li>Numbers for many countries and apps</li>
+                <li>Clear timer for each rental</li>
+                <li>OTP inbox designed for quick copying</li>
+              </ul>
+            </article>
+            <article class="service-card">
+              <span class="service-index">03</span>
+              <h3>Digital services marketplace</h3>
+              <p>Buy or resell digital services from one catalog, with balance tracking and optional reseller tools as you grow.</p>
+              <ul>
+                <li>Ready-to-sell service catalog</li>
+                <li>Simple reseller pricing controls</li>
+                <li>Wallet history for every purchase</li>
+              </ul>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="trust" class="trust-section">
+        <div class="mx-auto grid max-w-[1480px] gap-8 px-4 py-16 sm:px-6 lg:grid-cols-[0.8fr_1.2fr] xl:px-8">
+          <div class="section-heading compact">
+            <span class="eyebrow">Why it feels safe</span>
+            <h2>Clear pricing, visible progress, and fewer surprises.</h2>
+            <p>People should always know what they bought, how much it cost, what stage it is in, and what to do next.</p>
+          </div>
+          <div class="trust-grid">
+            <div><strong>12.4M</strong><span>monthly service requests</span></div>
+            <div><strong>Fast</strong><span>orders start quickly after payment</span></div>
+            <div><strong>0.8%</strong><span>auto-refund dispute rate</span></div>
+            <div><strong>24/7</strong><span>balance, orders, and inbox tracking</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="pricing" class="pricing-section">
+        <div class="mx-auto max-w-[1480px] px-4 py-16 sm:px-6 xl:px-8">
+          <div class="section-heading">
+            <span class="eyebrow">Pricing preview</span>
+            <h2>Start small, scale when you need to.</h2>
+            <p>Fund your wallet, place orders instantly, and unlock stronger reseller tools as your volume grows.</p>
+          </div>
+          <div class="pricing-grid">
+            <article class="price-card">
+              <span>Starter</span>
+              <strong>$0/mo</strong>
+              <p>For everyday users buying social services or renting verification numbers.</p>
+              <button class="btn btn-line" data-open-console>Start free</button>
+            </article>
+            <article class="price-card featured">
+              <span>Reseller</span>
+              <strong>$49/mo</strong>
+              <p>For people selling services to clients with better pricing and useful controls.</p>
+              <button class="btn btn-dark" data-open-console>Choose reseller</button>
+            </article>
+            <article class="price-card">
+              <span>Business</span>
+              <strong>Custom</strong>
+              <p>For teams that need private pricing, developer support, and higher-volume service access.</p>
+              <button class="btn btn-line" data-open-console>Talk to sales</button>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="dashboard" class="app-section" aria-label="acctrise dashboard">
+        <div class="app-shell">
+          <aside class="sidebar" aria-label="Dashboard navigation">
+            <div class="sidebar-brand">
+              <span class="brand-grid" aria-hidden="true"></span>
+              <span>acctrise</span>
+            </div>
+            <nav id="app-nav" class="app-nav" aria-label="Application sections"></nav>
+            <div class="sidebar-footer">
+              <span class="muted-label">Service status</span>
+              <strong>Healthy</strong>
+              <small>Fast edge median</small>
+            </div>
+          </aside>
+          <div class="workspace">
+            <header class="workspace-header">
+              <div>
+                <span class="eyebrow">Your acctrise account</span>
+                <h2>Dashboard</h2>
+              </div>
+              <div class="workspace-actions">
+                <button class="icon-button" title="Quick search" aria-label="Quick search">Search</button>
+                <button class="btn btn-line" data-action="fund">Fund wallet</button>
+                <button class="btn btn-dark" data-action="order">New order</button>
+              </div>
+            </header>
+
+            <div class="command-row" role="search">
+              <label for="global-search">Search</label>
+              <input id="global-search" type="search" placeholder="Search orders, numbers, transactions, services..." />
+              <button class="btn btn-quiet" data-action="sync">Sync now</button>
+            </div>
+
+            <div id="app-content" class="app-content" tabindex="-1"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
+    <div id="modal-root"></div>
+
+    <script src="src/app.js"></script>
+  </body>
+</html>
