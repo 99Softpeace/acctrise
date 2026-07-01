@@ -1,0 +1,683 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Enums
+enum UserRole {
+  GUEST
+  CUSTOMER
+  RESELLER
+  SUPPORT_AGENT
+  ADMIN
+  SUPER_ADMIN
+  DEVELOPER
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+  CANCELLED
+}
+
+enum TransactionType {
+  DEPOSIT
+  WITHDRAWAL
+  ORDER_PAYMENT
+  REFUND
+  BONUS
+  REFERRAL_REWARD
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum NotificationType {
+  ORDER_UPDATE
+  WALLET_ALERT
+  SYSTEM_ALERT
+  PROMOTION
+  SECURITY
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum ProviderStatus {
+  ACTIVE
+  INACTIVE
+  MAINTENANCE
+  ERROR
+}
+
+// Users
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  username        String    @unique
+  passwordHash    String
+  firstName       String?
+  lastName        String?
+  phone           String?
+  avatar          String?
+  role            UserRole  @default(CUSTOMER)
+  status          String    @default("active") // active, suspended, banned
+  
+  // Profile
+  bio             String?
+  country         String?
+  timezone        String?
+  language        String    @default("en")
+  
+  // Verification
+  emailVerified   DateTime?
+  phoneVerified   DateTime?
+  
+  // 2FA
+  twoFactorEnabled Boolean   @default(false)
+  twoFactorSecret String?
+  
+  // Account Security
+  lastLoginAt     DateTime?
+  lastLoginIp     String?
+  lastPasswordChangeAt DateTime?
+  
+  // Relations
+  wallet          Wallet?
+  orders          Order[]
+  transactions    Transaction[]
+  loginHistory    LoginHistory[]
+  tokens          ApiToken[]
+  emailVerificationTokens EmailVerificationToken[]
+  passwordResetTokens PasswordResetToken[]
+  referrals       Referral[] @relation("referrer")
+  referredBy      Referral? @relation("referred")
+  notifications   Notification[]
+  supportTickets  SupportTicket[]
+  comments        TicketComment[]
+  auditLogs       AuditLog[]
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([email])
+  @@index([role])
+  @@index([status])
+}
+
+// Wallet
+model Wallet {
+  id              String    @id @default(cuid())
+  userId          String    @unique
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  balance         Decimal   @default(0) @db.Decimal(15, 2)
+  lockedBalance   Decimal   @default(0) @db.Decimal(15, 2)
+  totalDeposited  Decimal   @default(0) @db.Decimal(15, 2)
+  totalWithdrawn  Decimal   @default(0) @db.Decimal(15, 2)
+  bonusBalance    Decimal   @default(0) @db.Decimal(15, 2)
+  
+  currency        String    @default("USD")
+  
+  // Relations
+  transactions    Transaction[]
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+// Transactions
+model Transaction {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  walletId        String
+  wallet          Wallet    @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  
+  type            TransactionType
+  status          TransactionStatus @default(PENDING)
+  
+  amount          Decimal   @db.Decimal(15, 2)
+  fee             Decimal   @default(0) @db.Decimal(15, 2)
+  netAmount       Decimal   @db.Decimal(15, 2)
+  
+  description     String?
+  reference       String?   @unique
+  
+  // Payment Details
+  paymentMethod   String?
+  paymentGateway  String?   // "paystack", "flutterwave", "crypto", etc.
+  transactionHash String?
+  
+  // Relations
+  order           Order?
+  relatedTransaction Transaction? @relation("reversal")
+  reversedBy      Transaction? @relation("reversal", fields: [reversalOfId], references: [id])
+  reversalOfId    String?   @unique
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([userId])
+  @@index([walletId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// Orders
+model Order {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  orderNumber     String    @unique
+  
+  serviceId       String
+  service         Service   @relation(fields: [serviceId], references: [id])
+  
+  quantity        Int       @default(1)
+  unitPrice       Decimal   @db.Decimal(15, 2)
+  totalPrice      Decimal   @db.Decimal(15, 2)
+  
+  status          OrderStatus @default(PENDING)
+  
+  // Delivery Details
+  targetUrl       String?
+  targetUsername  String?
+  targetPhone     String?
+  additionalInfo  String?
+  
+  // Progress
+  delivered       Int       @default(0)
+  startDate       DateTime?
+  completedAt     DateTime?
+  
+  // Status Tracking
+  statusMessage   String?
+  retryCount      Int       @default(0)
+  lastRetryAt     DateTime?
+  
+  // Relations
+  transaction     Transaction? @relation(fields: [transactionId], references: [id])
+  transactionId   String?   @unique
+  
+  providerOrder   ProviderOrder?
+  orderLogs       OrderLog[]
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([userId])
+  @@index([status])
+  @@index([serviceId])
+  @@index([createdAt])
+}
+
+// Order Logs
+model OrderLog {
+  id              String    @id @default(cuid())
+  
+  orderId         String
+  order           Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  action          String    // STATUS_UPDATE, RETRY, REFUND, etc.
+  details         String?   // JSON details
+  
+  createdAt       DateTime  @default(now())
+  
+  @@index([orderId])
+  @@index([createdAt])
+}
+
+// Services
+model Service {
+  id              String    @id @default(cuid())
+  
+  name            String
+  slug            String    @unique
+  description     String?
+  
+  categoryId      String
+  category        Category  @relation(fields: [categoryId], references: [id])
+  
+  price           Decimal   @db.Decimal(15, 2)
+  minOrder        Int       @default(1)
+  maxOrder        Int?
+  stock           Int?
+  
+  icon            String?
+  displayOrder    Int       @default(0)
+  isActive        Boolean   @default(true)
+  featured        Boolean   @default(false)
+  
+  // Provider Mapping
+  providers       ProviderService[]
+  
+  // Relations
+  orders          Order[]
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([categoryId])
+  @@index([isActive])
+}
+
+// Service Categories
+model Category {
+  id              String    @id @default(cuid())
+  
+  name            String    @unique
+  slug            String    @unique
+  description     String?
+  icon            String?
+  displayOrder    Int       @default(0)
+  
+  // Relations
+  services        Service[]
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+// Providers (SMM, Virtual Numbers, etc.)
+model Provider {
+  id              String    @id @default(cuid())
+  
+  name            String
+  slug            String    @unique
+  description     String?
+  webUrl          String?
+  logoUrl         String?
+  
+  type            String    // "smm", "virtual-numbers", "esim", etc.
+  status          ProviderStatus @default(ACTIVE)
+  
+  // Configuration
+  config          Json      // Encrypted API keys stored here
+  retryPolicy     Json?     // Retry configuration
+  rateLimit       Json?     // Rate limiting config
+  
+  // Stats
+  lastSyncAt      DateTime?
+  syncInterval    Int       @default(300) // seconds
+  isHealthy       Boolean   @default(true)
+  healthCheckUrl  String?
+  
+  // Relations
+  services        ProviderService[]
+  orders          ProviderOrder[]
+  apiLogs         ApiLog[]
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([type])
+  @@index([status])
+}
+
+// Provider Services Mapping
+model ProviderService {
+  id              String    @id @default(cuid())
+  
+  providerId      String
+  provider        Provider  @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  
+  serviceId       String
+  service         Service   @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  
+  externalId      String    // Provider's service ID
+  externalName    String?
+  
+  providerPrice   Decimal   @db.Decimal(15, 2)
+  costPrice       Decimal   @db.Decimal(15, 2)
+  
+  isActive        Boolean   @default(true)
+  priority        Int       @default(0) // Higher priority for failover
+  stock           Int?
+  lastSyncedAt    DateTime?
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@unique([providerId, serviceId])
+  @@unique([providerId, externalId])
+  @@index([serviceId])
+}
+
+// Provider Orders (Internal tracking for provider-side orders)
+model ProviderOrder {
+  id              String    @id @default(cuid())
+  
+  orderId         String    @unique
+  order           Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  providerId      String
+  provider        Provider  @relation(fields: [providerId], references: [id])
+  
+  externalOrderId String    @unique // Provider's order ID
+  status          String    // Provider's status
+  statusMessage   String?
+  
+  lastCheckedAt   DateTime?
+  retryCount      Int       @default(0)
+  lastRetryAt     DateTime?
+  
+  logs            String?   // JSON logs from provider
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([providerId])
+  @@index([externalOrderId])
+}
+
+// API Logs
+model ApiLog {
+  id              String    @id @default(cuid())
+  
+  providerId      String
+  provider        Provider  @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  
+  endpoint        String
+  method          String    // GET, POST, etc.
+  statusCode      Int?
+  
+  requestBody     String?   // Truncated
+  responseBody    String?   // Truncated
+  
+  errorMessage    String?
+  duration        Int       // milliseconds
+  
+  timestamp       DateTime  @default(now())
+  
+  @@index([providerId])
+  @@index([timestamp])
+}
+
+// Coupons
+model Coupon {
+  id              String    @id @default(cuid())
+  code            String    @unique
+  
+  description     String?
+  discountType    String    // "percentage" or "fixed"
+  discountValue   Decimal   @db.Decimal(15, 2)
+  
+  maxUses         Int?
+  usedCount       Int       @default(0)
+  
+  minOrderAmount  Decimal?  @db.Decimal(15, 2)
+  maxOrderAmount  Decimal?  @db.Decimal(15, 2)
+  
+  startDate       DateTime
+  expiryDate      DateTime
+  
+  isActive        Boolean   @default(true)
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+// Referrals
+model Referral {
+  id              String    @id @default(cuid())
+  
+  referrerId      String
+  referrer        User      @relation("referrer", fields: [referrerId], references: [id], onDelete: Cascade)
+  
+  referredId      String    @unique
+  referred        User      @relation("referred", fields: [referredId], references: [id], onDelete: Cascade)
+  
+  commissionRate  Decimal   @default(5) @db.Decimal(5, 2)
+  totalCommission Decimal   @default(0) @db.Decimal(15, 2)
+  
+  status          String    @default("active") // active, inactive
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@unique([referrerId, referredId])
+}
+
+// Notifications
+model Notification {
+  id              String    @id @default(cuid())
+  
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  type            NotificationType
+  title           String
+  message         String
+  
+  actionUrl       String?
+  isRead          Boolean   @default(false)
+  readAt          DateTime?
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([userId])
+  @@index([isRead])
+}
+
+// Support Tickets
+model SupportTicket {
+  id              String    @id @default(cuid())
+  ticketNumber    String    @unique
+  
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  subject         String
+  description     String
+  
+  status          TicketStatus @default(OPEN)
+  priority        TicketPriority @default(MEDIUM)
+  
+  category        String?
+  
+  assignedTo      String?   // User ID of support agent
+  
+  tags            String[]  @default([])
+  
+  // Relations
+  comments        TicketComment[]
+  
+  lastActivityAt  DateTime  @updatedAt
+  resolvedAt      DateTime?
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([userId])
+  @@index([status])
+  @@index([assignedTo])
+}
+
+// Ticket Comments
+model TicketComment {
+  id              String    @id @default(cuid())
+  
+  ticketId        String
+  ticket          SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  message         String
+  attachment      String?   // File URL
+  
+  isInternal      Boolean   @default(false) // Internal note
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([ticketId])
+  @@index([userId])
+}
+
+// Role-based Access Control
+model Role {
+  id              String    @id @default(cuid())
+  name            String    @unique
+  description     String?
+  
+  permissions     Permission[]
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+// Permissions
+model Permission {
+  id              String    @id @default(cuid())
+  name            String    @unique
+  description     String?
+  
+  resource        String    // "orders", "users", "settings", etc.
+  action          String    // "create", "read", "update", "delete"
+  
+  roles           Role[]
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@unique([resource, action])
+}
+
+// Audit Logs
+model AuditLog {
+  id              String    @id @default(cuid())
+  
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  action          String    // "user_created", "order_placed", etc.
+  resourceType    String    // "User", "Order", "Transaction", etc.
+  resourceId      String
+  
+  changes         Json?     // What changed
+  details         String?
+  ipAddress       String?
+  userAgent       String?
+  
+  createdAt       DateTime  @default(now())
+  
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+// Login History
+model LoginHistory {
+  id              String    @id @default(cuid())
+  
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  ipAddress       String
+  userAgent       String
+  device          String?
+  location        String?
+  
+  isSuccessful    Boolean   @default(true)
+  failureReason   String?
+  
+  createdAt       DateTime  @default(now())
+  
+  @@index([userId])
+  @@index([createdAt])
+}
+
+
+// Email Verification Tokens
+model EmailVerificationToken {
+  id              String    @id @default(cuid())
+  token           String    @unique
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt       DateTime
+  usedAt          DateTime?
+  createdAt       DateTime  @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+// Password Reset Tokens
+model PasswordResetToken {
+  id              String    @id @default(cuid())
+  token           String    @unique
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt       DateTime
+  usedAt          DateTime?
+  createdAt       DateTime  @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+// API Tokens
+model ApiToken {
+  id              String    @id @default(cuid())
+  
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  name            String
+  token           String    @unique
+  hashedToken     String    @unique
+  
+  permissions     String[]  @default([])
+  
+  lastUsedAt      DateTime?
+  expiresAt       DateTime?
+  isActive        Boolean   @default(true)
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([userId])
+  @@index([isActive])
+}
+
+// Settings
+model Settings {
+  id              String    @id @default(cuid())
+  
+  key             String    @unique
+  value           Json
+  
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([key])
+}
+
+
