@@ -1,4 +1,4 @@
-﻿export type PaymentGatewayId = "paystack" | "flutterwave" | "crypto" | "pocketfi";
+export type PaymentGatewayId = "pocketfi";
 export type PaymentIntentStatus = "pending" | "requires_configuration" | "ready";
 export type PaymentWebhookStatus = "PENDING" | "COMPLETED" | "FAILED";
 

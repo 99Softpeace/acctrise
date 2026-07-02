@@ -1,12 +1,7 @@
-﻿import type { CreatePaymentIntentRequest, PaymentGateway, PaymentGatewayId, PaymentIntent, PaymentWebhookResult } from "./types";
-import { PaystackGateway } from "./gateways/paystack";
-import { FlutterwaveGateway } from "./gateways/flutterwave";
+import type { CreatePaymentIntentRequest, PaymentGateway, PaymentGatewayId, PaymentIntent, PaymentWebhookResult } from "./types";
 import { HeldGateway } from "./gateways/held-gateway";
 
 const gateways: Record<PaymentGatewayId, PaymentGateway> = {
-  paystack: new PaystackGateway(),
-  flutterwave: new FlutterwaveGateway(),
-  crypto: new HeldGateway("crypto"),
   pocketfi: new HeldGateway("pocketfi")
 };
 

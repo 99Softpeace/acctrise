@@ -171,7 +171,7 @@ model Transaction {
   
   // Payment Details
   paymentMethod   String?
-  paymentGateway  String?   // "paystack", "flutterwave", "crypto", etc.
+  paymentGateway  String?   // "pocketfi" while funding is on hold
   transactionHash String?
   
   // Relations

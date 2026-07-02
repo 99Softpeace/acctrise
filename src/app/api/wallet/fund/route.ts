@@ -12,7 +12,7 @@ import { createFundingIntent } from "@/lib/payments";
 const fundWalletSchema = z.object({
   amount: z.number().positive("Amount must be greater than 0"),
   paymentMethod: z.string().min(2),
-  paymentGateway: z.enum(["paystack", "flutterwave", "crypto", "pocketfi"]),
+  paymentGateway: z.literal("pocketfi"),
   email: z.string().email().optional(),
   callbackUrl: z.string().url().optional()
 });

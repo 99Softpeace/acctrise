@@ -36,7 +36,7 @@ Order Request → Provider Manager → Tries Primary Provider
 - **Cache**: Redis (for frequently accessed data)
 - **Jobs**: BullMQ (background task queue)
 - **Auth**: NextAuth v5 (recommended setup)
-- **Payments**: Paystack, Flutterwave, Stripe-ready
+- **Payments**: PocketFi planned; funding currently on hold
 - **Validation**: Zod + React Hook Form
 - **Charts**: Recharts (for analytics)
 - **UI**: shadcn/ui patterns, Lucide Icons
@@ -59,7 +59,7 @@ acctrise/
 │   │   │   │   └── balance/route.ts   # Get wallet balance
 │   │   │   ├── orders/route.ts        # Create & list orders
 │   │   │   ├── webhooks/
-│   │   │   │   └── payments/route.ts  # Paystack/Flutterwave webhook
+│   │   │   │   └── payments/route.ts  # Payment gateway webhook
 │   │   │   └── providers/route.ts     # List available services
 │   │   └── dashboard/
 │   │       ├── layout.tsx             # Dashboard layout with sidebar
@@ -133,21 +133,31 @@ cp .env.example .env.local
 Edit `.env.local`:
 ```env
 # Database
-DATABASE_URL=postgresql://user:password@localhost:5432/acctrise
+MONGODB_URI="mongodb+srv://<username>:<password>@<cluster>.mongodb.net/acctrise?retryWrites=true&w=majority"
 
 # Redis
-REDIS_HOST=localhost
-REDIS_PORT=6379
+REDIS_URL="redis://localhost:6379"
 
-# Payment Gateways
-PAYSTACK_PUBLIC_KEY=pk_test_...
-PAYSTACK_SECRET_KEY=sk_test_...
+# Authentication
+NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_SECRET="replace-with-random-secret"
+JWT_SECRET="replace-with-random-secret"
 
-FLUTTERWAVE_PUBLIC_KEY=FLWPUBK_TEST_...
-FLUTTERWAVE_SECRET_KEY=...
+# Email Service (Resend)
+RESEND_API_KEY=""
+AUTH_EMAIL_FROM="Acctrise <no-reply@acctrise.com>"
 
-# Provider APIs (stored encrypted in DB, not in env)
-# See database schema for Provider.config field
+# Payment funding is currently on hold. PocketFi is planned.
+POCKETFI_PUBLIC_KEY=...
+POCKETFI_SECRET_KEY=...
+
+# Provider API keys
+BULKACC_API_KEY=""
+SMSPOOL_API_KEY=""
+RESELLER_SMM_API_KEY=""
+
+# Provider configuration should be encrypted in the database.
+# See database schema for Provider.config field.
 ```
 
 3. **Setup Database**
@@ -295,19 +305,9 @@ const ratelimit = new Ratelimit({
 const { success } = await ratelimit.limit(userId);
 ```
 
-## 💳 Payment Integration
+## Payment Integration
 
-### Paystack
-1. Get API keys from dashboard.paystack.co
-2. Set `PAYSTACK_PUBLIC_KEY` and `PAYSTACK_SECRET_KEY`
-3. Implement payment form in frontend
-4. Backend webhook automatically completes transactions
-
-### Flutterwave
-1. Get API keys from dashboard.flutterwave.co
-2. Set `FLUTTERWAVE_PUBLIC_KEY` and `FLUTTERWAVE_SECRET_KEY`
-3. Implement Flutterwave checkout
-4. Webhook handler processes payments
+Payment funding is currently on hold. PocketFi is the planned gateway for future integration, and the current funding API keeps PocketFi in a held state until activation.
 
 ## 🧪 Testing
 
