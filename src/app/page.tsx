@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
@@ -122,6 +122,7 @@ function scrollToSection(selector: string) {
 export default function Home() {
   const [currentView, setCurrentView] = useState<ViewId>("overview");
   const [toasts, setToasts] = useState<Array<{ id: number; message: string }>>([]);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   function toast(message: string) {
     const id = Date.now();
@@ -234,7 +235,7 @@ export default function Home() {
         {esimPlans.map((plan) => (
           <article className="catalog-item" key={plan.title}>
             <b>{plan.title}</b>
-            <span>{plan.amount} • {plan.validity}</span>
+            <span>{plan.amount} ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ {plan.validity}</span>
             <strong>{plan.price}</strong>
             <button className="btn btn-soft" type="button" onClick={() => handleAction("fund")}>Activate eSIM</button>
           </article>
@@ -265,8 +266,9 @@ export default function Home() {
       <a className="skip-link" href="#main">Skip to content</a>
 
       <header className="topbar">
-        <Link className="brand" href="/" aria-label="acctrise home">
-          <img src="/acctrise-logo.jpeg" alt="acctrise" />
+        <Link className="brand" href="/" aria-label="acctrise home" onClick={() => setMobileMenuOpen(false)}>
+          <span className="brand-mark"><img src="/acctrise-logo.jpeg" alt="" /></span>
+          <span className="brand-word">Acctrise</span>
         </Link>
         <nav className="nav-links" aria-label="Primary navigation">
           <a href="#services">Services</a>
@@ -277,6 +279,21 @@ export default function Home() {
         <div className="top-actions">
           <Link className="btn btn-soft" href="/auth/login">Login</Link>
           <Link className="btn btn-primary" href="/auth/signup">Get Started</Link>
+        </div>
+        <button className="mobile-menu-button" type="button" aria-expanded={mobileMenuOpen} aria-controls="mobile-home-menu" aria-label="Toggle navigation" onClick={() => setMobileMenuOpen((open) => !open)}>
+          <span />
+          <span />
+          <span />
+        </button>
+        <div id="mobile-home-menu" className={`mobile-menu ${mobileMenuOpen ? "open" : ""}`}>
+          <a href="#services" onClick={() => setMobileMenuOpen(false)}>Services</a>
+          <a href="#how" onClick={() => setMobileMenuOpen(false)}>How it works</a>
+          <a href="#dashboard" onClick={() => setMobileMenuOpen(false)}>Dashboard</a>
+          <a href="#faq" onClick={() => setMobileMenuOpen(false)}>FAQ</a>
+          <div className="mobile-menu-actions">
+            <Link className="btn btn-soft" href="/auth/login" onClick={() => setMobileMenuOpen(false)}>Login</Link>
+            <Link className="btn btn-primary" href="/auth/signup" onClick={() => setMobileMenuOpen(false)}>Get Started</Link>
+          </div>
         </div>
       </header>
 
