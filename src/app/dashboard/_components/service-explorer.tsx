@@ -287,7 +287,7 @@ export function ServiceExplorer({ kind, mode }: { kind: ServiceExplorerKind; mod
               >
                 <span className={`grid h-10 w-10 place-items-center rounded-lg bg-gradient-to-br ring-1 ${platform.accent}`}><platform.icon className="h-5 w-5" /></span>
                 <span className="mt-3 block text-sm font-bold text-slate-700">{platform.label}</span>
-                <span className="mt-1 block text-xs text-slate-500">View services</span>
+                <span className="mt-1 block text-xs text-slate-500">{selectedPlatform?.label === platform.label ? "Showing below" : "View services"}</span>
               </button>
             ))}
           </div>
@@ -342,16 +342,25 @@ export function ServiceExplorer({ kind, mode }: { kind: ServiceExplorerKind; mod
       ) : null}
 
       {state === "ready" ? (
-        <section className="grid gap-5 xl:grid-cols-[1fr_360px]">
+        <section className={mode === "boosting" ? "boosting-results grid gap-5 xl:grid-cols-[1fr_360px]" : "grid gap-5 xl:grid-cols-[1fr_360px]"}>
           <div>
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <p className="text-sm font-bold text-slate-600">{filtered.length} services available</p>
+              <div>
+                <p className="text-sm font-bold text-slate-700">{mode === "boosting" && selectedPlatform ? `${selectedPlatform.label} services` : `${filtered.length} services available`}</p>
+                {mode === "boosting" && selectedPlatform ? <p className="mt-1 text-xs font-semibold text-slate-400">{filtered.length} matching services. Pick one and the order form opens under it.</p> : null}
+              </div>
               <p className="text-xs font-semibold text-slate-400">Select a card to continue</p>
             </div>
             <div className={mode === "logs" ? "grid gap-3 md:grid-cols-2 2xl:grid-cols-3" : "grid gap-3 sm:grid-cols-2 2xl:grid-cols-3"}>
-              {filtered.slice(0, visibleCount).map((service) => (
-                <ServiceCard key={service.externalId} service={service} selected={selectedService?.externalId === service.externalId} onSelect={() => setSelectedService(service)} variant={kind} />
-              ))}
+              {filtered.slice(0, visibleCount).map((service) => {
+                const selected = selectedService?.externalId === service.externalId;
+                return (
+                  <div key={service.externalId} className={selected && mode === "boosting" ? "sm:col-span-2 2xl:col-span-3" : ""}>
+                    <ServiceCard service={service} selected={selected} onSelect={() => setSelectedService(service)} variant={kind} />
+                    {selected && mode === "boosting" ? <div className="mt-3 xl:hidden"><CheckoutPanel service={selectedService} variant={kind} /></div> : null}
+                  </div>
+                );
+              })}
             </div>
             {!filtered.length ? <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-sm font-semibold text-slate-500">No services match the current filters.</div> : null}
             {filtered.length > visibleCount ? (
@@ -360,9 +369,12 @@ export function ServiceExplorer({ kind, mode }: { kind: ServiceExplorerKind; mod
               </div>
             ) : null}
           </div>
-          <CheckoutPanel service={selectedService} variant={kind} />
+          <div className={mode === "boosting" ? "hidden xl:block" : ""}>
+            <CheckoutPanel service={selectedService} variant={kind} />
+          </div>
         </section>
       ) : null}
     </section>
   );
 }
+
