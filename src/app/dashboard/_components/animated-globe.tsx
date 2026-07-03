@@ -1,46 +1,97 @@
-"use client";
+﻿"use client";
 
-const nodes = [
-  { left: "30%", top: "32%", delay: "0s" },
-  { left: "56%", top: "26%", delay: "0.6s" },
-  { left: "70%", top: "48%", delay: "1.2s" },
-  { left: "42%", top: "66%", delay: "1.8s" },
-  { left: "22%", top: "54%", delay: "2.4s" }
+const metricPanels = [
+  { label: "Total orders", value: "2.4k+", detail: "+12% this week", className: "network-panel top-left" },
+  { label: "Parcels in flow", value: "24 / 75", detail: "+15% this month", className: "network-panel bottom-left" },
+  { label: "Live services", value: "620+", detail: "Updated recently", className: "network-panel top-right" }
+];
+
+const serviceDots = [
+  { left: "28%", top: "36%", delay: "0s" },
+  { left: "42%", top: "30%", delay: "0.35s" },
+  { left: "57%", top: "42%", delay: "0.7s" },
+  { left: "63%", top: "55%", delay: "1.05s" },
+  { left: "48%", top: "63%", delay: "1.4s" },
+  { left: "35%", top: "52%", delay: "1.75s" },
+  { left: "71%", top: "35%", delay: "2.1s" }
 ];
 
 export function AnimatedGlobe() {
   return (
-    <div className="relative min-h-[260px] overflow-hidden rounded-xl border border-blue-100 bg-[radial-gradient(circle_at_50%_35%,#eff6ff_0%,#ffffff_48%,#e0f2fe_100%)] p-6 shadow-sm shadow-blue-100/70">
-      <div className="absolute inset-x-6 top-6 flex items-center justify-between text-xs font-bold uppercase tracking-[0.18em] text-blue-500">
-        <span>Live network</span>
-        <span>Acctrise</span>
+    <div className="network-globe-card" aria-label="Animated global service network visual">
+      <div className="network-globe-grid" />
+      <div className="network-globe-aurora" />
+      <div className="network-topbar">
+        <div>
+          <span className="network-kicker">Global network</span>
+          <strong>Acctrise live flow</strong>
+        </div>
+        <span className="network-live">Live</span>
       </div>
-      <div className="absolute left-1/2 top-1/2 h-48 w-48 -translate-x-1/2 -translate-y-1/2 sm:h-56 sm:w-56">
-        <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle_at_32%_28%,#ffffff_0%,#dbeafe_28%,#60a5fa_58%,#1d4ed8_100%)] shadow-2xl shadow-blue-200/70" />
-        <div className="absolute inset-0 rounded-full border border-white/80" />
-        <div className="absolute inset-5 rounded-full border border-white/50" />
-        <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-white/60" />
-        <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-white/60" />
-        <div className="absolute inset-x-4 top-[31%] h-px rotate-6 bg-white/45" />
-        <div className="absolute inset-x-4 bottom-[31%] h-px -rotate-6 bg-white/45" />
-        <div className="absolute inset-3 animate-spin rounded-full border border-dashed border-cyan-200/80" style={{ animationDuration: "22s" }} />
-        <div className="absolute -inset-5 animate-spin rounded-full border border-blue-200/60" style={{ animationDuration: "34s", animationDirection: "reverse" }} />
-        <div className="absolute left-10 top-12 h-10 w-20 rounded-full border border-white/50" />
-        <div className="absolute bottom-12 right-8 h-12 w-24 rounded-full border border-white/40" />
-        {nodes.map((node) => (
-          <span
-            key={`${node.left}-${node.top}`}
-            className="absolute h-2.5 w-2.5 rounded-full bg-white shadow-[0_0_18px_rgba(255,255,255,0.95)] ring-4 ring-blue-300/40"
-            style={{ left: node.left, top: node.top, animation: `pulse 2.8s ease-in-out ${node.delay} infinite` }}
-          />
-        ))}
+
+      {metricPanels.map((panel) => (
+        <div className={panel.className} key={panel.label}>
+          <span>{panel.label}</span>
+          <strong>{panel.value}</strong>
+          <small>{panel.detail}</small>
+        </div>
+      ))}
+
+      <div className="network-side-list" aria-hidden="true">
+        <span><i className="blue" /> Boosting</span>
+        <span><i className="green" /> Numbers</span>
+        <span><i className="amber" /> eSIM</span>
       </div>
-      <div className="absolute bottom-5 left-5 right-5 grid grid-cols-3 gap-2 text-center">
-        {["Accounts", "Numbers", "Boosting"].map((item) => (
-          <div key={item} className="rounded-lg border border-white/80 bg-white/75 px-2 py-2 text-[11px] font-bold text-slate-700 shadow-sm backdrop-blur">
-            {item}
+
+      <div className="network-globe-stage">
+        <div className="network-globe-halo halo-one" />
+        <div className="network-globe-halo halo-two" />
+        <div className="network-globe-orbit orbit-one" />
+        <div className="network-globe-orbit orbit-two" />
+        <div className="network-globe-orbit orbit-three" />
+        <div className="network-globe">
+          <div className="network-globe-light" />
+          <div className="network-globe-map">
+            <span className="land land-one" />
+            <span className="land land-two" />
+            <span className="land land-three" />
+            <span className="land land-four" />
+            <span className="land land-five" />
+            <span className="land land-six" />
+            <span className="land land-seven" />
+            <span className="land land-eight" />
           </div>
-        ))}
+          <div className="network-globe-lines" />
+          <svg className="network-routes" viewBox="0 0 360 360" aria-hidden="true">
+            <path d="M74 186 C118 120 225 105 294 154" />
+            <path d="M82 220 C154 175 222 184 290 238" />
+            <path d="M128 90 C170 132 218 171 270 190" />
+            <path d="M112 260 C156 225 209 215 252 248" />
+          </svg>
+          {serviceDots.map((dot) => (
+            <span
+              className="network-dot"
+              key={`${dot.left}-${dot.top}`}
+              style={{ left: dot.left, top: dot.top, animationDelay: dot.delay }}
+            />
+          ))}
+          <span className="network-core" />
+        </div>
+      </div>
+
+      <div className="network-chart-panel">
+        <span>Quantity</span>
+        <div className="network-bars" aria-hidden="true">
+          <i style={{ height: "64%" }} />
+          <i style={{ height: "88%" }} />
+          <i style={{ height: "46%" }} />
+          <i style={{ height: "72%" }} />
+        </div>
+      </div>
+
+      <div className="network-rings" aria-hidden="true">
+        <span>75%</span>
+        <span>25%</span>
       </div>
     </div>
   );

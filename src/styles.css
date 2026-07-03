@@ -1984,3 +1984,559 @@ details,
     font-size: 28px;
   }
 }
+
+/* Dashboard animated network globe */
+.network-globe-card {
+  position: relative;
+  isolation: isolate;
+  min-height: 420px;
+  overflow: hidden;
+  border: 1px solid rgba(145, 184, 255, 0.18);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(73, 143, 255, 0.26), transparent 34%),
+    radial-gradient(circle at 45% 42%, rgba(18, 183, 245, 0.16), transparent 42%),
+    linear-gradient(135deg, #050812 0%, #07111f 52%, #0b1323 100%);
+  box-shadow: 0 26px 70px rgba(15, 23, 42, 0.22);
+  color: #eaf4ff;
+}
+
+.network-globe-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(rgba(148, 163, 184, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.055) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(circle at 50% 50%, #000 0%, transparent 78%);
+}
+
+.network-globe-grid,
+.network-globe-aurora {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.network-globe-grid {
+  background: radial-gradient(circle at 50% 52%, transparent 0 36%, rgba(101, 163, 255, 0.08) 37%, transparent 57%);
+}
+
+.network-globe-aurora {
+  background:
+    radial-gradient(circle at 43% 53%, rgba(60, 156, 255, 0.3), transparent 28%),
+    radial-gradient(circle at 58% 42%, rgba(111, 231, 255, 0.12), transparent 22%);
+  filter: blur(12px);
+  animation: networkAurora 7s ease-in-out infinite alternate;
+}
+
+.network-topbar {
+  position: relative;
+  z-index: 5;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 18px 18px 0;
+}
+
+.network-topbar strong,
+.network-kicker,
+.network-live,
+.network-panel span,
+.network-panel small,
+.network-side-list,
+.network-chart-panel span {
+  display: block;
+}
+
+.network-kicker {
+  color: #8eb8ff;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.network-topbar strong {
+  margin-top: 4px;
+  font-size: 16px;
+  letter-spacing: -0.02em;
+}
+
+.network-live {
+  border-radius: 999px;
+  background: rgba(79, 255, 184, 0.12);
+  color: #7dffc6;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 900;
+  box-shadow: 0 0 22px rgba(16, 185, 129, 0.14);
+}
+
+.network-globe-stage {
+  position: absolute;
+  inset: 46px 36px 20px;
+  display: grid;
+  place-items: center;
+}
+
+.network-globe {
+  position: relative;
+  width: min(330px, 72vw);
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 30% 32%, rgba(202, 239, 255, 0.9) 0 2%, rgba(55, 139, 224, 0.58) 8%, transparent 28%),
+    radial-gradient(circle at 42% 40%, rgba(43, 134, 215, 0.64), transparent 34%),
+    radial-gradient(circle at 70% 50%, rgba(8, 16, 34, 0.98) 0 48%, rgba(6, 12, 25, 1) 72%),
+    #07101f;
+  box-shadow:
+    inset 30px 0 70px rgba(105, 199, 255, 0.32),
+    inset -52px -28px 80px rgba(0, 0, 0, 0.74),
+    0 0 34px rgba(55, 169, 255, 0.28),
+    0 0 95px rgba(29, 78, 216, 0.28);
+  transform: translateZ(0);
+}
+
+.network-globe::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(circle at 28% 35%, rgba(255, 255, 255, 0.42), transparent 18%), linear-gradient(90deg, rgba(120, 213, 255, 0.42), transparent 30%, rgba(0, 0, 0, 0.46) 78%);
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
+.network-globe::after {
+  content: "";
+  position: absolute;
+  inset: 7px;
+  border-radius: inherit;
+  border: 1px solid rgba(174, 226, 255, 0.34);
+  box-shadow: inset 0 0 40px rgba(77, 184, 255, 0.2);
+  pointer-events: none;
+}
+
+.network-globe-light {
+  position: absolute;
+  inset: -6%;
+  border-radius: inherit;
+  background: radial-gradient(circle at 35% 45%, transparent 0 45%, rgba(131, 220, 255, 0.18) 52%, transparent 64%);
+  animation: networkLight 5.5s ease-in-out infinite alternate;
+}
+
+.network-globe-map {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  animation: networkMapDrift 18s linear infinite;
+}
+
+.land {
+  position: absolute;
+  display: block;
+  background:
+    radial-gradient(circle, rgba(255, 218, 145, 0.95) 0 1.4px, transparent 1.8px),
+    linear-gradient(135deg, rgba(166, 219, 255, 0.72), rgba(79, 159, 230, 0.28));
+  background-size: 8px 8px, auto;
+  border: 1px solid rgba(170, 226, 255, 0.24);
+  filter: drop-shadow(0 0 8px rgba(120, 213, 255, 0.26));
+  opacity: 0.9;
+}
+
+.land-one {
+  left: 24%;
+  top: 21%;
+  width: 28%;
+  height: 25%;
+  border-radius: 56% 44% 48% 52%;
+  transform: rotate(-22deg);
+}
+
+.land-two {
+  left: 40%;
+  top: 35%;
+  width: 17%;
+  height: 35%;
+  border-radius: 60% 40% 54% 46%;
+  transform: rotate(14deg);
+}
+
+.land-three {
+  left: 56%;
+  top: 23%;
+  width: 25%;
+  height: 18%;
+  border-radius: 58% 42% 40% 60%;
+  transform: rotate(15deg);
+}
+
+.land-four {
+  left: 61%;
+  top: 42%;
+  width: 18%;
+  height: 20%;
+  border-radius: 48% 52% 60% 40%;
+  transform: rotate(-12deg);
+}
+
+.land-five {
+  left: 35%;
+  top: 67%;
+  width: 18%;
+  height: 12%;
+  border-radius: 50%;
+  transform: rotate(18deg);
+}
+
+.land-six {
+  left: 13%;
+  top: 45%;
+  width: 16%;
+  height: 18%;
+  border-radius: 50% 45% 52% 48%;
+  transform: rotate(-18deg);
+}
+
+.land-seven {
+  left: 70%;
+  top: 62%;
+  width: 14%;
+  height: 9%;
+  border-radius: 50%;
+  opacity: 0.55;
+}
+
+.land-eight {
+  left: 73%;
+  top: 31%;
+  width: 11%;
+  height: 9%;
+  border-radius: 50%;
+  opacity: 0.6;
+}
+
+.network-globe-lines {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 23px, rgba(175, 224, 255, 0.16) 24px, transparent 25px),
+    repeating-linear-gradient(0deg, transparent 0 33px, rgba(175, 224, 255, 0.14) 34px, transparent 35px);
+  mask-image: radial-gradient(circle, #000 0 69%, transparent 70%);
+  opacity: 0.86;
+}
+
+.network-routes {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  fill: none;
+  pointer-events: none;
+}
+
+.network-routes path {
+  stroke: rgba(159, 222, 255, 0.58);
+  stroke-width: 1.2;
+  stroke-dasharray: 9 12;
+  filter: drop-shadow(0 0 5px rgba(103, 196, 255, 0.45));
+  animation: networkRoute 8s linear infinite;
+}
+
+.network-routes path:nth-child(2) { animation-duration: 10s; }
+.network-routes path:nth-child(3) { animation-duration: 12s; animation-direction: reverse; }
+.network-routes path:nth-child(4) { animation-duration: 9s; }
+
+.network-dot,
+.network-core {
+  position: absolute;
+  z-index: 4;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: 0 0 16px rgba(255, 255, 255, 0.96), 0 0 34px rgba(94, 205, 255, 0.68);
+}
+
+.network-dot {
+  width: 7px;
+  height: 7px;
+  animation: networkPulse 2.8s ease-in-out infinite;
+}
+
+.network-core {
+  left: 49%;
+  top: 51%;
+  width: 12px;
+  height: 12px;
+  transform: translate(-50%, -50%);
+}
+
+.network-core::after {
+  content: "";
+  position: absolute;
+  inset: -18px;
+  border-radius: inherit;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  animation: networkCore 2.8s ease-in-out infinite;
+}
+
+.network-globe-halo,
+.network-globe-orbit {
+  position: absolute;
+  border-radius: 999px;
+  pointer-events: none;
+}
+
+.network-globe-halo {
+  width: min(360px, 76vw);
+  aspect-ratio: 1;
+  border: 1px solid rgba(135, 211, 255, 0.18);
+  box-shadow: 0 0 38px rgba(41, 151, 255, 0.14);
+}
+
+.halo-one { transform: rotate(-12deg) scaleX(1.12); }
+.halo-two { transform: rotate(24deg) scaleX(1.2); opacity: 0.62; }
+
+.network-globe-orbit {
+  width: min(382px, 82vw);
+  aspect-ratio: 1;
+  border: 1px solid rgba(167, 226, 255, 0.2);
+  border-top-color: rgba(167, 226, 255, 0.72);
+  border-left-color: transparent;
+  animation: networkSpin 18s linear infinite;
+}
+
+.orbit-one { transform: rotateX(68deg) rotateZ(-22deg); }
+.orbit-two { transform: rotateX(64deg) rotateZ(36deg); animation-duration: 24s; animation-direction: reverse; }
+.orbit-three { transform: rotateX(72deg) rotateZ(88deg); width: min(430px, 92vw); animation-duration: 30s; opacity: 0.58; }
+
+.network-panel,
+.network-chart-panel {
+  position: absolute;
+  z-index: 6;
+  border: 1px solid rgba(142, 184, 255, 0.18);
+  border-radius: 14px;
+  background: rgba(12, 24, 43, 0.78);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(14px);
+}
+
+.network-panel {
+  min-width: 128px;
+  padding: 12px;
+  animation: networkFloat 5.6s ease-in-out infinite;
+}
+
+.network-panel span,
+.network-panel small,
+.network-chart-panel span {
+  color: #8ca4c7;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.network-panel strong {
+  display: block;
+  margin-top: 4px;
+  color: #ffffff;
+  font-size: 24px;
+  letter-spacing: -0.04em;
+}
+
+.network-panel small {
+  margin-top: 4px;
+  color: #9eeaaf;
+}
+
+.top-left { left: 18px; top: 72px; }
+.bottom-left { left: 30%; bottom: 36px; animation-delay: 0.8s; }
+.top-right { right: 18px; top: 76px; animation-delay: 1.2s; }
+
+.network-side-list {
+  position: absolute;
+  left: 18px;
+  bottom: 84px;
+  z-index: 6;
+  display: grid;
+  gap: 8px;
+  color: #d9e8ff;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.network-side-list span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.network-side-list i {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  box-shadow: 0 0 12px currentColor;
+}
+
+.network-side-list .blue { background: #4b8dff; color: #4b8dff; }
+.network-side-list .green { background: #83f28f; color: #83f28f; }
+.network-side-list .amber { background: #ffb84d; color: #ffb84d; }
+
+.network-chart-panel {
+  right: 18px;
+  bottom: 56px;
+  width: 120px;
+  padding: 12px;
+}
+
+.network-bars {
+  display: flex;
+  align-items: end;
+  gap: 8px;
+  height: 82px;
+  margin-top: 10px;
+}
+
+.network-bars i {
+  flex: 1;
+  border-radius: 5px 5px 2px 2px;
+  background: linear-gradient(180deg, #83f28f, #246bfe);
+  box-shadow: 0 0 16px rgba(74, 144, 255, 0.35);
+  animation: networkBar 4s ease-in-out infinite;
+}
+
+.network-bars i:nth-child(2) { animation-delay: 0.3s; }
+.network-bars i:nth-child(3) { animation-delay: 0.6s; }
+.network-bars i:nth-child(4) { animation-delay: 0.9s; background: linear-gradient(180deg, #ffcf5a, #ff8a3d); }
+
+.network-rings {
+  position: absolute;
+  right: 132px;
+  bottom: 34px;
+  z-index: 6;
+  display: flex;
+  gap: 10px;
+}
+
+.network-rings span {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 2px solid rgba(255, 199, 75, 0.82);
+  color: #fff7d6;
+  font-size: 12px;
+  font-weight: 900;
+  background: rgba(8, 16, 31, 0.74);
+}
+
+.network-rings span:nth-child(2) {
+  border-color: rgba(148, 163, 184, 0.72);
+  color: #dfe8f8;
+}
+
+@keyframes networkAurora {
+  from { opacity: 0.74; transform: scale(1); }
+  to { opacity: 1; transform: scale(1.06); }
+}
+
+@keyframes networkMapDrift {
+  from { transform: translateX(-2%) rotate(-2deg); }
+  to { transform: translateX(2%) rotate(3deg); }
+}
+
+@keyframes networkRoute {
+  to { stroke-dashoffset: -120; }
+}
+
+@keyframes networkPulse {
+  0%, 100% { transform: scale(0.72); opacity: 0.64; }
+  50% { transform: scale(1.55); opacity: 1; }
+}
+
+@keyframes networkCore {
+  0%, 100% { transform: scale(0.75); opacity: 0.35; }
+  50% { transform: scale(1.18); opacity: 0.8; }
+}
+
+@keyframes networkLight {
+  from { opacity: 0.68; transform: rotate(-4deg); }
+  to { opacity: 1; transform: rotate(7deg); }
+}
+
+@keyframes networkSpin {
+  to { rotate: 360deg; }
+}
+
+@keyframes networkFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes networkBar {
+  0%, 100% { transform: scaleY(0.88); }
+  50% { transform: scaleY(1); }
+}
+
+@media (max-width: 900px) {
+  .network-globe-card {
+    min-height: 390px;
+  }
+
+  .network-panel,
+  .network-chart-panel,
+  .network-rings,
+  .network-side-list {
+    display: none;
+  }
+
+  .network-globe-stage {
+    inset: 54px 18px 22px;
+  }
+}
+
+@media (max-width: 520px) {
+  .network-globe-card {
+    min-height: 330px;
+    border-radius: 16px;
+  }
+
+  .network-topbar {
+    padding: 14px 14px 0;
+  }
+
+  .network-topbar strong {
+    font-size: 14px;
+  }
+
+  .network-globe {
+    width: min(255px, 78vw);
+  }
+
+  .network-globe-orbit {
+    width: min(300px, 92vw);
+  }
+
+  .orbit-three {
+    width: min(325px, 96vw);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .network-globe-aurora,
+  .network-globe-map,
+  .network-routes path,
+  .network-dot,
+  .network-core::after,
+  .network-globe-light,
+  .network-globe-orbit,
+  .network-panel,
+  .network-bars i {
+    animation: none !important;
+  }
+}
