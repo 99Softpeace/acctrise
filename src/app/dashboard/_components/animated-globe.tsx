@@ -36,7 +36,7 @@ export function AnimatedGlobe() {
         ))}
       </div>
       <div className="absolute bottom-5 left-5 right-5 grid grid-cols-3 gap-2 text-center">
-        {["Bulkacc", "SMSPool", "Reseller SMM"].map((item) => (
+        {["Accounts", "Numbers", "Boosting"].map((item) => (
           <div key={item} className="rounded-lg border border-white/80 bg-white/75 px-2 py-2 text-[11px] font-bold text-slate-700 shadow-sm backdrop-blur">
             {item}
           </div>

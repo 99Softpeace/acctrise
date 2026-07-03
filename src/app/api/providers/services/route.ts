@@ -11,18 +11,30 @@ export async function GET(request: NextRequest) {
   const kind = request.nextUrl.searchParams.get("kind");
   if (!isLiveServiceKind(kind)) {
     return NextResponse.json(
-      { error: "Invalid provider service kind." },
+      { error: "Invalid service type." },
       { status: 400 }
     );
   }
 
   try {
     const result = await fetchLiveServices(kind);
-    return NextResponse.json({ success: true, ...result });
+    return NextResponse.json({
+      success: true,
+      kind: result.kind,
+      label: "Live services",
+      services: result.services.map((service) => ({
+        externalId: service.externalId,
+        name: service.name,
+        description: service.description,
+        price: service.price,
+        minOrder: service.minOrder,
+        maxOrder: service.maxOrder
+      }))
+    });
   } catch (error) {
     console.error("[providers/services]", { kind, error });
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Provider service fetch failed." },
+      { error: "Service is available, but fulfillment is temporarily unavailable. Please contact support." },
       { status: 502 }
     );
   }
