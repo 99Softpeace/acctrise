@@ -3,9 +3,19 @@
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
 
-type ViewId = "overview" | "orders" | "numbers" | "catalog" | "wallet";
+type ViewId = "overview" | "boosting" | "logs" | "foreign" | "ukpremium" | "esim" | "wallet";
 type StatusCell = { label: string; variant?: string };
 type TableCell = string | StatusCell;
+
+const navItems: Array<{ id: ViewId; label: string }> = [
+  { id: "overview", label: "Overview" },
+  { id: "boosting", label: "Boosting" },
+  { id: "logs", label: "Logs" },
+  { id: "foreign", label: "Foreign numbers" },
+  { id: "ukpremium", label: "UK premium" },
+  { id: "esim", label: "eSIM" },
+  { id: "wallet", label: "Wallet" }
+];
 
 const heroOrders = [
   ["Instagram followers", "Processing"],
@@ -13,39 +23,72 @@ const heroOrders = [
   ["Wallet top-up", "Complete"]
 ];
 
-const navItems: Array<{ id: ViewId; label: string }> = [
-  { id: "overview", label: "Home" },
-  { id: "orders", label: "Orders" },
-  { id: "numbers", label: "OTP Inbox" },
-  { id: "catalog", label: "Services" },
-  { id: "wallet", label: "Wallet" }
+const summaryCards = [
+  ["Wallet balance", "$12,840", "Ready for new orders"],
+  ["Active orders", "24", "Live tracking enabled"],
+  ["Live numbers", "17", "Country routing active"],
+  ["Available services", "620+", "Updated hourly"]
 ];
 
-const orders = [
+const recentOrders = [
   ["AC-9201", "Instagram followers", "7,500", "$42.60", "Processing", ""],
   ["AC-9200", "Telegram members", "2,000", "$18.10", "Waiting", "waiting"],
   ["AC-9199", "TikTok views", "50,000", "$31.40", "Delivered", "done"],
   ["AC-9198", "YouTube watch time", "900h", "$74.20", "Processing", ""]
 ];
 
-const numbers = [
-  { id: "VN-2048", app: "Telegram", country: "Poland", number: "+48 572 118 904", code: "482-901", time: "41s" },
-  { id: "VN-2047", app: "WhatsApp", country: "Brazil", number: "+55 11 98422 7710", code: "918-044", time: "2m 12s" },
-  { id: "VN-2046", app: "Google", country: "United States", number: "+1 415 290 1774", code: "663-210", time: "5m 03s" }
+const boostingPackages = [
+  {
+    title: "Instagram engagement",
+    description: "Followers, likes, comments, story views with fast delivery.",
+    price: "$0.0056 / unit",
+    status: "Priority boosting"
+  },
+  {
+    title: "Telegram growth",
+    description: "Members, channel joiners and post impressions for any audience.",
+    price: "$0.0091 / unit",
+    status: "Reseller ready"
+  },
+  {
+    title: "TikTok visibility",
+    description: "Views, watch time, and engagement for trending content.",
+    price: "$0.0008 / unit",
+    status: "High retention"
+  }
 ];
 
-const services = [
-  ["Instagram followers", "High-retention social growth", "$0.0056 / unit"],
-  ["TikTok views", "Fast views for campaigns", "$0.0008 / unit"],
-  ["Telegram members", "Group and channel growth", "$0.0091 / unit"],
-  ["USA SMS verification", "Recommended number route", "$0.84 / rental"],
-  ["Poland SMS verification", "Fresh OTP inventory", "$0.42 / rental"],
-  ["Reseller bundle", "Services for client sellers", "$115 / pack"]
+const logRows = [
+  ["LOG-2041", "Bulkacc", "Account import", { label: "Completed", variant: "done" }, "Jun 24"],
+  ["LOG-2037", "SMSPool", "Number sync", { label: "Live", variant: "" }, "Jun 24"],
+  ["LOG-2032", "Bulkacc", "Usage report", { label: "Pending", variant: "waiting" }, "Jun 23"],
+  ["LOG-2028", "SMSPool", "UK premium batch", { label: "Completed", variant: "done" }, "Jun 22"]
 ];
 
-function scrollToSection(selector: string) {
-  document.querySelector(selector)?.scrollIntoView({ behavior: "smooth", block: "start" });
-}
+const foreignNumbers = [
+  { id: "VN-2048", app: "Telegram", country: "Poland", number: "+48 572 118 904", price: "$0.82/hr" },
+  { id: "VN-2047", app: "WhatsApp", country: "Brazil", number: "+55 11 98422 7710", price: "$0.96/hr" },
+  { id: "VN-2046", app: "Google", country: "United States", number: "+1 415 290 1774", price: "$1.20/hr" }
+];
+
+const ukPremiumNumbers = [
+  { id: "UKP-021", service: "WhatsApp", number: "+44 7894 112345", price: "$4.50/hr" },
+  { id: "UKP-022", service: "Telegram", number: "+44 7700 900123", price: "$4.80/hr" },
+  { id: "UKP-023", service: "Google", number: "+44 7400 330122", price: "$5.20/hr" }
+];
+
+const esimPlans = [
+  { title: "UK Data Pass", amount: "8 GB", validity: "15 days", price: "$24.00" },
+  { title: "EU Travel Pass", amount: "12 GB", validity: "30 days", price: "$28.00" },
+  { title: "Global Connect", amount: "4 GB", validity: "10 days", price: "$18.00" }
+];
+
+const walletHistoryRows = [
+  ["Wallet top-up", "Card", "+$3,000", { label: "Complete", variant: "done" }],
+  ["Instagram order", "Wallet", "-$42.60", { label: "Paid", variant: "done" }],
+  ["OTP rental", "Wallet", "-$2.10", { label: "Paid", variant: "done" }],
+  ["Refund", "Auto", "+$0.48", { label: "Complete", variant: "done" }]
+];
 
 function Status({ label, variant = "" }: StatusCell) {
   return <span className={`status ${variant}`}>{label}</span>;
@@ -56,19 +99,13 @@ function DataTable({ columns, rows }: { columns: string[]; rows: TableCell[][] }
     <div className="table-wrap">
       <table>
         <thead>
-          <tr>
-            {columns.map((column) => (
-              <th key={column}>{column}</th>
-            ))}
-          </tr>
+          <tr>{columns.map((column) => (<th key={column}>{column}</th>))}</tr>
         </thead>
         <tbody>
           {rows.map((row, rowIndex) => (
             <tr key={rowIndex}>
               {row.map((cell, cellIndex) => (
-                <td key={`${rowIndex}-${cellIndex}`}>
-                  {typeof cell === "string" ? cell : <Status {...cell} />}
-                </td>
+                <td key={`${rowIndex}-${cellIndex}`}>{typeof cell === "string" ? cell : <Status {...cell} />}</td>
               ))}
             </tr>
           ))}
@@ -78,150 +115,128 @@ function DataTable({ columns, rows }: { columns: string[]; rows: TableCell[][] }
   );
 }
 
-function QuickOrder({ onAction }: { onAction: (action: string) => void }) {
-  return (
-    <aside className="order-box">
-      <div className="card-title" style={{ padding: 0, border: 0 }}>
-        <h3>Quick order</h3>
-      </div>
-      <label className="field">
-        <span>Service</span>
-        <select defaultValue="Instagram followers">
-          <option>Instagram followers</option>
-          <option>TikTok views</option>
-          <option>Telegram OTP number</option>
-          <option>Reseller bundle</option>
-        </select>
-      </label>
-      <label className="field">
-        <span>Link or app</span>
-        <input placeholder="Paste profile link or choose app" />
-      </label>
-      <label className="field">
-        <span>Quantity</span>
-        <input type="number" defaultValue="2500" />
-      </label>
-      <div className="quote">
-        <span>Estimated price</span>
-        <strong>$14.00</strong>
-      </div>
-      <button className="btn btn-primary" type="button" onClick={() => onAction("submit-order")}>
-        Place order
-      </button>
-    </aside>
-  );
+function scrollToSection(selector: string) {
+  document.querySelector(selector)?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 export default function Home() {
   const [currentView, setCurrentView] = useState<ViewId>("overview");
-  const [selectedNumber, setSelectedNumber] = useState(numbers[0]);
   const [toasts, setToasts] = useState<Array<{ id: number; message: string }>>([]);
 
   function toast(message: string) {
     const id = Date.now();
     setToasts((items) => [...items, { id, message }]);
-    window.setTimeout(() => {
-      setToasts((items) => items.filter((item) => item.id !== id));
-    }, 3400);
+    window.setTimeout(() => setToasts((items) => items.filter((item) => item.id !== id)), 3200);
   }
 
   function handleAction(action: string) {
     const messages: Record<string, string> = {
-      start: "Account setup opened. Welcome to acctrise.",
+      start: "Account setup opened. Welcome to Acctrise.",
       fund: "Funding screen ready. Add funds to start ordering.",
       "new-order": "Choose a service and place your order in seconds.",
-      "submit-order": "Order placed. Your dashboard will track the progress.",
-      "copy-code": `OTP ${selectedNumber.code} copied.`,
-      "order-social": "Social media services are ready to order.",
+      submit: "Order placed. Your dashboard will track the progress.",
+      "copy-code": "OTP code copied to clipboard.",
+      "order-social": "Social service launch is ready.",
       "rent-number": "Number rental is ready. Choose app and country.",
       "browse-market": "Marketplace opened. Pick a service to resell or buy.",
       refresh: "Orders refreshed.",
       support: "Support is online and ready to help."
     };
 
-    toast(messages[action] || "Action ready.");
+    toast(messages[action] || "Action completed.");
   }
-
-  function switchView(view: ViewId) {
-    setCurrentView(view);
-    scrollToSection("#dashboard");
-  }
-
-  const orderRows = orders.map(([id, service, qty, cost, state, variant]) => [
-    id,
-    service,
-    qty,
-    cost,
-    { label: state, variant }
-  ]);
 
   const dashboardViews: Record<ViewId, ReactNode> = {
     overview: (
       <>
-        <section className="app-grid" aria-label="Account summary">
-          <article className="app-card"><span>Wallet balance</span><strong>$12,840</strong><small>Ready for new orders</small></article>
-          <article className="app-card"><span>Active orders</span><strong>24</strong><small>12 moving fast today</small></article>
-          <article className="app-card"><span>OTP numbers</span><strong>17</strong><small>6 codes received</small></article>
-          <article className="app-card"><span>Services</span><strong>600+</strong><small>Updated daily</small></article>
+        <section className="app-grid" aria-label="dashboard summary">
+          {summaryCards.map(([label, value, detail]) => (
+            <article className="app-card" key={label}>
+              <span>{label}</span>
+              <strong>{value}</strong>
+              <small>{detail}</small>
+            </article>
+          ))}
         </section>
         <section className="preview-grid">
           <article className="table-card">
             <div className="card-title">
-              <h3>Recent orders</h3>
+              <h3>Recent activity</h3>
               <button className="btn btn-soft" type="button" onClick={() => handleAction("refresh")}>Refresh</button>
             </div>
-            <DataTable columns={["Order", "Service", "Qty", "Cost", "Status"]} rows={orderRows} />
+            <DataTable
+              columns={["Order", "Service", "Qty", "Cost", "Status"]}
+              rows={recentOrders.map(([id, service, qty, cost, status, variant]) => [id, service, qty, cost, { label: status, variant }])}
+            />
           </article>
-          <QuickOrder onAction={handleAction} />
+          <article className="order-box">
+            <div className="card-title"><h3>Quick actions</h3></div>
+            <button className="btn btn-primary" type="button" onClick={() => handleAction("new-order")}>Place boosting order</button>
+            <button className="btn btn-soft" type="button" onClick={() => setCurrentView("foreign")}>Browse numbers</button>
+            <button className="btn btn-soft" type="button" onClick={() => setCurrentView("wallet")}>Open wallet</button>
+          </article>
         </section>
       </>
     ),
-    orders: (
-      <section className="preview-grid">
-        <article className="table-card">
-          <div className="card-title">
-            <h3>All orders</h3>
-            <button className="btn btn-primary" type="button" onClick={() => handleAction("new-order")}>New order</button>
-          </div>
-          <DataTable columns={["Order", "Service", "Qty", "Cost", "Status"]} rows={orderRows} />
-        </article>
-        <QuickOrder onAction={handleAction} />
-      </section>
-    ),
-    numbers: (
-      <section className="otp-layout">
-        <div className="otp-list">
-          {numbers.map((item) => (
-            <button
-              className={`otp-item ${item.id === selectedNumber.id ? "active" : ""}`}
-              type="button"
-              key={item.id}
-              onClick={() => setSelectedNumber(item)}
-            >
-              <b>{item.app} - {item.country}</b>
-              <span>{item.number}</span>
-              <span>{item.time} remaining</span>
-            </button>
-          ))}
-        </div>
-        <article className="otp-view">
-          <div>
-            <span className="badge light">{selectedNumber.app} code</span>
-            <div className="code">{selectedNumber.code}</div>
-            <p>{selectedNumber.country} number {selectedNumber.number} is active for {selectedNumber.time}. Copy the code before it expires.</p>
-            <button className="btn btn-primary" type="button" onClick={() => handleAction("copy-code")}>Copy OTP</button>
-          </div>
-        </article>
-      </section>
-    ),
-    catalog: (
+    boosting: (
       <section className="catalog-grid">
-        {services.map(([title, desc, price]) => (
-          <article className="catalog-item" key={title}>
-            <b>{title}</b>
-            <span>{desc}</span>
-            <strong>{price}</strong>
-            <button className="btn btn-soft" type="button" style={{ marginTop: 16 }} onClick={() => handleAction("new-order")}>Order now</button>
+        {boostingPackages.map((pack) => (
+          <article className="catalog-item" key={pack.title}>
+            <b>{pack.title}</b>
+            <span>{pack.description}</span>
+            <strong>{pack.price}</strong>
+            <div className="quote"><span>{pack.status}</span></div>
+            <button className="btn btn-soft" type="button" onClick={() => handleAction("order-social")}>Select package</button>
+          </article>
+        ))}
+      </section>
+    ),
+    logs: (
+      <article className="table-card">
+        <div className="card-title">
+          <h3>Provider logs</h3>
+          <button className="btn btn-soft" type="button" onClick={() => handleAction("refresh")}>Sync logs</button>
+        </div>
+        <DataTable
+          columns={["Log", "Provider", "Task", "Status", "Date"]}
+          rows={logRows}
+        />
+      </article>
+    ),
+    foreign: (
+      <section className="catalog-grid">
+        {foreignNumbers.map((item) => (
+          <article className="catalog-item" key={item.id}>
+            <b>{item.app}</b>
+            <span>{item.country}</span>
+            <strong>{item.number}</strong>
+            <div className="quote"><span>{item.price}</span></div>
+            <button className="btn btn-soft" type="button" onClick={() => handleAction("rent-number")}>Rent number</button>
+          </article>
+        ))}
+      </section>
+    ),
+    ukpremium: (
+      <section className="catalog-grid">
+        {ukPremiumNumbers.map((item) => (
+          <article className="catalog-item" key={item.id}>
+            <b>{item.service}</b>
+            <span>{item.id}</span>
+            <strong>{item.number}</strong>
+            <div className="quote"><span>{item.price}</span></div>
+            <button className="btn btn-soft" type="button" onClick={() => handleAction("rent-number")}>Reserve UK number</button>
+          </article>
+        ))}
+      </section>
+    ),
+    esim: (
+      <section className="catalog-grid">
+        {esimPlans.map((plan) => (
+          <article className="catalog-item" key={plan.title}>
+            <b>{plan.title}</b>
+            <span>{plan.amount} • {plan.validity}</span>
+            <strong>{plan.price}</strong>
+            <button className="btn btn-soft" type="button" onClick={() => handleAction("fund")}>Activate eSIM</button>
           </article>
         ))}
       </section>
@@ -238,12 +253,7 @@ export default function Home() {
           <div className="card-title"><h3>Wallet history</h3><span className="status done">Secure</span></div>
           <DataTable
             columns={["Item", "Method", "Amount", "Status"]}
-            rows={[
-              ["Wallet top-up", "Card", "+$3,000", { label: "Complete", variant: "done" }],
-              ["Instagram order", "Wallet", "-$42.60", { label: "Paid", variant: "done" }],
-              ["OTP rental", "Wallet", "-$2.10", { label: "Paid", variant: "done" }],
-              ["Refund", "Auto", "+$0.48", { label: "Complete", variant: "done" }]
-            ]}
+            rows={walletHistoryRows}
           />
         </article>
       </section>
@@ -261,6 +271,7 @@ export default function Home() {
         <nav className="nav-links" aria-label="Primary navigation">
           <a href="#services">Services</a>
           <a href="#how">How it works</a>
+          <a href="#dashboard">Dashboard</a>
           <a href="#faq">FAQ</a>
         </nav>
         <div className="top-actions">
@@ -275,20 +286,19 @@ export default function Home() {
           <div className="hero-bg hero-bg-two" />
           <div className="hero-inner">
             <div className="hero-copy">
-              <span className="badge">#1 growth wallet for creators, vendors, and resellers</span>
-              <h1>Boost your digital presence instantly.</h1>
+              <span className="badge">Boosting, logs, numbers, and eSIM in one place</span>
+              <h1>Professional digital services without the dark interface.</h1>
               <p>
-                Buy social media services, rent OTP numbers, fund your wallet, and manage every order from one bright,
-                simple acctrise account.
+                Manage boosting, verification numbers, UK premium lines, and eSIM plans from a clean light dashboard built for vendors and resellers.
               </p>
               <div className="hero-actions">
                 <Link className="btn btn-primary btn-large" href="/auth/signup">Create free account</Link>
-                <button className="btn btn-white btn-large" type="button" onClick={() => scrollToSection("#services")}>View services</button>
+                <button className="btn btn-white btn-large" type="button" onClick={() => scrollToSection("#dashboard")}>Open dashboard</button>
               </div>
               <div className="hero-trust" aria-label="Platform highlights">
-                <span>Instant delivery</span>
-                <span>24/7 support</span>
-                <span>Secure wallet</span>
+                <span>Best-in-class providers</span>
+                <span>Fast service sync</span>
+                <span>Clean light design</span>
               </div>
             </div>
 
@@ -306,10 +316,10 @@ export default function Home() {
                   <button type="button" onClick={() => handleAction("fund")}>Add funds</button>
                 </div>
                 <div className="quick-grid">
-                  <button type="button" onClick={() => switchView("orders")}><b>Social</b><span>Followers, likes, views</span></button>
-                  <button type="button" onClick={() => switchView("numbers")}><b>Numbers</b><span>OTP inbox ready</span></button>
-                  <button type="button" onClick={() => switchView("catalog")}><b>Market</b><span>Resell services</span></button>
-                  <button type="button" onClick={() => switchView("wallet")}><b>Wallet</b><span>Track spending</span></button>
+                  <button type="button" onClick={() => setCurrentView("boosting")}><b>Boosting</b><span>Growth campaigns</span></button>
+                  <button type="button" onClick={() => setCurrentView("foreign")}><b>Numbers</b><span>OTP rentals</span></button>
+                  <button type="button" onClick={() => setCurrentView("esim")}><b>eSIM</b><span>Data plans</span></button>
+                  <button type="button" onClick={() => setCurrentView("wallet")}><b>Wallet</b><span>Funding</span></button>
                 </div>
                 <div className="mini-orders">
                   {heroOrders.map(([label, state]) => (
@@ -324,7 +334,7 @@ export default function Home() {
         <section className="stats-strip" aria-label="acctrise stats">
           <div><strong>120k+</strong><span>Orders completed</span></div>
           <div><strong>25k+</strong><span>Active users</span></div>
-          <div><strong>600+</strong><span>Services available</span></div>
+          <div><strong>620+</strong><span>Services available</span></div>
           <div><strong>98%</strong><span>Delivery success</span></div>
         </section>
 
@@ -337,49 +347,37 @@ export default function Home() {
           <div className="service-grid">
             <article className="service-card social-card">
               <div className="service-icon">S</div>
-              <h3>Social media growth</h3>
-              <p>Followers, likes, views, members, comments, watch time, and more for popular platforms.</p>
+              <h3>Boosting</h3>
+              <p>High-performance growth packages for social accounts and reseller clients.</p>
               <ul>
-                <li>Instagram, TikTok, YouTube, X</li>
-                <li>Fast starts and clear order status</li>
-                <li>Great for creators, vendors, agencies</li>
+                <li>Instagram, TikTok, Telegram, YouTube</li>
+                <li>Fast delivery and daily status updates</li>
+                <li>Vendor-ready workflows</li>
               </ul>
-              <button className="btn btn-card" type="button" onClick={() => handleAction("order-social")}>Order social service</button>
+              <button className="btn btn-card" type="button" onClick={() => setCurrentView("boosting")}>View boosting</button>
             </article>
             <article className="service-card number-card">
               <div className="service-icon">#</div>
               <h3>Verification numbers</h3>
-              <p>Rent virtual numbers for SMS codes and view OTP messages from a clean inbox.</p>
+              <p>Rent foreign, UK premium, and SMSPool number inventory with live OTP support.</p>
               <ul>
-                <li>WhatsApp, Telegram, Google, and more</li>
-                <li>Country selection and rental timer</li>
-                <li>Copy OTP with one click</li>
+                <li>eSIM, virtual numbers, UK premium routing</li>
+                <li>Simple OTP inbox and copy options</li>
+                <li>Fast onboarding for all providers</li>
               </ul>
-              <button className="btn btn-card" type="button" onClick={() => handleAction("rent-number")}>Rent number</button>
+              <button className="btn btn-card" type="button" onClick={() => setCurrentView("foreign")}>Browse numbers</button>
             </article>
             <article className="service-card market-card">
-              <div className="service-icon">M</div>
-              <h3>Digital marketplace</h3>
-              <p>Buy or resell services with wallet history, pricing tools, and optional API access later.</p>
+              <div className="service-icon">P</div>
+              <h3>Partner logs</h3>
+              <p>Track provider syncs, number inventory, and service logs from Bulkacc and SMSPool.</p>
               <ul>
-                <li>Ready-to-sell services</li>
-                <li>Better rates for resellers</li>
-                <li>Simple wallet and purchase records</li>
+                <li>Audit-ready event history</li>
+                <li>Provider status and sync details</li>
+                <li>Clear log structure for teams</li>
               </ul>
-              <button className="btn btn-card" type="button" onClick={() => handleAction("browse-market")}>Browse marketplace</button>
+              <button className="btn btn-card" type="button" onClick={() => setCurrentView("logs")}>Open logs</button>
             </article>
-          </div>
-        </section>
-
-        <section id="how" className="section how-section">
-          <div className="section-head">
-            <span className="badge light">How it works</span>
-            <h2>Three simple steps. That is the whole magic.</h2>
-          </div>
-          <div className="steps">
-            <article><span>01</span><h3>Create account</h3><p>Sign up in seconds and enter your acctrise dashboard.</p></article>
-            <article><span>02</span><h3>Add funds</h3><p>Top up your wallet with your preferred payment method.</p></article>
-            <article><span>03</span><h3>Place order</h3><p>Choose a service, confirm the price, and track delivery live.</p></article>
           </div>
         </section>
 
@@ -393,7 +391,7 @@ export default function Home() {
                     key={item.id}
                     className={`nav-button ${item.id === currentView ? "active" : ""}`}
                     type="button"
-                    onClick={() => switchView(item.id)}
+                    onClick={() => setCurrentView(item.id)}
                   >
                     {item.label}
                   </button>
@@ -413,7 +411,7 @@ export default function Home() {
                 </div>
                 <div className="dash-actions">
                   <button className="btn btn-soft" type="button" onClick={() => handleAction("fund")}>Add funds</button>
-                  <button className="btn btn-primary" type="button" onClick={() => handleAction("new-order")}>New order</button>
+                  <button className="btn btn-primary" type="button" onClick={() => setCurrentView("boosting")}>New boosting order</button>
                 </div>
               </div>
               <div>{dashboardViews[currentView]}</div>
@@ -426,13 +424,12 @@ export default function Home() {
             <span className="badge">Daily updates</span>
             <h2>Fresh services, cleaner prices, better delivery.</h2>
             <p>
-              acctrise is designed to feel alive. Service prices, number availability, wallet history, and order updates
-              stay visible so users always have a reason to come back.
+              acctrise is designed to feel alive. Service prices, number availability, wallet history, and order updates stay visible so users always have a reason to come back.
             </p>
           </div>
           <div className="update-list">
             <div><b>New</b><span>TikTok views restocked</span></div>
-            <div><b>Hot</b><span>USA WhatsApp numbers available</span></div>
+            <div><b>Hot</b><span>UK premium numbers available</span></div>
             <div><b>Deal</b><span>Reseller bundle discount active</span></div>
           </div>
         </section>
@@ -443,10 +440,10 @@ export default function Home() {
             <h2>Clear answers before users pay.</h2>
           </div>
           <div className="faq-grid">
-            <details open><summary>What can I buy on acctrise?</summary><p>Social media growth services, virtual SMS numbers for verification, and digital marketplace services.</p></details>
-            <details><summary>How do verification numbers work?</summary><p>Choose an app and country, rent a number, then copy the OTP code when it arrives in your inbox.</p></details>
-            <details><summary>How fast do orders start?</summary><p>Many services start within seconds or minutes. Each order shows its current status in your dashboard.</p></details>
-            <details><summary>Can I resell services?</summary><p>Yes. acctrise includes marketplace tools and reseller-friendly pricing for users who serve clients.</p></details>
+            <details open><summary>What can I buy on acctrise?</summary><p>Social media growth, virtual SMS numbers, UK premium numbers, and eSIM plans.</p></details>
+            <details><summary>How do verification numbers work?</summary><p>Choose an app and country, rent a number, then copy the OTP code when it arrives.</p></details>
+            <details><summary>How fast do orders start?</summary><p>Many services start within seconds or minutes. Each order shows its current status.</p></details>
+            <details><summary>Can I resell services?</summary><p>Yes. acctrise supports reseller workflows and provider logs for accountability.</p></details>
           </div>
         </section>
       </main>
@@ -459,5 +456,3 @@ export default function Home() {
     </>
   );
 }
-
-

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * SMS Pool Provider Adapter
  * Handles virtual numbers for SMS verification
  */
@@ -6,53 +6,28 @@
 import { BaseProviderAdapter, ProviderConfig, OrderRequest, OrderResponse, OrderStatus, ServiceMapping, ProviderHealth } from "../base-adapter";
 import axios, { AxiosInstance } from "axios";
 
-interface SMSPoolServiceResponse {
-  id: number;
-  name: string;
-  country: string;
-  price: number;
-}
-
-interface SMSPoolNumberResponse {
-  id: number;
-  number: string;
-  country: string;
-  service: string;
-  expiry: number;
-}
-
-interface SMSPoolSMSResponse {
-  id: number;
-  from: string;
-  to: string;
-  body: string;
-  date: number;
-  code?: string;
-}
 
 export class SMSPoolAdapter extends BaseProviderAdapter {
   private client: AxiosInstance;
-  private baseUrl = "https://api.smspool.net";
+  private baseUrl: string;
 
   constructor(providerId: string, config: ProviderConfig, logger?: any) {
     super(providerId, config, logger);
+
+    this.baseUrl = config.baseUrl || this.getDefaultBaseUrl();
 
     this.client = axios.create({
       baseURL: this.baseUrl,
       timeout: config.timeout || 30000,
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/x-www-form-urlencoded"
       }
     });
   }
 
   async authenticate(): Promise<boolean> {
     try {
-      const response = await this.client.get("/user/balance", {
-        headers: {
-          Authorization: `Bearer ${this.config.apiKey}`
-        }
-      });
+      const response = await this.client.post("/request/balance", this.form({ key: this.config.apiKey }));
 
       if (response.status === 200 && response.data.balance !== undefined) {
         this.log("info", "SMS Pool authentication successful");
@@ -67,63 +42,97 @@ export class SMSPoolAdapter extends BaseProviderAdapter {
 
   async fetchServices(): Promise<ServiceMapping[]> {
     try {
-      const response = await this.client.get("/api/v2/number/regions", {
-        headers: {
-          Authorization: `Bearer ${this.config.apiKey}`
-        }
-      });
+      const response = await this.client.get("/service/retrieve_all");
+      const services = Array.isArray(response.data) ? response.data : response.data?.data;
 
-      if (!response.data.regions || !Array.isArray(response.data.regions)) {
-        return [];
+      if (!Array.isArray(services)) {
+        throw new Error("SMSPool service response did not include a service array.");
       }
 
-      const services: ServiceMapping[] = [];
-      for (const country of Object.keys(response.data.regions)) {
-        const region = response.data.regions[country];
-        services.push({
-          externalId: country,
-          name: `${country} SMS Verification`,
-          price: region.price || 0.5,
-          minOrder: 1,
-          maxOrder: 100,
-          description: `SMS verification numbers for ${country}`
-        });
-      }
-      return services;
+      return services.map((service: any) => ({
+        externalId: String(service.ID ?? service.id),
+        name: service.name || `SMSPool service ${service.ID ?? service.id}`,
+        price: Number(service.price || 0),
+        minOrder: 1,
+        maxOrder: 1,
+        description: "SMSPool SMS verification service"
+      }));
     } catch (error) {
       this.log("error", "Failed to fetch SMS Pool services", error);
-      return [];
+      throw error;
+    }
+  }
+
+  async fetchServicesForCountry(countryId: string, countryName: string): Promise<ServiceMapping[]> {
+    try {
+      const response = await this.client.get("/service/retrieve_all", { params: { country: countryId } });
+      const services = Array.isArray(response.data) ? response.data : response.data?.data;
+
+      if (!Array.isArray(services)) {
+        throw new Error(`SMSPool ${countryName} service response did not include a service array.`);
+      }
+
+      return services.map((service: any) => ({
+        externalId: `${countryId}:${service.ID ?? service.id}`,
+        name: `${service.name || `SMSPool service ${service.ID ?? service.id}`} - ${countryName}`,
+        price: Number(service.price || 0),
+        minOrder: 1,
+        maxOrder: 1,
+        description: `${countryName} SMS verification service`
+      }));
+    } catch (error) {
+      this.log("error", `Failed to fetch SMS Pool ${countryName} services`, error);
+      throw error;
+    }
+  }
+
+  async fetchEsimServices(): Promise<ServiceMapping[]> {
+    try {
+      const response = await this.client.post("/esim/pricing", this.form({ key: this.config.apiKey, start: "0", length: "100", Search: "" }));
+      const services = Array.isArray(response.data?.data) ? response.data.data : response.data;
+
+      if (!Array.isArray(services)) {
+        throw new Error("SMSPool eSIM pricing response did not include a data array.");
+      }
+
+      return services.map((plan: any) => ({
+        externalId: String(plan.ID ?? plan.id),
+        name: `${plan.name || plan.countryCode || "eSIM"} eSIM ${plan.dataInGb ?? ""}GB`.trim(),
+        price: Number(plan.price || 0),
+        minOrder: 1,
+        maxOrder: 1,
+        description: `${plan.speed || "Data"} eSIM plan${plan.countryCode ? ` - ${plan.countryCode}` : ""}`
+      }));
+    } catch (error) {
+      this.log("error", "Failed to fetch SMS Pool eSIM services", error);
+      throw error;
     }
   }
 
   async placeOrder(request: OrderRequest): Promise<OrderResponse> {
     try {
-      const country = request.serviceId; // Country code
+      const country = request.serviceId;
       const additionalInfo = request.additionalInfo && typeof request.additionalInfo === "object" && !Array.isArray(request.additionalInfo)
         ? request.additionalInfo
         : {};
       const serviceId = typeof additionalInfo.serviceId === "string" ? additionalInfo.serviceId : "telegram";
 
-      const response = await this.client.get("/api/v2/purchase/sms", {
-        params: {
-          country,
-          service: serviceId,
-          quantity: request.quantity
-        },
-        headers: {
-          Authorization: `Bearer ${this.config.apiKey}`
-        }
-      });
+      const response = await this.client.post("/purchase/sms", this.form({
+        key: this.config.apiKey,
+        country,
+        service: serviceId,
+        quantity: request.quantity.toString()
+      }));
 
-      if (response.data.id) {
+      if (response.data.order_id || response.data.id) {
         return {
-          externalOrderId: response.data.id.toString(),
+          externalOrderId: String(response.data.order_id || response.data.id),
           status: "pending",
           message: `Numbers received: ${response.data.numbers?.length || 0}`
         };
       }
 
-      throw new Error(response.data.error || "Failed to purchase numbers");
+      throw new Error(response.data.error || response.data.message || "Failed to purchase numbers");
     } catch (error) {
       this.log("error", "Failed to place SMS Pool order", error);
       throw error;
@@ -132,19 +141,15 @@ export class SMSPoolAdapter extends BaseProviderAdapter {
 
   async checkOrderStatus(externalOrderId: string): Promise<OrderStatus> {
     try {
-      const response = await this.client.get(`/api/v2/sms/${externalOrderId}`, {
-        headers: {
-          Authorization: `Bearer ${this.config.apiKey}`
-        }
-      });
+      const response = await this.client.post("/sms/check", this.form({ key: this.config.apiKey, orderid: externalOrderId }));
 
       if (response.data) {
         const data = response.data;
         return {
           externalOrderId,
-          status: this.mapStatus(data.status),
-          progress: data.received ? 100 : 0,
-          message: data.code ? `Code received: ${data.code}` : "Waiting for SMS...",
+          status: this.mapStatus(String(data.status ?? data.status_code ?? "")),
+          progress: data.sms || data.code ? 100 : 0,
+          message: data.sms || data.code ? `Code received: ${data.sms || data.code}` : "Waiting for SMS...",
           lastUpdated: new Date()
         };
       }
@@ -175,31 +180,34 @@ export class SMSPoolAdapter extends BaseProviderAdapter {
     }
   }
 
-  async refundOrder(externalOrderId: string): Promise<boolean> {
-    try {
-      const response = await this.client.post(
-        `/api/v2/number/${externalOrderId}/release`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${this.config.apiKey}`
-          }
-        }
-      );
-
-      return response.status === 200;
-    } catch (error) {
-      this.log("error", "Failed to refund SMS order", error);
-      return false;
-    }
+  async refundOrder(): Promise<boolean> {
+    return false;
   }
 
   async getSupportedPaymentMethods(): Promise<string[]> {
-    return ["credit_card", "crypto"];
+    return ["wallet"];
+  }
+
+  private form(values: Record<string, string>) {
+    const form = new URLSearchParams();
+    Object.entries(values).forEach(([key, value]) => form.append(key, value));
+    return form;
+  }
+
+  private getDefaultBaseUrl() {
+    return "https://api.smspool.net";
   }
 
   private mapStatus(providerStatus: string): string {
     const STATUS_MAP: { [key: string]: string } = {
+      "1": "pending",
+      "2": "cancelled",
+      "3": "completed",
+      "4": "processing",
+      "5": "cancelled",
+      "6": "refunded",
+      "7": "processing",
+      "8": "processing",
       "pending": "pending",
       "received": "completed",
       "completed": "completed",
@@ -209,5 +217,3 @@ export class SMSPoolAdapter extends BaseProviderAdapter {
     return STATUS_MAP[providerStatus?.toLowerCase() || ""] || "unknown";
   }
 }
-
-

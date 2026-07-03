@@ -1,9 +1,9 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { hasRole } from "@/lib/auth/roles";
 
-const protectedPrefixes = ["/dashboard", "/api/wallet", "/api/orders", "/api/auth/devices"];
+const protectedPrefixes = ["/dashboard", "/api/providers", "/api/wallet", "/api/orders", "/api/auth/devices"];
 const staffPrefixes = ["/admin", "/api/admin"];
 
 function isProtected(pathname: string) {
@@ -40,5 +40,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/admin/:path*", "/api/wallet/:path*", "/api/orders/:path*", "/api/auth/devices"]
+  matcher: ["/dashboard/:path*", "/admin/:path*", "/api/admin/:path*", "/api/providers/:path*", "/api/wallet/:path*", "/api/orders/:path*", "/api/auth/devices"]
 };

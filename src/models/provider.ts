@@ -1,4 +1,6 @@
-import { Schema, model, models, type InferSchemaType, type Model, Types } from "mongoose";
+import mongoose, { type InferSchemaType, type Model, Types } from "mongoose";
+
+const { Schema, model, models } = mongoose;
 
 export const providerStatuses = ["ACTIVE", "INACTIVE", "MAINTENANCE", "ERROR"] as const;
 export type ProviderStatus = (typeof providerStatuses)[number];

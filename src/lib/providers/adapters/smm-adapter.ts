@@ -1,4 +1,4 @@
-﻿/**
+/**
  * SMM Panel Provider Adapter
  * Handles social media services (Instagram, TikTok, Telegram, etc.)
  */
@@ -7,49 +7,39 @@ import { BaseProviderAdapter, ProviderConfig, OrderRequest, OrderResponse, Order
 import axios, { AxiosInstance } from "axios";
 
 interface SMMServiceResponse {
-  service: number;
+  service: number | string;
   name: string;
   category: string;
-  rate: number;
-  min: number;
-  max: number;
-  dripfeed: number;
-  refill: number;
-  cancel: number;
-}
-
-interface SMMOrderResponse {
-  order: string | number;
-  charge: number;
-  startCount: number;
-  status: number;
+  rate: number | string;
+  min: number | string;
+  max: number | string;
+  refill?: boolean | number;
+  cancel?: boolean | number;
 }
 
 export class ResellingSMMAdapter extends BaseProviderAdapter {
   private client: AxiosInstance;
-  private baseUrl = "https://api.resellersms.com";
+  private baseUrl: string;
 
   constructor(providerId: string, config: ProviderConfig, logger?: any) {
     super(providerId, config, logger);
+
+    this.baseUrl = config.baseUrl || this.getDefaultBaseUrl();
 
     this.client = axios.create({
       baseURL: this.baseUrl,
       timeout: config.timeout || 30000,
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/x-www-form-urlencoded"
       }
     });
   }
 
   async authenticate(): Promise<boolean> {
     try {
-      const response = await this.client.get("/api/v2/user", {
-        params: {
-          api_key: this.config.apiKey
-        }
-      });
+      const response = await this.request({ action: "balance" });
 
-      if (response.status === 200 && response.data.balance !== undefined) {
+      if (response.status === 200 && response.data?.balance !== undefined) {
         this.log("info", "SMM Panel authentication successful");
         return true;
       }
@@ -62,65 +52,52 @@ export class ResellingSMMAdapter extends BaseProviderAdapter {
 
   async fetchServices(): Promise<ServiceMapping[]> {
     try {
-      const response = await this.client.get("/api/v2/services", {
-        params: {
-          api_key: this.config.apiKey
-        }
-      });
+      const response = await this.request({ action: "services" });
 
       if (!Array.isArray(response.data)) {
-        return [];
+        throw new Error(response.data?.error || "Reseller SMM services response was not an array.");
       }
 
       return response.data.map((service: SMMServiceResponse) => ({
-        externalId: service.service.toString(),
+        externalId: String(service.service),
         name: service.name,
-        price: service.rate,
-        minOrder: service.min,
-        maxOrder: service.max,
+        price: Number(service.rate || 0),
+        minOrder: Number(service.min || 1),
+        maxOrder: Number(service.max || 0) || undefined,
         description: `${service.category} - ${service.service}`
       }));
     } catch (error) {
       this.log("error", "Failed to fetch SMM services", error);
-      return [];
+      throw error;
     }
   }
 
   async placeOrder(request: OrderRequest): Promise<OrderResponse> {
     try {
-      // Map serviceId to external service ID
-      // This would typically come from ProviderService mapping
-      const externalServiceId = request.serviceId;
+      const additionalInfo = request.additionalInfo && typeof request.additionalInfo === "object" && !Array.isArray(request.additionalInfo)
+        ? request.additionalInfo
+        : {};
+      if (!request.targetUrl) {
+        throw new Error("A target link is required for Reseller SMM orders.");
+      }
 
-      const orderParams: any = {
-        api_key: this.config.apiKey,
+      const response = await this.request({
         action: "add",
-        service: externalServiceId,
+        service: request.serviceId,
         link: request.targetUrl,
-        quantity: request.quantity
-      };
-
-      // Optional parameters
-      if (request.targetUsername) {
-        orderParams.username = request.targetUsername;
-      }
-      if (request.additionalInfo) {
-        Object.assign(orderParams, request.additionalInfo);
-      }
-
-      const response = await this.client.get("/api/v2/orders", {
-        params: orderParams
+        quantity: String(request.quantity),
+        ...Object.fromEntries(Object.entries(additionalInfo).map(([key, value]) => [key, String(value)]))
       });
 
-      if (response.data.order) {
+      if (response.data?.order) {
         return {
-          externalOrderId: response.data.order.toString(),
+          externalOrderId: String(response.data.order),
           status: "pending",
           message: "Order placed successfully"
         };
       }
 
-      throw new Error(response.data.error || "Failed to place order");
+      throw new Error(response.data?.error || "Failed to place order");
     } catch (error) {
       this.log("error", "Failed to place SMM order", error);
       throw error;
@@ -129,26 +106,25 @@ export class ResellingSMMAdapter extends BaseProviderAdapter {
 
   async checkOrderStatus(externalOrderId: string): Promise<OrderStatus> {
     try {
-      const response = await this.client.get("/api/v2/orders", {
-        params: {
-          api_key: this.config.apiKey,
-          action: "status",
-          order: externalOrderId
-        }
+      const response = await this.request({
+        action: "status",
+        order: externalOrderId
       });
 
-      if (response.data.order) {
+      if (response.data && !response.data.error) {
         const data = response.data;
+        const quantity = Number(data.quantity || 0);
+        const remains = Number(data.remains || 0);
         return {
           externalOrderId,
-          status: this.mapStatus(data.order_status),
-          progress: data.startCount ? Math.floor((data.start_count / data.quantity) * 100) : 0,
-          message: data.order_status === "Completed" ? "Order delivered" : "Processing...",
+          status: this.mapStatus(String(data.status || "")),
+          progress: quantity > 0 ? Math.max(0, Math.min(100, Math.round(((quantity - remains) / quantity) * 100))) : 0,
+          message: data.status ? `Order ${data.status}` : "Processing...",
           lastUpdated: new Date()
         };
       }
 
-      throw new Error(response.data.error || "Failed to check order status");
+      throw new Error(response.data?.error || "Failed to check order status");
     } catch (error) {
       this.log("error", "Failed to check order status", error);
       throw error;
@@ -176,23 +152,25 @@ export class ResellingSMMAdapter extends BaseProviderAdapter {
 
   async refundOrder(externalOrderId: string): Promise<boolean> {
     try {
-      const response = await this.client.get("/api/v2/orders", {
-        params: {
-          api_key: this.config.apiKey,
-          action: "refund",
-          order: externalOrderId
-        }
-      });
-
-      return response.status === 200 && response.data.cancel === 200;
+      const response = await this.request({ action: "cancel", orders: externalOrderId });
+      return response.status === 200 && !response.data?.error;
     } catch (error) {
-      this.log("error", "Failed to refund order", error);
+      this.log("error", "Failed to cancel order", error);
       return false;
     }
   }
 
   async getSupportedPaymentMethods(): Promise<string[]> {
-    return ["credit_card", "paypal", "crypto"];
+    return ["wallet"];
+  }
+
+  private request(values: Record<string, string>) {
+    const form = new URLSearchParams({ key: this.config.apiKey, ...values });
+    return this.client.post("/api/v2", form);
+  }
+
+  private getDefaultBaseUrl() {
+    return "https://resellersmm.com";
   }
 
   private mapStatus(providerStatus: string): string {
@@ -200,10 +178,14 @@ export class ResellingSMMAdapter extends BaseProviderAdapter {
       "Pending": "pending",
       "Completed": "completed",
       "Canceled": "cancelled",
+      "Cancelled": "cancelled",
       "Refunded": "refunded",
-      "Active": "processing"
+      "Active": "processing",
+      "In progress": "processing",
+      "In Progress": "processing",
+      "Processing": "processing",
+      "Partial": "processing"
     };
-    return STATUS_MAP[providerStatus] || "unknown";
+    return STATUS_MAP[providerStatus] || providerStatus.toLowerCase() || "unknown";
   }
 }
-

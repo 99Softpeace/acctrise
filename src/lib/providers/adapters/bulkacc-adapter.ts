@@ -6,49 +6,42 @@
 import { BaseProviderAdapter, ProviderConfig, OrderRequest, OrderResponse, OrderStatus, ServiceMapping, ProviderHealth } from "../base-adapter";
 import axios, { AxiosInstance } from "axios";
 
-interface BulkAccServiceResponse {
-  id: string;
+interface BulkAccProductResponse {
+  code: string;
   name: string;
-  category: string;
+  description?: string;
+  categoryName?: string;
+  groupName?: string;
+  inStock?: number;
+  min?: number;
   price: number;
-  minOrder?: number;
-  maxOrder?: number;
-}
-
-interface BulkAccOrderResponse {
-  orderId: string;
-  status: string;
-  accounts?: Array<{
-    username: string;
-    password: string;
-    email: string;
-    other?: Record<string, string>;
-  }>;
-  message?: string;
 }
 
 export class BulkAccAdapter extends BaseProviderAdapter {
   private client: AxiosInstance;
-  private baseUrl = "https://api.bulkacc.com";
+  private baseUrl: string;
 
   constructor(providerId: string, config: ProviderConfig, logger?: any) {
     super(providerId, config, logger);
+
+    this.baseUrl = config.baseUrl || this.getDefaultBaseUrl();
 
     this.client = axios.create({
       baseURL: this.baseUrl,
       timeout: config.timeout || 30000,
       headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${config.apiKey}`
+        "Content-Type": "application/json"
       }
     });
   }
 
   async authenticate(): Promise<boolean> {
     try {
-      const response = await this.client.get("/v1/account/balance");
+      const response = await this.client.get("/api/accounts", {
+        params: { apiKey: this.config.apiKey }
+      });
 
-      if (response.status === 200 && response.data.balance !== undefined) {
+      if (response.status === 200 && response.data?.statusCode === 200 && response.data.data !== undefined) {
         this.log("info", "BulkAcc authentication successful");
         return true;
       }
@@ -61,48 +54,57 @@ export class BulkAccAdapter extends BaseProviderAdapter {
 
   async fetchServices(): Promise<ServiceMapping[]> {
     try {
-      const response = await this.client.get("/v1/services");
+      const pageSize = Number(process.env.BULKACC_PAGE_SIZE || 100);
+      const response = await this.client.get("/api/products/list", {
+        params: {
+          apiKey: this.config.apiKey,
+          pageIndex: 1,
+          pageSize: Math.min(Math.max(pageSize, 10), 200)
+        }
+      });
 
-      if (!Array.isArray(response.data)) {
-        return [];
+      if (response.data?.statusCode !== 200) {
+        throw new Error(response.data?.message || "Bulkacc product list request failed.");
       }
 
-      return response.data.map((service: BulkAccServiceResponse) => ({
-        externalId: service.id,
-        name: service.name,
-        price: service.price,
-        minOrder: service.minOrder || 1,
-        maxOrder: service.maxOrder,
-        description: `${service.category} - ${service.name}`
+      const products = response.data?.data?.items;
+      if (!Array.isArray(products)) {
+        throw new Error("Bulkacc product list response did not include items.");
+      }
+
+      return products.map((product: BulkAccProductResponse) => ({
+        externalId: product.code,
+        name: product.name,
+        price: Number(product.price || 0),
+        minOrder: product.min || 1,
+        maxOrder: product.inStock,
+        description: `${product.groupName || "Bulkacc"} - ${product.categoryName || product.description || product.name}`
       }));
     } catch (error) {
       this.log("error", "Failed to fetch BulkAcc services", error);
-      return [];
+      throw error;
     }
   }
 
   async placeOrder(request: OrderRequest): Promise<OrderResponse> {
     try {
-      const additionalInfo = request.additionalInfo && typeof request.additionalInfo === "object" && !Array.isArray(request.additionalInfo)
-        ? request.additionalInfo
-        : {};
-      const payload = {
-        service_id: request.serviceId,
-        quantity: request.quantity,
-        ...additionalInfo
-      };
+      const response = await this.client.post("/api/orders", null, {
+        params: {
+          apiKey: this.config.apiKey,
+          productCode: request.serviceId,
+          quantity: request.quantity
+        }
+      });
 
-      const response = await this.client.post("/v1/orders", payload);
-
-      if (response.data.orderId) {
+      if (response.data?.statusCode === 200 && response.data.data) {
         return {
-          externalOrderId: response.data.orderId,
-          status: response.data.status || "pending",
-          message: "Order placed successfully"
+          externalOrderId: String(response.data.data),
+          status: "pending",
+          message: response.data.message || "Order placed successfully"
         };
       }
 
-      throw new Error(response.data.error || "Failed to place order");
+      throw new Error(response.data?.message || "Failed to place Bulkacc order");
     } catch (error) {
       this.log("error", "Failed to place BulkAcc order", error);
       throw error;
@@ -111,20 +113,25 @@ export class BulkAccAdapter extends BaseProviderAdapter {
 
   async checkOrderStatus(externalOrderId: string): Promise<OrderStatus> {
     try {
-      const response = await this.client.get(`/v1/orders/${externalOrderId}`);
+      const response = await this.client.get("/api/orders", {
+        params: {
+          apiKey: this.config.apiKey,
+          orderCode: externalOrderId
+        }
+      });
 
-      if (response.data) {
-        const data = response.data;
+      if (response.data?.statusCode === 200) {
+        const accounts = Array.isArray(response.data.data) ? response.data.data : [];
         return {
           externalOrderId,
-          status: this.mapStatus(data.status),
-          progress: data.progress || 0,
-          message: data.statusMessage || "Processing...",
-          lastUpdated: new Date(data.lastUpdated || Date.now())
+          status: accounts.length ? "completed" : "processing",
+          progress: accounts.length ? 100 : 50,
+          message: accounts.length ? `${accounts.length} accounts delivered` : response.data.message || "Processing...",
+          lastUpdated: new Date()
         };
       }
 
-      throw new Error("Order not found");
+      throw new Error(response.data?.message || "Order not found");
     } catch (error) {
       this.log("error", "Failed to check BulkAcc order status", error);
       throw error;
@@ -150,32 +157,15 @@ export class BulkAccAdapter extends BaseProviderAdapter {
     }
   }
 
-  async refundOrder(externalOrderId: string): Promise<boolean> {
-    try {
-      const response = await this.client.post(`/v1/orders/${externalOrderId}/refund`, {});
-
-      return response.status === 200 && response.data.success === true;
-    } catch (error) {
-      this.log("error", "Failed to refund BulkAcc order", error);
-      return false;
-    }
+  async refundOrder(): Promise<boolean> {
+    return false;
   }
 
   async getSupportedPaymentMethods(): Promise<string[]> {
-    return ["credit_card", "paypal", "bank_transfer"];
+    return ["wallet"];
   }
 
-  private mapStatus(providerStatus: string): string {
-    const STATUS_MAP: { [key: string]: string } = {
-      "pending": "pending",
-      "processing": "processing",
-      "completed": "completed",
-      "failed": "failed",
-      "cancelled": "cancelled",
-      "refunded": "refunded"
-    };
-    return STATUS_MAP[providerStatus?.toLowerCase() || ""] || "unknown";
+  private getDefaultBaseUrl() {
+    return "https://bulkacc.com";
   }
 }
-
-

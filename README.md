@@ -185,7 +185,7 @@ async function main() {
       type: "smm",
       status: "ACTIVE",
       config: {
-        apiKey: "6c99715c89f2d0e19b28de070b223547"
+        apiKey: process.env.RESELLER_SMM_API_KEY || "replace-with-reseller-smm-key"
       }
     }
   });
