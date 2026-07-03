@@ -1,16 +1,21 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import {
   AlertCircle,
   ArrowRight,
   ArrowUpRight,
+  Bell,
   CheckCircle2,
   Clock3,
   FileText,
+  History,
   Layers3,
+  MessageSquare,
   Package,
   Phone,
+  PlayCircle,
+  Plus,
   Rocket,
   Smartphone,
   Wallet,
@@ -39,6 +44,15 @@ const serviceCards = [
   { title: "Wallet", href: "/dashboard/wallet", detail: "Funding is paused while PocketFi activation is pending.", icon: Wallet, meta: "PocketFi planned" }
 ];
 
+const quickActions = [
+  { label: "Boost", href: "/dashboard/boosting", icon: Rocket, tone: "blue" },
+  { label: "Number", href: "/dashboard/foreign-numbers", icon: MessageSquare, tone: "orange" },
+  { label: "Rent", href: "/dashboard/uk-premium", icon: Clock3, tone: "teal" },
+  { label: "Logs", href: "/dashboard/logs", icon: FileText, tone: "yellow" },
+  { label: "Tutorial", href: "/dashboard/orders", icon: PlayCircle, tone: "indigo" },
+  { label: "eSIM", href: "/dashboard/esim", icon: Smartphone, tone: "pink" }
+];
+
 const recentOrders = [
   { id: "#560431", service: "Rental: 2RedBeans", link: "-", quantity: "1", status: "Cancelled", date: "Jul 2, 2026" },
   { id: "#546411", service: "Rental: Snapchat", link: "-", quantity: "1", status: "Cancelled", date: "Jul 2, 2026" },
@@ -46,12 +60,20 @@ const recentOrders = [
   { id: "#544373", service: "Telegram Members", link: "t.me/channel", quantity: "250", status: "Processing", date: "Jun 30, 2026" }
 ];
 
-
 const toneClasses: Record<string, string> = {
   blue: "bg-blue-50 text-blue-700 ring-blue-100",
   violet: "bg-violet-50 text-violet-700 ring-violet-100",
   amber: "bg-amber-50 text-amber-700 ring-amber-100",
   green: "bg-emerald-50 text-emerald-700 ring-emerald-100"
+};
+
+const mobileToneClasses: Record<string, string> = {
+  blue: "bg-blue-50 text-blue-700 ring-blue-100",
+  orange: "bg-orange-50 text-orange-700 ring-orange-100",
+  teal: "bg-teal-50 text-teal-700 ring-teal-100",
+  yellow: "bg-amber-50 text-amber-700 ring-amber-100",
+  indigo: "bg-indigo-50 text-indigo-700 ring-indigo-100",
+  pink: "bg-pink-50 text-pink-700 ring-pink-100"
 };
 
 function statusTone(status: string): StatusTone {
@@ -97,9 +119,77 @@ function Surface({ children, className = "" }: { children: React.ReactNode; clas
   return <article className={`rounded-lg border border-slate-200 bg-white shadow-sm shadow-slate-200/60 ${className}`}>{children}</article>;
 }
 
+function MobileOverviewHeader() {
+  return (
+    <section className="mobile-overview md:hidden" aria-label="Mobile dashboard summary">
+      <div className="mobile-overview-top">
+        <div className="mobile-avatar">P</div>
+        <div>
+          <span>Welcome back</span>
+          <strong>Peace Olowo</strong>
+        </div>
+        <button className="mobile-bell" type="button" aria-label="Notifications"><Bell className="h-4 w-4" /></button>
+      </div>
+
+      <div className="mobile-balance-card">
+        <div>
+          <span>Total Balance</span>
+          <strong>NGN 7,628.24</strong>
+        </div>
+        <Wallet className="mobile-wallet-mark" aria-hidden="true" />
+        <div className="mobile-balance-actions">
+          <Link href="/dashboard/wallet"><Plus className="h-4 w-4" /> Add Money</Link>
+          <Link href="/dashboard/wallet"><History className="h-4 w-4" /> History</Link>
+        </div>
+      </div>
+
+      <div className="mobile-network-lite">
+        <div>
+          <span>Available now</span>
+          <strong>620+ services</strong>
+        </div>
+        <div className="network-lite-orb" aria-hidden="true"><span /><span /><span /></div>
+      </div>
+
+      <div className="mobile-section-title">Quick Actions</div>
+      <div className="mobile-action-grid">
+        {quickActions.map((action) => (
+          <Link key={action.href} href={action.href as any} className="mobile-action-tile">
+            <span className={`mobile-action-icon ${mobileToneClasses[action.tone]}`}><action.icon className="h-5 w-5" /></span>
+            <small>{action.label}</small>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function DesktopOverviewHero() {
+  return (
+    <section className="hidden gap-5 md:grid xl:grid-cols-[1.05fr_0.95fr] xl:items-stretch">
+      <Surface className="overflow-hidden p-6">
+        <div className="desktop-overview-card">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-600">Dashboard</p>
+            <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-800 sm:text-4xl">Welcome back, Peace</h2>
+            <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600">Track balance, orders, and service shortcuts without digging through menus.</p>
+          </div>
+          <PrimaryButton href="/dashboard/boosting"><Rocket className="h-4 w-4" /> New boost order</PrimaryButton>
+        </div>
+        <div className="mt-6 grid gap-3 sm:grid-cols-3">
+          <Link href="/dashboard/wallet" className="rounded-lg bg-blue-50 p-4 text-blue-800 ring-1 ring-blue-100"><span className="text-xs font-bold uppercase tracking-[0.12em] text-blue-500">Balance</span><strong className="mt-2 block text-2xl tracking-tight">NGN 7,628.24</strong></Link>
+          <Link href="/dashboard/orders" className="rounded-lg bg-slate-50 p-4 text-slate-700 ring-1 ring-slate-200"><span className="text-xs font-bold uppercase tracking-[0.12em] text-slate-400">Orders</span><strong className="mt-2 block text-2xl tracking-tight">20</strong></Link>
+          <Link href="/dashboard/foreign-numbers" className="rounded-lg bg-emerald-50 p-4 text-emerald-800 ring-1 ring-emerald-100"><span className="text-xs font-bold uppercase tracking-[0.12em] text-emerald-600">Numbers</span><strong className="mt-2 block text-2xl tracking-tight">17 live</strong></Link>
+        </div>
+      </Surface>
+      <AnimatedGlobe />
+    </section>
+  );
+}
+
 function StatGrid() {
   return (
-    <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+    <section className="hidden gap-4 md:grid md:grid-cols-2 xl:grid-cols-4">
       {stats.map((stat) => (
         <Surface key={stat.label} className="p-5 transition hover:-translate-y-0.5 hover:shadow-md">
           <div className="flex items-center justify-between gap-3">
@@ -119,19 +209,23 @@ function StatGrid() {
 
 function ServiceCards() {
   return (
-    <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+    <section className="overview-services grid gap-3 md:grid-cols-2 md:gap-4 xl:grid-cols-3">
+      <div className="col-span-full flex items-center justify-between gap-3 md:hidden">
+        <h3 className="text-base font-bold tracking-tight text-slate-800">Services</h3>
+        <Link href="/dashboard/orders" className="text-xs font-bold text-blue-700">Orders</Link>
+      </div>
       {serviceCards.map((service) => (
-        <Link key={service.href} href={service.href as any} className="group rounded-lg border border-slate-200 bg-white p-5 shadow-sm shadow-slate-200/60 transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md">
+        <Link key={service.href} href={service.href as any} className="group service-shortcut-card rounded-lg border border-slate-200 bg-white p-4 shadow-sm shadow-slate-200/60 transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md md:p-5">
           <div className="flex items-start justify-between gap-4">
             <div className="grid h-11 w-11 place-items-center rounded-lg bg-blue-50 text-blue-700 ring-1 ring-blue-100">
               <service.icon className="h-5 w-5" />
             </div>
-            <span className="rounded-md bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600">{service.meta}</span>
+            <span className="hidden rounded-md bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600 sm:inline-flex">{service.meta}</span>
           </div>
-          <h3 className="mt-5 text-lg font-bold tracking-tight text-slate-800">{service.title}</h3>
+          <h3 className="mt-4 text-base font-bold tracking-tight text-slate-800 md:mt-5 md:text-lg">{service.title}</h3>
           <p className="mt-2 text-sm leading-6 text-slate-600">{service.detail}</p>
-          <span className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-blue-700 group-hover:text-blue-800">
-            Open service <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+          <span className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-blue-700 group-hover:text-blue-800 md:mt-5">
+            Open <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
           </span>
         </Link>
       ))}
@@ -142,15 +236,32 @@ function ServiceCards() {
 function RecentOrdersTable({ compact = false }: { compact?: boolean }) {
   const rows = compact ? recentOrders.slice(0, 3) : recentOrders;
   return (
-    <Surface className="overflow-hidden">
-      <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
+    <Surface className="overflow-hidden recent-orders-surface">
+      <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-4 sm:px-5">
         <div>
-          <h3 className="text-lg font-bold tracking-tight text-slate-800">Recent Orders</h3>
+          <h3 className="text-base font-bold tracking-tight text-slate-800 sm:text-lg">Recent Orders</h3>
           <p className="text-sm text-slate-500">Latest wallet and service activity.</p>
         </div>
         <Link href="/dashboard/orders" className="text-sm font-bold text-blue-700 hover:text-blue-800">View all</Link>
       </div>
-      <div className="overflow-x-auto">
+      <div className="grid gap-3 p-3 md:hidden">
+        {rows.map((order) => (
+          <article key={order.id} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-slate-400">{order.id}</p>
+                <h4 className="mt-1 truncate text-sm font-bold text-slate-800">{order.service}</h4>
+              </div>
+              <StatusPill status={order.status} />
+            </div>
+            <div className="mt-3 flex items-center justify-between gap-3 text-xs font-semibold text-slate-500">
+              <span>Qty {order.quantity}</span>
+              <span>{order.date}</span>
+            </div>
+          </article>
+        ))}
+      </div>
+      <div className="hidden overflow-x-auto md:block">
         <table className="w-full min-w-[760px] border-collapse text-left">
           <thead className="bg-slate-50 text-xs font-bold uppercase tracking-[0.12em] text-slate-500">
             <tr>
@@ -177,22 +288,13 @@ function RecentOrdersTable({ compact = false }: { compact?: boolean }) {
 
 export function OverviewPage() {
   return (
-    <div className="mx-auto grid max-w-7xl gap-6">
-      <section className="grid gap-5 xl:grid-cols-[1.15fr_0.85fr] xl:items-stretch">
-        <Surface className="p-5 sm:p-6">
-          <PageHeader eyebrow="Overview" title="Your Acctrise workspace" description="A clean command center for boosting, premium accounts, numbers, eSIM, orders, and wallet funding. Built for fast everyday service discovery." action={<PrimaryButton href="/dashboard/boosting"><Rocket className="h-4 w-4" /> New boost order</PrimaryButton>} />
-          <div className="mt-6 flex flex-wrap gap-2 text-xs font-bold text-slate-600">
-            <span className="rounded-md bg-blue-50 px-3 py-2 text-blue-700 ring-1 ring-blue-100">Live services</span>
-            <span className="rounded-md bg-emerald-50 px-3 py-2 text-emerald-700 ring-1 ring-emerald-100">Light mode console</span>
-            <span className="rounded-md bg-slate-100 px-3 py-2 text-slate-700 ring-1 ring-slate-200">Mobile ready</span>
-          </div>
-        </Surface>
-        <AnimatedGlobe />
-      </section>
+    <div className="dashboard-overview mx-auto grid max-w-7xl gap-5 sm:gap-6">
+      <MobileOverviewHeader />
+      <DesktopOverviewHero />
       <StatGrid />
-      <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+      <section className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr] xl:gap-6">
         <RecentOrdersTable compact />
-        <Surface className="p-5">
+        <Surface className="hidden p-5 md:block">
           <div className="flex items-center gap-3">
             <div className="grid h-11 w-11 place-items-center rounded-lg bg-blue-50 text-blue-700 ring-1 ring-blue-100"><Layers3 className="h-5 w-5" /></div>
             <div><h3 className="text-lg font-bold tracking-tight text-slate-800">Quick Actions</h3><p className="text-sm text-slate-500">Jump into common workflows.</p></div>
@@ -277,6 +379,5 @@ export function WalletPage() {
 export function DashboardLoading() {
   return <div className="mx-auto grid max-w-7xl gap-4"><div className="h-8 w-48 animate-pulse rounded-lg bg-slate-200" /><div className="h-20 animate-pulse rounded-lg bg-slate-200" /><div className="grid gap-4 md:grid-cols-3"><div className="h-36 animate-pulse rounded-lg bg-slate-200" /><div className="h-36 animate-pulse rounded-lg bg-slate-200" /><div className="h-36 animate-pulse rounded-lg bg-slate-200" /></div></div>;
 }
-
 
 
