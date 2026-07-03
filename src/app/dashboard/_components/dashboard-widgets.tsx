@@ -45,11 +45,11 @@ const serviceCards = [
 ];
 
 const quickActions = [
-  { label: "Boost", href: "/dashboard/boosting", icon: Rocket, tone: "blue" },
-  { label: "Number", href: "/dashboard/foreign-numbers", icon: MessageSquare, tone: "orange" },
-  { label: "Rent", href: "/dashboard/uk-premium", icon: Clock3, tone: "teal" },
-  { label: "Logs", href: "/dashboard/logs", icon: FileText, tone: "yellow" },
-  { label: "Tutorial", href: "/dashboard/orders", icon: PlayCircle, tone: "indigo" },
+  { label: "Boost Account", href: "/dashboard/boosting", icon: Rocket, tone: "blue" },
+  { label: "Foreign Number", href: "/dashboard/foreign-numbers", icon: MessageSquare, tone: "orange" },
+  { label: "Rent Number", href: "/dashboard/uk-premium", icon: Clock3, tone: "teal" },
+  { label: "Buy Logs", href: "/dashboard/logs", icon: FileText, tone: "yellow" },
+  { label: "Tutorials", href: "/dashboard/orders", icon: PlayCircle, tone: "indigo" },
   { label: "eSIM", href: "/dashboard/esim", icon: Smartphone, tone: "pink" }
 ];
 
@@ -246,7 +246,7 @@ function RecentOrdersTable({ compact = false }: { compact?: boolean }) {
       </div>
       <div className="grid gap-3 p-3 md:hidden">
         {rows.map((order) => (
-          <article key={order.id} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+          <article key={order.id} className="mobile-order-card rounded-lg border border-slate-200 bg-slate-50 p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-xs font-bold text-slate-400">{order.id}</p>
@@ -379,5 +379,7 @@ export function WalletPage() {
 export function DashboardLoading() {
   return <div className="mx-auto grid max-w-7xl gap-4"><div className="h-8 w-48 animate-pulse rounded-lg bg-slate-200" /><div className="h-20 animate-pulse rounded-lg bg-slate-200" /><div className="grid gap-4 md:grid-cols-3"><div className="h-36 animate-pulse rounded-lg bg-slate-200" /><div className="h-36 animate-pulse rounded-lg bg-slate-200" /><div className="h-36 animate-pulse rounded-lg bg-slate-200" /></div></div>;
 }
+
+
 
 

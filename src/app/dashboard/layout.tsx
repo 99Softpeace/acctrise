@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -89,15 +89,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </aside>
 
       <div className="lg:pl-72">
-        <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur sm:px-6">
+        <header className="dashboard-mobile-header sticky top-0 z-30 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur sm:px-6">
           <div className="flex items-center justify-between gap-3">
-            <Link href="/dashboard" className="flex min-w-0 items-center gap-3 lg:hidden" onClick={() => setMobileMenuOpen(false)}>
-              <span className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-xl bg-blue-50 shadow-sm shadow-blue-100 ring-1 ring-blue-100">
+            <Link href="/dashboard" className="dashboard-mobile-brand flex min-w-0 items-center gap-3 lg:hidden" onClick={() => setMobileMenuOpen(false)}>
+              <span className="dashboard-mobile-logo grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-xl bg-blue-50 shadow-sm shadow-blue-100 ring-1 ring-blue-100">
                 <Image src="/acctrise-logo.jpeg" alt="Acctrise" width={48} height={48} className="h-full w-full object-cover" />
               </span>
               <span className="min-w-0">
-                <span className="block truncate text-base font-bold tracking-tight text-slate-800">Acctrise</span>
-                <span className="block truncate text-xs font-semibold text-slate-500">Dashboard</span>
+                <span className="dashboard-mobile-name block truncate text-base font-bold tracking-tight text-slate-800">Acctrise</span>
+                <span className="dashboard-mobile-label block truncate text-xs font-semibold text-slate-500">Dashboard</span>
               </span>
             </Link>
 
@@ -117,12 +117,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </Link>
             </div>
 
-            <button className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm shadow-slate-200 transition hover:bg-slate-50 lg:hidden" type="button" aria-label="Toggle dashboard navigation" aria-expanded={mobileMenuOpen} aria-controls="mobile-dashboard-menu" onClick={() => setMobileMenuOpen((open) => !open)}>
+            <button className="dashboard-mobile-menu-button inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm shadow-slate-200 transition hover:bg-slate-50 lg:hidden" type="button" aria-label="Toggle dashboard navigation" aria-expanded={mobileMenuOpen} aria-controls="mobile-dashboard-menu" onClick={() => setMobileMenuOpen((open) => !open)}>
               {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
           </div>
 
-          <div id="mobile-dashboard-menu" className={`${mobileMenuOpen ? "grid" : "hidden"} mt-3 gap-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-lg shadow-slate-200/70 lg:hidden`}>
+          <div id="mobile-dashboard-menu" className={`dashboard-mobile-menu ${mobileMenuOpen ? "grid" : "hidden"} mt-3 gap-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-lg shadow-slate-200/70 lg:hidden`}>
             <nav className="grid gap-1" aria-label="Mobile dashboard navigation">
               {navItems.map((item) => {
                 const active = isActivePath(pathname, item.href);
