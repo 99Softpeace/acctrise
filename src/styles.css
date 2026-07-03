@@ -1,4 +1,4 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
 @config "../tailwind.config.ts";
 
 :root {
@@ -1533,5 +1533,454 @@ details p {
 @media (max-width: 560px) {
   .auth-two-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Landing page premium refresh */
+:root {
+  --ink: #27324f;
+  --muted: #66708c;
+  --paper: #ffffff;
+  --soft: #f6f8ff;
+  --line: rgba(47, 58, 96, 0.12);
+  --blue: #246bfe;
+  --blue-dark: #1f48c6;
+  --violet: #6d5dfc;
+  --cyan: #12b7f5;
+  --pink: #f457ad;
+  --orange: #ff9f43;
+  --green: #18b989;
+  --shadow: 0 24px 70px rgba(39, 50, 95, 0.14);
+  --font-display: Avenir Next, Manrope, Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-body: Inter, Avenir Next, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+body {
+  background: #f7f9fe;
+  color: var(--ink);
+  font-family: var(--font-body);
+  text-rendering: geometricPrecision;
+}
+
+.topbar {
+  border-bottom: 1px solid rgba(221, 226, 244, 0.78);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.brand-word,
+.hero h1,
+.section-head h2,
+.spotlight h2,
+.dash-header h2,
+.final-cta h2,
+.service-card h3,
+.steps h3 {
+  font-family: var(--font-display);
+  letter-spacing: -0.025em;
+}
+
+.brand-mark {
+  border: 1px solid rgba(36, 107, 254, 0.12);
+  background: linear-gradient(145deg, #ffffff, #eef4ff);
+}
+
+.mobile-menu-button {
+  position: relative;
+  min-width: 48px;
+  min-height: 48px;
+  border: 1px solid rgba(36, 107, 254, 0.2);
+  background: linear-gradient(180deg, #ffffff, #eef4ff);
+  box-shadow: 0 14px 30px rgba(36, 107, 254, 0.16);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-menu-button span {
+  width: 22px;
+  height: 2.5px;
+  background: #1f48c6;
+  transition: transform 180ms ease, opacity 180ms ease;
+}
+
+.mobile-menu-button[aria-expanded="true"] span:nth-child(1) {
+  transform: translateY(7.5px) rotate(45deg);
+}
+
+.mobile-menu-button[aria-expanded="true"] span:nth-child(2) {
+  opacity: 0;
+}
+
+.mobile-menu-button[aria-expanded="true"] span:nth-child(3) {
+  transform: translateY(-7.5px) rotate(-45deg);
+}
+
+.btn {
+  letter-spacing: 0;
+}
+
+.btn-soft {
+  color: #2d3858;
+  background: #eef3ff;
+}
+
+.btn-white {
+  color: #2d3858;
+}
+
+.hero {
+  background:
+    radial-gradient(circle at 11% 12%, rgba(18, 183, 245, 0.24), transparent 31%),
+    radial-gradient(circle at 86% 18%, rgba(244, 87, 173, 0.18), transparent 29%),
+    linear-gradient(135deg, #f4f7ff 0%, #ffffff 44%, #f7efff 100%);
+}
+
+.hero h1 {
+  max-width: 800px;
+  color: #24304d;
+  line-height: 0.98;
+  font-weight: 850;
+}
+
+.hero-copy p,
+.section-head p,
+.spotlight p,
+.final-cta p {
+  color: #626d88;
+}
+
+.badge {
+  gap: 7px;
+  color: #2454d6;
+  background: linear-gradient(135deg, rgba(36, 107, 254, 0.1), rgba(18, 183, 245, 0.1));
+}
+
+.hero-trust span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #33405f;
+  border: 1px solid rgba(36, 107, 254, 0.08);
+}
+
+.phone-shell {
+  border-color: #2c3658;
+  background: linear-gradient(180deg, #fbfcff, #eef3ff);
+}
+
+.stats-strip div,
+.steps article,
+details,
+.dash-side,
+.dash-main,
+.table-card,
+.catalog-item,
+.order-box,
+.app-card {
+  border: 1px solid rgba(47, 58, 96, 0.08);
+}
+
+.stats-strip strong,
+.app-card strong,
+.quote strong,
+.catalog-item strong {
+  color: #25304e;
+}
+
+.app-card span {
+  color: #64708e;
+}
+
+.app-card small {
+  color: #78829a;
+}
+
+.service-card {
+  color: #ffffff;
+  border: 0;
+  box-shadow: 0 24px 56px rgba(39, 50, 95, 0.14);
+}
+
+.service-card-1 {
+  background: linear-gradient(135deg, #246bfe, #6d5dfc);
+}
+
+.service-card-2 {
+  background: linear-gradient(135deg, #0ea5e9, #18b989);
+}
+
+.service-card-3 {
+  background: linear-gradient(135deg, #f457ad, #ff9f43);
+}
+
+.service-icon {
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.26);
+}
+
+.steps article {
+  position: relative;
+  min-height: 288px;
+  overflow: hidden;
+}
+
+.steps article::after {
+  content: "";
+  position: absolute;
+  width: 150px;
+  height: 150px;
+  right: -70px;
+  top: -60px;
+  border-radius: 999px;
+  background: rgba(36, 107, 254, 0.08);
+}
+
+.step-icon {
+  width: 50px;
+  height: 50px;
+  display: grid;
+  place-items: center;
+  margin-top: 18px;
+  border-radius: 18px;
+  color: #2454d6;
+  background: #eef3ff;
+}
+
+.dashboard-shell {
+  background: linear-gradient(145deg, #eef3ff, #ffffff 48%, #f8f1ff);
+}
+
+.final-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  border-radius: 38px;
+  background: linear-gradient(135deg, #24304d, #265df2 56%, #6d5dfc);
+  color: white;
+  padding: clamp(30px, 6vw, 58px);
+  box-shadow: var(--shadow);
+}
+
+.final-cta .badge {
+  color: white;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.final-cta h2 {
+  max-width: 720px;
+  margin: 14px 0 0;
+  font-size: clamp(34px, 5vw, 58px);
+  line-height: 1;
+}
+
+.final-cta p {
+  max-width: 650px;
+  margin: 16px 0 0;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 17px;
+  line-height: 1.65;
+}
+
+.site-footer {
+  width: min(1180px, calc(100% - 32px));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  margin: 0 auto;
+  padding: 28px 0 38px;
+  color: #64708e;
+}
+
+.site-footer p {
+  max-width: 430px;
+  margin: 12px 0 0;
+  line-height: 1.55;
+}
+
+.site-footer nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 12px 22px;
+  font-size: 14px;
+  font-weight: 850;
+}
+
+.site-footer a:hover {
+  color: var(--blue-dark);
+}
+
+@media (max-width: 1040px) {
+  .topbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+  }
+
+  .mobile-menu-button {
+    display: inline-flex;
+  }
+
+  .mobile-menu {
+    grid-column: 1 / -1;
+    display: grid;
+    gap: 8px;
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(-8px);
+    border: 1px solid rgba(47, 58, 96, 0.1);
+    border-radius: 22px;
+    background: rgba(255, 255, 255, 0.98);
+    padding: 0 10px;
+    box-shadow: 0 18px 42px rgba(39, 50, 95, 0.14);
+    transition: max-height 220ms ease, opacity 180ms ease, transform 180ms ease, padding 180ms ease;
+  }
+
+  .mobile-menu.open {
+    max-height: 420px;
+    opacity: 1;
+    transform: translateY(0);
+    padding: 10px;
+  }
+
+  .mobile-menu a {
+    min-height: 46px;
+    display: flex;
+    align-items: center;
+    border-radius: 15px;
+    padding: 0 12px;
+    color: #394462;
+    font-size: 14px;
+    font-weight: 900;
+  }
+
+  .mobile-menu a:hover {
+    background: #eef3ff;
+    color: var(--blue-dark);
+  }
+
+  .mobile-menu-actions .btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 760px) {
+  .topbar {
+    grid-template-columns: minmax(0, 1fr) auto;
+    min-height: 70px;
+    padding: 10px 14px;
+  }
+
+  .top-actions {
+    display: none;
+  }
+
+  .brand {
+    gap: 9px;
+  }
+
+  .brand-mark {
+    width: 48px;
+    height: 48px;
+    border-radius: 16px;
+  }
+
+  .brand img {
+    width: 42px;
+    height: 42px;
+  }
+
+  .brand-word {
+    font-size: 18px;
+  }
+
+  .mobile-menu-button {
+    width: 50px;
+    height: 50px;
+    border-radius: 17px;
+  }
+
+  .hero-inner {
+    width: min(100% - 28px, 1180px);
+    gap: 34px;
+    padding: 42px 0 78px;
+  }
+
+  .hero h1 {
+    font-size: clamp(42px, 13vw, 56px);
+  }
+
+  .hero-actions,
+  .hero-actions .btn {
+    width: 100%;
+  }
+
+  .hero-trust {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .stats-strip {
+    width: min(100% - 28px, 1120px);
+  }
+
+  .section,
+  .dashboard-section,
+  .site-footer {
+    width: min(100% - 28px, 1180px);
+  }
+
+  .service-card,
+  .steps article {
+    border-radius: 24px;
+    padding: 24px;
+  }
+
+  .dash-side {
+    display: none;
+  }
+
+  .dashboard-shell {
+    padding: 10px;
+  }
+
+  .dash-main {
+    padding: 18px;
+  }
+
+  .final-cta,
+  .site-footer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .final-cta .btn {
+    width: 100%;
+  }
+
+  .site-footer nav {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 420px) {
+  .brand-word {
+    font-size: 16px;
+  }
+
+  .hero-copy .badge {
+    font-size: 11px;
+  }
+
+  .phone-shell {
+    padding: 14px;
+  }
+
+  .quick-grid button {
+    min-height: 92px;
+  }
+
+  .balance-card strong {
+    font-size: 28px;
   }
 }

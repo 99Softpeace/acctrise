@@ -1,7 +1,22 @@
-"use client";
+﻿"use client";
 
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
+import {
+  ArrowRight,
+  BadgeCheck,
+  BarChart3,
+  Globe2,
+  Headphones,
+  Layers3,
+  LockKeyhole,
+  Search,
+  ShieldCheck,
+  Smartphone,
+  Sparkles,
+  WalletCards,
+  Zap
+} from "lucide-react";
 
 type ViewId = "overview" | "boosting" | "logs" | "foreign" | "ukpremium" | "esim" | "wallet";
 type StatusCell = { label: string; variant?: string };
@@ -59,10 +74,10 @@ const boostingPackages = [
 ];
 
 const logRows = [
-  ["LOG-2041", "Bulkacc", "Account import", { label: "Completed", variant: "done" }, "Jun 24"],
-  ["LOG-2037", "SMSPool", "Number sync", { label: "Live", variant: "" }, "Jun 24"],
-  ["LOG-2032", "Bulkacc", "Usage report", { label: "Pending", variant: "waiting" }, "Jun 23"],
-  ["LOG-2028", "SMSPool", "UK premium batch", { label: "Completed", variant: "done" }, "Jun 22"]
+  ["LOG-2041", "Inventory refresh", "Account marketplace", { label: "Completed", variant: "done" }, "Jun 24"],
+  ["LOG-2037", "Number sync", "Verification services", { label: "Live", variant: "" }, "Jun 24"],
+  ["LOG-2032", "Service update", "Digital accounts", { label: "Pending", variant: "waiting" }, "Jun 23"],
+  ["LOG-2028", "Premium batch", "UK numbers", { label: "Completed", variant: "done" }, "Jun 22"]
 ];
 
 const foreignNumbers = [
@@ -88,6 +103,51 @@ const walletHistoryRows = [
   ["Instagram order", "Wallet", "-$42.60", { label: "Paid", variant: "done" }],
   ["OTP rental", "Wallet", "-$2.10", { label: "Paid", variant: "done" }],
   ["Refund", "Auto", "+$0.48", { label: "Complete", variant: "done" }]
+];
+
+const platformFeatures = [
+  {
+    icon: <Zap size={21} />,
+    title: "Instant service discovery",
+    text: "Browse boosting, numbers, logs, and eSIM options with clear categories and guided next steps."
+  },
+  {
+    icon: <WalletCards size={21} />,
+    title: "One wallet workflow",
+    text: "Keep orders, funding, renewals, and delivery updates inside a calm user dashboard."
+  },
+  {
+    icon: <ShieldCheck size={21} />,
+    title: "Friendly fulfilment states",
+    text: "Users see clean availability, support, and status messages instead of technical error details."
+  }
+];
+
+const serviceCards = [
+  {
+    icon: <BarChart3 size={24} />,
+    title: "Social media boosting",
+    text: "Launch growth orders for Instagram, TikTok, YouTube, Telegram, Facebook, Spotify, and more.",
+    bullets: ["Platform-first categories", "Clickable service cards", "Quantity and delivery guidance"],
+    action: "Explore boosting",
+    view: "boosting" as ViewId
+  },
+  {
+    icon: <Smartphone size={24} />,
+    title: "Numbers and eSIM",
+    text: "Access virtual numbers, foreign OTP routes, UK premium lines, and travel-ready data plans.",
+    bullets: ["Search by country or app", "Clear checkout panels", "Mobile-friendly listings"],
+    action: "Browse numbers",
+    view: "foreign" as ViewId
+  },
+  {
+    icon: <Layers3 size={24} />,
+    title: "Logs marketplace",
+    text: "Discover premium accounts and digital inventory through a clean marketplace experience.",
+    bullets: ["Search and filter inventory", "Stock and price signals", "Support-ready purchase flow"],
+    action: "View logs",
+    view: "logs" as ViewId
+  }
 ];
 
 function Status({ label, variant = "" }: StatusCell) {
@@ -195,11 +255,11 @@ export default function Home() {
     logs: (
       <article className="table-card">
         <div className="card-title">
-          <h3>Provider logs</h3>
-          <button className="btn btn-soft" type="button" onClick={() => handleAction("refresh")}>Sync logs</button>
+          <h3>Service activity</h3>
+          <button className="btn btn-soft" type="button" onClick={() => handleAction("refresh")}>Refresh</button>
         </div>
         <DataTable
-          columns={["Log", "Provider", "Task", "Status", "Date"]}
+          columns={["Log", "Update", "Area", "Status", "Date"]}
           rows={logRows}
         />
       </article>
@@ -235,7 +295,7 @@ export default function Home() {
         {esimPlans.map((plan) => (
           <article className="catalog-item" key={plan.title}>
             <b>{plan.title}</b>
-            <span>{plan.amount} ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ {plan.validity}</span>
+            <span>{plan.amount} - {plan.validity}</span>
             <strong>{plan.price}</strong>
             <button className="btn btn-soft" type="button" onClick={() => handleAction("fund")}>Activate eSIM</button>
           </article>
@@ -273,14 +333,14 @@ export default function Home() {
         <nav className="nav-links" aria-label="Primary navigation">
           <a href="#services">Services</a>
           <a href="#how">How it works</a>
-          <a href="#dashboard">Dashboard</a>
+          <a href="#dashboard">Preview</a>
           <a href="#faq">FAQ</a>
         </nav>
         <div className="top-actions">
           <Link className="btn btn-soft" href="/auth/login">Login</Link>
           <Link className="btn btn-primary" href="/auth/signup">Get Started</Link>
         </div>
-        <button className="mobile-menu-button" type="button" aria-expanded={mobileMenuOpen} aria-controls="mobile-home-menu" aria-label="Toggle navigation" onClick={() => setMobileMenuOpen((open) => !open)}>
+        <button className="mobile-menu-button" type="button" aria-expanded={mobileMenuOpen} aria-controls="mobile-home-menu" aria-label={mobileMenuOpen ? "Close navigation" : "Open navigation"} onClick={() => setMobileMenuOpen((open) => !open)}>
           <span />
           <span />
           <span />
@@ -288,7 +348,7 @@ export default function Home() {
         <div id="mobile-home-menu" className={`mobile-menu ${mobileMenuOpen ? "open" : ""}`}>
           <a href="#services" onClick={() => setMobileMenuOpen(false)}>Services</a>
           <a href="#how" onClick={() => setMobileMenuOpen(false)}>How it works</a>
-          <a href="#dashboard" onClick={() => setMobileMenuOpen(false)}>Dashboard</a>
+          <a href="#dashboard" onClick={() => setMobileMenuOpen(false)}>Preview</a>
           <a href="#faq" onClick={() => setMobileMenuOpen(false)}>FAQ</a>
           <div className="mobile-menu-actions">
             <Link className="btn btn-soft" href="/auth/login" onClick={() => setMobileMenuOpen(false)}>Login</Link>
@@ -303,19 +363,19 @@ export default function Home() {
           <div className="hero-bg hero-bg-two" />
           <div className="hero-inner">
             <div className="hero-copy">
-              <span className="badge">Boosting, logs, numbers, and eSIM in one place</span>
-              <h1>Professional digital services without the dark interface.</h1>
+              <span className="badge"><Sparkles size={14} /> Boosting, numbers, eSIM, logs, and digital services</span>
+              <h1>Digital services that feel fast, clear, and premium.</h1>
               <p>
-                Manage boosting, verification numbers, UK premium lines, and eSIM plans from a clean light dashboard built for vendors and resellers.
+                Acctrise helps users buy social media boosting, rent virtual and UK premium numbers, activate eSIM plans, and access digital accounts from one polished wallet.
               </p>
               <div className="hero-actions">
-                <Link className="btn btn-primary btn-large" href="/auth/signup">Create free account</Link>
-                <button className="btn btn-white btn-large" type="button" onClick={() => scrollToSection("#dashboard")}>Open dashboard</button>
+                <Link className="btn btn-primary btn-large" href="/auth/signup">Get Started <ArrowRight size={17} /></Link>
+                <button className="btn btn-white btn-large" type="button" onClick={() => scrollToSection("#services")}>Explore Services</button>
               </div>
               <div className="hero-trust" aria-label="Platform highlights">
-                <span>Best-in-class providers</span>
-                <span>Fast service sync</span>
-                <span>Clean light design</span>
+                <span><BadgeCheck size={15} /> Secure inventory</span>
+                <span><Zap size={15} /> Fast order flow</span>
+                <span><ShieldCheck size={15} /> Friendly fulfilment</span>
               </div>
             </div>
 
@@ -357,44 +417,40 @@ export default function Home() {
 
         <section id="services" className="section services-section">
           <div className="section-head center">
-            <span className="badge light">Everything in one wallet</span>
-            <h2>Pick what you need and order in seconds.</h2>
-            <p>No confusing panels. No boring screens. Just clear services, fast checkout, and visible progress.</p>
+            <span className="badge light"><Globe2 size={14} /> Everything in one wallet</span>
+            <h2>Services arranged the way real users search.</h2>
+            <p>Clear categories, polished cards, quick filters, and checkout flows that make digital services easy to understand.</p>
           </div>
           <div className="service-grid">
-            <article className="service-card social-card">
-              <div className="service-icon">S</div>
-              <h3>Boosting</h3>
-              <p>High-performance growth packages for social accounts and reseller clients.</p>
-              <ul>
-                <li>Instagram, TikTok, Telegram, YouTube</li>
-                <li>Fast delivery and daily status updates</li>
-                <li>Vendor-ready workflows</li>
-              </ul>
-              <button className="btn btn-card" type="button" onClick={() => setCurrentView("boosting")}>View boosting</button>
-            </article>
-            <article className="service-card number-card">
-              <div className="service-icon">#</div>
-              <h3>Verification numbers</h3>
-              <p>Rent foreign, UK premium, and SMSPool number inventory with live OTP support.</p>
-              <ul>
-                <li>eSIM, virtual numbers, UK premium routing</li>
-                <li>Simple OTP inbox and copy options</li>
-                <li>Fast onboarding for all providers</li>
-              </ul>
-              <button className="btn btn-card" type="button" onClick={() => setCurrentView("foreign")}>Browse numbers</button>
-            </article>
-            <article className="service-card market-card">
-              <div className="service-icon">P</div>
-              <h3>Partner logs</h3>
-              <p>Track provider syncs, number inventory, and service logs from Bulkacc and SMSPool.</p>
-              <ul>
-                <li>Audit-ready event history</li>
-                <li>Provider status and sync details</li>
-                <li>Clear log structure for teams</li>
-              </ul>
-              <button className="btn btn-card" type="button" onClick={() => setCurrentView("logs")}>Open logs</button>
-            </article>
+            {serviceCards.map((service, index) => (
+              <article className={`service-card service-card-${index + 1}`} key={service.title}>
+                <div className="service-icon">{service.icon}</div>
+                <h3>{service.title}</h3>
+                <p>{service.text}</p>
+                <ul>
+                  {service.bullets.map((bullet) => <li key={bullet}>{bullet}</li>)}
+                </ul>
+                <button className="btn btn-card" type="button" onClick={() => setCurrentView(service.view)}>{service.action}</button>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section id="how" className="section how-section">
+          <div className="section-head">
+            <span className="badge light"><Search size={14} /> Built for simple buying</span>
+            <h2>From discovery to delivery without confusion.</h2>
+            <p>Acctrise keeps the technical work behind the scenes while users see clean choices, availability, and order progress.</p>
+          </div>
+          <div className="steps">
+            {platformFeatures.map((feature, index) => (
+              <article key={feature.title}>
+                <span>{String(index + 1).padStart(2, "0")}</span>
+                <div className="step-icon">{feature.icon}</div>
+                <h3>{feature.title}</h3>
+                <p>{feature.text}</p>
+              </article>
+            ))}
           </div>
         </section>
 
@@ -424,7 +480,7 @@ export default function Home() {
               <div className="dash-header">
                 <div>
                   <span className="badge light">Live preview</span>
-                  <h2>Your acctrise dashboard</h2>
+                  <h2>Your Acctrise dashboard</h2>
                 </div>
                 <div className="dash-actions">
                   <button className="btn btn-soft" type="button" onClick={() => handleAction("fund")}>Add funds</button>
@@ -438,10 +494,10 @@ export default function Home() {
 
         <section className="section spotlight">
           <div>
-            <span className="badge">Daily updates</span>
-            <h2>Fresh services, cleaner prices, better delivery.</h2>
+            <span className="badge"><LockKeyhole size={14} /> Daily updates</span>
+            <h2>Fresh services, cleaner pricing, better delivery.</h2>
             <p>
-              acctrise is designed to feel alive. Service prices, number availability, wallet history, and order updates stay visible so users always have a reason to come back.
+              Acctrise is designed to feel alive. Service availability, wallet history, and order updates stay visible so users know exactly what to do next.
             </p>
           </div>
           <div className="update-list">
@@ -453,17 +509,42 @@ export default function Home() {
 
         <section id="faq" className="section faq-section">
           <div className="section-head center">
-            <span className="badge light">Questions</span>
+            <span className="badge light"><Headphones size={14} /> Questions</span>
             <h2>Clear answers before users pay.</h2>
           </div>
           <div className="faq-grid">
-            <details open><summary>What can I buy on acctrise?</summary><p>Social media growth, virtual SMS numbers, UK premium numbers, and eSIM plans.</p></details>
+            <details open><summary>What can I buy on Acctrise?</summary><p>Social media growth, virtual SMS numbers, UK premium numbers, logs, digital accounts, and eSIM plans.</p></details>
             <details><summary>How do verification numbers work?</summary><p>Choose an app and country, rent a number, then copy the OTP code when it arrives.</p></details>
             <details><summary>How fast do orders start?</summary><p>Many services start within seconds or minutes. Each order shows its current status.</p></details>
-            <details><summary>Can I resell services?</summary><p>Yes. acctrise supports reseller workflows and provider logs for accountability.</p></details>
+            <details><summary>Can I resell services?</summary><p>Yes. Acctrise supports reseller workflows, organized inventory, and clear order tracking for accountability.</p></details>
           </div>
         </section>
+
+        <section className="section final-cta">
+          <div>
+            <span className="badge"><Sparkles size={14} /> Ready when users are</span>
+            <h2>Launch a cleaner digital services experience.</h2>
+            <p>Give customers a fast, mobile-friendly place to buy boosting, logs, numbers, eSIM, and wallet-funded services.</p>
+          </div>
+          <Link className="btn btn-primary btn-large" href="/auth/signup">Get Started <ArrowRight size={17} /></Link>
+        </section>
       </main>
+
+      <footer className="site-footer">
+        <div>
+          <Link className="brand" href="/" aria-label="acctrise home">
+            <span className="brand-mark"><img src="/acctrise-logo.jpeg" alt="" /></span>
+            <span className="brand-word">Acctrise</span>
+          </Link>
+          <p>Premium digital services, organized for normal users and built for repeat orders.</p>
+        </div>
+        <nav aria-label="Footer navigation">
+          <a href="#services">Services</a>
+          <a href="#how">How it works</a>
+          <a href="#faq">FAQ</a>
+          <Link href="/auth/login">Login</Link>
+        </nav>
+      </footer>
 
       <div className="toast-region" aria-live="polite" aria-atomic="true">
         {toasts.map((item) => (
@@ -473,3 +554,4 @@ export default function Home() {
     </>
   );
 }
+
