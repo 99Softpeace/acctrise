@@ -25,7 +25,7 @@ const navItems = [
   { icon: Gauge, label: "Overview", href: "/dashboard" },
   { icon: Rocket, label: "Boost Account", href: "/dashboard/boosting" },
   { icon: ReceiptText, label: "Buy Logs", href: "/dashboard/logs" },
-  { icon: Smartphone, label: "Foreign Numbers", href: "/dashboard/foreign-numbers" },
+  { icon: Smartphone, label: "Rent Number", href: "/dashboard/rent-number" },
   { icon: Phone, label: "USA Premium", href: "/dashboard/uk-premium" },
   { icon: Wifi, label: "Buy eSIM", href: "/dashboard/esim" },
   { icon: Box, label: "My Orders", href: "/dashboard/orders" },

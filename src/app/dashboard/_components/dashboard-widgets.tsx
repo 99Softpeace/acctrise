@@ -38,7 +38,7 @@ const stats = [
 const serviceCards = [
   { title: "Boost Account", href: "/dashboard/boosting", detail: "Social growth services organized by platform.", icon: Rocket, meta: "Fast campaigns" },
   { title: "Buy Logs", href: "/dashboard/logs", detail: "Premium accounts and social log inventory.", icon: FileText, meta: "Secure inventory" },
-  { title: "Foreign Numbers", href: "/dashboard/foreign-numbers", detail: "Temporary SMS numbers for app verification.", icon: Smartphone, meta: "Live numbers" },
+  { title: "Rent Number", href: "/dashboard/rent-number", detail: "Temporary SMS numbers for app verification.", icon: Smartphone, meta: "SMSPool live" },
   { title: "USA Premium", href: "/dashboard/uk-premium", detail: "Premium USA numbers for higher-trust verification.", icon: Phone, meta: "Live numbers" },
   { title: "Buy eSIM", href: "/dashboard/esim", detail: "Travel data plans and regional eSIM options.", icon: Wifi, meta: "Travel ready" },
   { title: "Wallet", href: "/dashboard/wallet", detail: "Funding is paused while PocketFi activation is pending.", icon: Wallet, meta: "PocketFi planned" }
@@ -46,7 +46,7 @@ const serviceCards = [
 
 const quickActions = [
   { label: "Boost Account", href: "/dashboard/boosting", icon: Rocket, tone: "blue" },
-  { label: "Foreign Number", href: "/dashboard/foreign-numbers", icon: MessageSquare, tone: "orange" },
+  { label: "Rent Number", href: "/dashboard/rent-number", icon: MessageSquare, tone: "orange" },
   { label: "USA Premium", href: "/dashboard/uk-premium", icon: Clock3, tone: "teal" },
   { label: "Buy Logs", href: "/dashboard/logs", icon: FileText, tone: "yellow" },
   { label: "Tutorials", href: "/dashboard/orders", icon: PlayCircle, tone: "indigo" },
@@ -179,7 +179,7 @@ function DesktopOverviewHero() {
         <div className="mt-6 grid gap-3 sm:grid-cols-3">
           <Link href="/dashboard/wallet" className="rounded-lg bg-blue-50 p-4 text-blue-800 ring-1 ring-blue-100"><span className="text-xs font-bold uppercase tracking-[0.12em] text-blue-500">Balance</span><strong className="mt-2 block text-2xl tracking-tight">NGN 7,628.24</strong></Link>
           <Link href="/dashboard/orders" className="rounded-lg bg-slate-50 p-4 text-slate-700 ring-1 ring-slate-200"><span className="text-xs font-bold uppercase tracking-[0.12em] text-slate-400">Orders</span><strong className="mt-2 block text-2xl tracking-tight">20</strong></Link>
-          <Link href="/dashboard/foreign-numbers" className="rounded-lg bg-emerald-50 p-4 text-emerald-800 ring-1 ring-emerald-100"><span className="text-xs font-bold uppercase tracking-[0.12em] text-emerald-600">Numbers</span><strong className="mt-2 block text-2xl tracking-tight">17 live</strong></Link>
+          <Link href={"/dashboard/rent-number" as any} className="rounded-lg bg-emerald-50 p-4 text-emerald-800 ring-1 ring-emerald-100"><span className="text-xs font-bold uppercase tracking-[0.12em] text-emerald-600">Numbers</span><strong className="mt-2 block text-2xl tracking-tight">17 live</strong></Link>
         </div>
       </Surface>
       <AnimatedGlobe />
@@ -301,7 +301,7 @@ export function OverviewPage() {
           </div>
           <div className="mt-5 grid gap-3">
             <PrimaryButton href="/dashboard/boosting"><Zap className="h-4 w-4" /> Place boost order</PrimaryButton>
-            <Link href="/dashboard/foreign-numbers" className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 transition hover:bg-slate-50"><Smartphone className="h-4 w-4" /> Buy number</Link>
+            <Link href={"/dashboard/rent-number" as any} className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 transition hover:bg-slate-50"><Smartphone className="h-4 w-4" /> Rent number</Link>
             <Link href="/dashboard/logs" className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 transition hover:bg-slate-50"><FileText className="h-4 w-4" /> Browse logs</Link>
           </div>
           <div className="mt-5 rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm leading-6 text-blue-950">PocketFi funding is intentionally paused. Wallet UI stays visible, but funding actions are held until activation.</div>
@@ -322,9 +322,9 @@ export function BoostingPage() {
   );
 }
 
-function NumberPurchasePage({ premium = false }: { premium?: boolean }) {
-  const title = premium ? "USA Premium Numbers" : "Foreign Numbers";
-  const description = premium ? "Search premium USA verification services, select one, and continue with a clear checkout panel." : "Search international verification services, select one, and continue with a clean order flow.";
+function NumberPurchasePage({ premium = false, rent = false }: { premium?: boolean; rent?: boolean }) {
+  const title = premium ? "USA Premium Numbers" : rent ? "Rent Number" : "Foreign Numbers";
+  const description = premium ? "Search premium USA verification services, select one, and continue with a clear checkout panel." : "Choose a country, search SMSPool services, and rent a temporary verification number with live pricing.";
   return (
     <div className="mx-auto grid max-w-7xl gap-6">
       <PageHeader eyebrow="Numbers" title={title} description={description} action={<StatusPill status="Live pricing" />} />
@@ -334,7 +334,8 @@ function NumberPurchasePage({ premium = false }: { premium?: boolean }) {
   );
 }
 
-export function ForeignNumbersPage() { return <NumberPurchasePage />; }
+export function ForeignNumbersPage() { return <NumberPurchasePage rent />; }
+export function RentNumberPage() { return <NumberPurchasePage rent />; }
 export function UkPremiumPage() { return <NumberPurchasePage premium />; }
 
 export function EsimPage() {
@@ -369,7 +370,3 @@ export function WalletPage() {
 export function DashboardLoading() {
   return <div className="mx-auto grid max-w-7xl gap-4"><div className="h-8 w-48 animate-pulse rounded-lg bg-slate-200" /><div className="h-20 animate-pulse rounded-lg bg-slate-200" /><div className="grid gap-4 md:grid-cols-3"><div className="h-36 animate-pulse rounded-lg bg-slate-200" /><div className="h-36 animate-pulse rounded-lg bg-slate-200" /><div className="h-36 animate-pulse rounded-lg bg-slate-200" /></div></div>;
 }
-
-
-
-

@@ -54,18 +54,25 @@ type PlatformOption = {
   accent: string;
 };
 
+type BoostPlatformOption = PlatformOption & { all?: boolean; more?: boolean };
+
 const socialPlatforms: PlatformOption[] = [
+  { label: "Facebook", icon: Users, keywords: ["facebook", "fb"], accent: "from-blue-50 to-indigo-50 text-blue-700 ring-blue-100" },
   { label: "Instagram", icon: Camera, keywords: ["instagram", "ig"], accent: "from-pink-50 to-rose-50 text-rose-600 ring-rose-100" },
+  { label: "WhatsApp", icon: Phone, keywords: ["whatsapp", "whats app"], accent: "from-emerald-50 to-green-50 text-emerald-700 ring-emerald-100" },
   { label: "TikTok", icon: Play, keywords: ["tiktok", "tik tok"], accent: "from-slate-50 to-cyan-50 text-cyan-700 ring-cyan-100" },
+  { label: "Spotify", icon: Wifi, keywords: ["spotify"], accent: "from-green-50 to-lime-50 text-green-700 ring-green-100" },
   { label: "YouTube", icon: Video, keywords: ["youtube", "yt", "watch time"], accent: "from-red-50 to-orange-50 text-red-600 ring-red-100" },
   { label: "Telegram", icon: Send, keywords: ["telegram", "tg"], accent: "from-sky-50 to-blue-50 text-sky-700 ring-sky-100" },
-  { label: "Facebook", icon: Users, keywords: ["facebook", "fb"], accent: "from-blue-50 to-indigo-50 text-blue-700 ring-blue-100" },
-  { label: "WhatsApp", icon: Phone, keywords: ["whatsapp", "whats app"], accent: "from-emerald-50 to-green-50 text-emerald-700 ring-emerald-100" },
-  { label: "Spotify", icon: Wifi, keywords: ["spotify"], accent: "from-green-50 to-lime-50 text-green-700 ring-green-100" },
-  { label: "Twitter/X", icon: Globe2, keywords: ["twitter", "x ", "x.com"], accent: "from-slate-50 to-blue-50 text-slate-700 ring-slate-200" },
+  { label: "Twitter", icon: Globe2, keywords: ["twitter", "x ", "x.com"], accent: "from-slate-50 to-blue-50 text-slate-700 ring-slate-200" },
   { label: "LinkedIn", icon: BriefcaseBusiness, keywords: ["linkedin", "linked in"], accent: "from-blue-50 to-cyan-50 text-blue-700 ring-blue-100" }
 ];
 
+const boostPlatformTiles: BoostPlatformOption[] = [
+  { label: "All", icon: ShoppingBag, keywords: [], accent: "from-blue-50 to-sky-50 text-blue-700 ring-blue-100", all: true },
+  ...socialPlatforms,
+  { label: "More", icon: ChevronDown, keywords: [], accent: "from-slate-50 to-slate-100 text-slate-600 ring-slate-200", more: true }
+];
 const logCategories = [
   { label: "All", keywords: [] },
   { label: "Social Media", keywords: ["instagram", "tiktok", "facebook", "twitter", "linkedin", "youtube", "telegram"] },
@@ -78,7 +85,6 @@ const logCategories = [
 const countryOptions = ["Any country", "USA", "United States", "UK", "United Kingdom", "Germany", "France", "Canada", "Brazil", "Nigeria"];
 const priceOptions = ["Any price", "Under $1", "$1 - $5", "$5+"];
 const stockOptions = ["Any stock", "In stock", "High stock"];
-
 function formatPrice(value: number) {
   if (!Number.isFinite(value) || value <= 0) return "Live price";
   return new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 0 }).format(value * 1600);
@@ -117,6 +123,30 @@ function dataSummary(service: ServiceItem) {
   return match ? `${match[1]} GB` : "Data plan";
 }
 
+function boostCategoryFor(service: ServiceItem) {
+  const text = `${service.name} ${service.description || ""}`.toLowerCase();
+  if (/followers?|fans|subscribers?/.test(text)) return "Followers & subscribers";
+  if (/likes?|reactions?|favorites?/.test(text)) return "Likes & reactions";
+  if (/views?|watch time|impressions?/.test(text)) return "Views & watch time";
+  if (/comments?|replies/.test(text)) return "Comments";
+  if (/members?|joins?|group/.test(text)) return "Members & groups";
+  if (/plays?|streams?|listeners?/.test(text)) return "Plays & streams";
+  if (/shares?|saves?|bookmarks?/.test(text)) return "Shares & saves";
+  return "General services";
+}
+
+function boostCategoryLabel(platform: BoostPlatformOption, category: string) {
+  if (category === "All categories") return category;
+  const name = platform.all || platform.more ? "Social" : platform.label;
+  return `${name} ${category.toLowerCase()}`;
+}
+
+function matchesBoostPlatform(service: ServiceItem, platform: BoostPlatformOption) {
+  if (platform.all) return true;
+  if (platform.more) return !socialPlatforms.some((item) => matchesKeywords(service, item.keywords));
+  return matchesKeywords(service, platform.keywords);
+}
+
 function userSafeError() {
   return "This service is available, but fulfillment is temporarily unavailable. Please contact support.";
 }
@@ -125,7 +155,9 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   return <label className="grid gap-2 text-sm font-semibold text-slate-600">{label}{children}</label>;
 }
 
-function SelectField({ value, onChange, options, label }: { value: string; onChange: (value: string) => void; options: string[]; label: string }) {
+function SelectField({ value, onChange, options, label }: { value: string; onChange: (value: string) => void; options: string[];
+
+label: string }) {
   return (
     <Field label={label}>
       <span className="relative">
@@ -307,6 +339,7 @@ function NumberServicePicker({ kind }: { kind: Extract<ServiceExplorerKind, "for
         if (cancelled) return;
         if (!response.ok) throw new Error("Countries unavailable");
         const nextCountries = Array.isArray(body.countries) ? body.countries : [];
+
         setCountries(nextCountries);
         setCountryState(nextCountries.length ? "ready" : "error");
       } catch {
@@ -337,6 +370,7 @@ function NumberServicePicker({ kind }: { kind: Extract<ServiceExplorerKind, "for
         if (cancelled) return;
         if (!response.ok) throw new Error("Services unavailable");
         const nextServices = Array.isArray(body.services) ? body.services : [];
+
         setServices(nextServices);
         setServiceState(nextServices.length ? "ready" : "empty");
       } catch {
@@ -462,6 +496,7 @@ const logMarketplaceCategories = [
   { label: "Software & Other", icon: Globe2 }
 ];
 
+
 function LogsMarketplace() {
   const [services, setServices] = useState<ServiceItem[]>([]);
   const [state, setState] = useState<"loading" | "ready" | "empty" | "error">("loading");
@@ -481,6 +516,7 @@ function LogsMarketplace() {
         if (cancelled) return;
         if (!response.ok) throw new Error("Logs unavailable");
         const nextServices = Array.isArray(body.services) ? body.services : [];
+
         setServices(nextServices);
         setState(nextServices.length ? "ready" : "empty");
       } catch {
@@ -586,6 +622,7 @@ function EsimPlanBrowser() {
         if (cancelled) return;
         if (!response.ok) throw new Error("eSIM unavailable");
         const nextServices = Array.isArray(body.services) ? body.services : [];
+
         setServices(nextServices);
         setState(nextServices.length ? "ready" : "empty");
         setSelectedService(nextServices[0] || null);
@@ -641,6 +678,161 @@ function EsimPlanBrowser() {
   );
 }
 
+function BoostAccountBrowser() {
+  const [services, setServices] = useState<ServiceItem[]>([]);
+  const [state, setState] = useState<"loading" | "ready" | "empty" | "error">("loading");
+  const [selectedPlatformLabel, setSelectedPlatformLabel] = useState("All");
+  const [category, setCategory] = useState("All categories");
+  const [query, setQuery] = useState("");
+  const [selectedService, setSelectedService] = useState<ServiceItem | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      setState("loading");
+      try {
+        const response = await fetch("/api/providers/services?kind=boosting", { cache: "no-store" });
+        const body = await response.json();
+        if (cancelled) return;
+        if (!response.ok) throw new Error("Boosting unavailable");
+        const nextServices = Array.isArray(body.services) ? body.services : [];
+        setServices(nextServices);
+        setState(nextServices.length ? "ready" : "empty");
+      } catch {
+        if (!cancelled) setState("error");
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, []);
+
+  const activePlatform = boostPlatformTiles.find((platform) => platform.label === selectedPlatformLabel) || boostPlatformTiles[0];
+
+  const counts = useMemo(() => boostPlatformTiles.reduce<Record<string, number>>((acc, platform) => {
+    acc[platform.label] = services.filter((service) => matchesBoostPlatform(service, platform)).length;
+    return acc;
+  }, {}), [services]);
+
+  const platformServices = useMemo(() => services.filter((service) => matchesBoostPlatform(service, activePlatform)), [activePlatform, services]);
+
+  const categoryOptions = useMemo(() => {
+    const categories = Array.from(new Set(platformServices.map(boostCategoryFor))).sort((a, b) => a.localeCompare(b));
+    return ["All categories", ...categories];
+  }, [platformServices]);
+
+
+
+  const filtered = useMemo(() => {
+    const search = query.trim().toLowerCase();
+    return platformServices.filter((service) => {
+      const text = `${service.name} ${service.description || ""}`.toLowerCase();
+      if (category !== "All categories" && boostCategoryFor(service) !== category) return false;
+      if (search && !text.includes(search)) return false;
+      return true;
+    });
+  }, [category, platformServices, query]);
+
+  const activeSelectedService = selectedService && filtered.some((service) => service.externalId === selectedService.externalId) ? selectedService : null;
+
+  return (
+    <section className="grid gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(360px,1fr)] xl:items-start">
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm shadow-slate-200/70 sm:p-6">
+        <div className="flex items-center gap-3">
+          <span className="grid h-11 w-11 place-items-center rounded-lg bg-blue-50 text-blue-700 ring-1 ring-blue-100"><ShoppingBag className="h-5 w-5" /></span>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-600">Boost Account</p>
+            <h3 className="text-2xl font-black tracking-tight text-slate-900">Choose a social service</h3>
+          </div>
+        </div>
+
+        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-4 2xl:grid-cols-5">
+          {boostPlatformTiles.map((platform) => {
+            const active = platform.label === activePlatform.label;
+            return (
+              <button key={platform.label} type="button" onClick={() => { setSelectedPlatformLabel(platform.label); setCategory("All categories"); setSelectedService(null); setQuery(""); }} className={`min-h-24 rounded-xl border p-3 text-center transition hover:-translate-y-0.5 hover:shadow-md ${active ? "border-blue-600 bg-blue-600 text-white shadow-sm shadow-blue-600/25" : "border-slate-200 bg-slate-50 text-slate-600 hover:border-blue-200 hover:bg-white hover:text-blue-700"}`}>
+                <span className={`mx-auto grid h-10 w-10 place-items-center rounded-lg ${active ? "bg-white/15 text-white ring-1 ring-white/25" : `bg-gradient-to-br ring-1 ${platform.accent}`}`}><platform.icon className="h-5 w-5" /></span>
+                <span className="mt-3 block text-sm font-black">{platform.label}</span>
+                <span className={active ? "mt-1 block text-xs font-bold text-blue-100" : "mt-1 block text-xs font-bold text-slate-400"}>{counts[platform.label] || 0} services</span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="mt-6 grid gap-4">
+          <label className="relative block">
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+            <input value={query} onChange={(event) => setQuery(event.target.value)} className="h-14 w-full rounded-xl border border-slate-200 bg-slate-50 pl-12 pr-4 text-sm font-semibold text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100" placeholder="Search services..." />
+          </label>
+
+          <Field label="Category">
+            <span className="relative">
+              <select value={category} onChange={(event) => { setCategory(event.target.value); setSelectedService(null); }} className="h-14 w-full appearance-none rounded-xl border border-slate-200 bg-white px-4 pr-10 text-sm font-semibold text-slate-800 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100">
+                {categoryOptions.map((option) => <option key={option} value={option}>{boostCategoryLabel(activePlatform, option)}</option>)}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+            </span>
+          </Field>
+
+          <Field label="Service">
+            <span className="relative">
+              <select value={activeSelectedService?.externalId || ""} onChange={(event) => setSelectedService(filtered.find((service) => service.externalId === event.target.value) || null)} disabled={!filtered.length || state !== "ready"} className="h-14 w-full appearance-none rounded-xl border border-slate-200 bg-white px-4 pr-10 text-sm font-semibold text-slate-800 outline-none transition disabled:bg-slate-100 disabled:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100">
+                <option value="">{filtered.length ? "Choose a service..." : "No matching services"}</option>
+                {filtered.slice(0, 300).map((service) => <option key={service.externalId} value={service.externalId}>{service.name} - {formatPrice(service.price)}</option>)}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+            </span>
+          </Field>
+        </div>
+
+        {state === "loading" ? <div className="mt-5 grid min-h-28 place-items-center rounded-xl border border-slate-200 bg-slate-50 p-6 text-sm font-semibold text-slate-600"><span className="inline-flex items-center gap-3"><Loader2 className="h-5 w-5 animate-spin text-blue-600" /> Loading social services...</span></div> : null}
+        {state === "error" ? <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold leading-6 text-amber-900">{userSafeError()}</div> : null}
+        {state === "empty" ? <div className="mt-5 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm font-semibold text-slate-500">No boosting services are available right now.</div> : null}
+
+        {activeSelectedService ? (
+          <div className="mt-5 rounded-xl border border-blue-100 bg-blue-50 p-4">
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-blue-600">Selected service</p>
+            <h4 className="mt-1 text-base font-black text-slate-900">{activeSelectedService.name}</h4>
+            <div className="mt-3 grid gap-3 text-sm sm:grid-cols-3">
+              <span className="rounded-lg bg-white p-3 font-bold text-blue-700 ring-1 ring-blue-100">{formatPrice(activeSelectedService.price)}</span>
+              <span className="rounded-lg bg-white p-3 font-bold text-slate-700 ring-1 ring-blue-100">Min {activeSelectedService.minOrder}</span>
+              <span className="rounded-lg bg-white p-3 font-bold text-slate-700 ring-1 ring-blue-100">{activeSelectedService.maxOrder ? `Max ${activeSelectedService.maxOrder}` : "Live limits"}</span>
+            </div>
+          </div>
+        ) : null}
+
+        <div className="mx-auto mt-6 flex max-w-xl flex-wrap items-center justify-between gap-3 rounded-full border border-slate-200 bg-slate-50 px-4 py-3 text-xs font-bold text-slate-600">
+          <span>Acctrise service color categorization</span>
+          <span className="inline-flex items-center gap-2"><i className="h-2.5 w-2.5 rounded-full bg-amber-400" /> Basic</span>
+          <span className="inline-flex items-center gap-2"><i className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> Medium</span>
+          <span className="inline-flex items-center gap-2"><i className="h-2.5 w-2.5 rounded-full bg-blue-600" /> Elite</span>
+        </div>
+      </div>
+
+      <div className="grid gap-5">
+        <div>
+          <h3 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">Boost your <span className="text-blue-600">social media</span></h3>
+          <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600">Select a service, enter your link, and place the order from one guided panel. Services are pulled from the live provider catalog.</p>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm shadow-slate-200/70 sm:p-6">
+          <div className="flex items-center gap-3"><AlertCircle className="h-5 w-5 text-blue-600" /><h4 className="text-xl font-black text-slate-900">Important information</h4></div>
+          <ul className="mt-5 grid gap-4 text-sm leading-6 text-slate-600">
+            <li className="flex gap-3"><span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-blue-600" /> Make sure the account or post is public before ordering.</li>
+            <li className="flex gap-3"><span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-blue-600" /> Do not place two orders for the same link at the same time.</li>
+            <li className="flex gap-3"><span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-blue-600" /> Double-check links before buying because incorrect links may not be refundable.</li>
+            <li className="flex gap-3"><span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-blue-600" /> For views, enter the video link instead of a profile link.</li>
+          </ul>
+        </div>
+
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold leading-6 text-amber-950">
+          <div className="flex items-start gap-3"><AlertCircle className="mt-0.5 h-5 w-5 shrink-0" /> Drip-feed is currently disabled for maintenance. Standard delivery is working normally.</div>
+        </div>
+
+        <CheckoutPanel service={activeSelectedService} variant="boosting" />
+      </div>
+    </section>
+  );
+}
 function ServiceCatalogExplorer({ kind, mode }: { kind: ServiceExplorerKind; mode: "boosting" | "logs" | "numbers" | "esim" }) {
   const [services, setServices] = useState<ServiceItem[]>([]);
   const [state, setState] = useState<"idle" | "loading" | "ready" | "empty" | "error">(mode === "boosting" ? "idle" : "loading");
@@ -665,6 +857,7 @@ function ServiceCatalogExplorer({ kind, mode }: { kind: ServiceExplorerKind; mod
         if (cancelled) return;
         if (!response.ok) throw new Error("Service unavailable");
         const nextServices = Array.isArray(body.services) ? body.services : [];
+
         setServices(nextServices);
         setState(nextServices.length ? "ready" : "empty");
       } catch {
@@ -817,6 +1010,10 @@ function ServiceCatalogExplorer({ kind, mode }: { kind: ServiceExplorerKind; mod
   );
 }
 export function ServiceExplorer({ kind, mode }: { kind: ServiceExplorerKind; mode: "boosting" | "logs" | "numbers" | "esim" }) {
+  if (mode === "boosting" && kind === "boosting") {
+    return <BoostAccountBrowser />;
+  }
+
   if (mode === "numbers" && (kind === "foreign-numbers" || kind === "uk-premium")) {
     return <NumberServicePicker kind={kind} />;
   }
