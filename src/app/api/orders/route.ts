@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Create Order API Route
  * POST /api/orders
  */
@@ -7,6 +7,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getRequestUserId } from "@/lib/auth/request";
 import { getServices } from "@/lib/services";
 import { z } from "zod";
+
+const FRIENDLY_PROVIDER_MESSAGE = "This service is available, but fulfillment is temporarily unavailable. Please contact support.";
+const USER_SAFE_ERRORS = [/insufficient wallet balance/i, /minimum order quantity/i, /maximum order quantity/i, /service is currently unavailable/i, /unauthorized/i];
 
 const createOrderSchema = z.object({
   serviceId: z.string(),
@@ -59,8 +62,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.error("[orders/create]", error);
+    const message = error instanceof Error && USER_SAFE_ERRORS.some((pattern) => pattern.test(error.message))
+      ? error.message
+      : FRIENDLY_PROVIDER_MESSAGE;
+
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Internal server error" },
+      { error: message },
       { status: 500 }
     );
   }
@@ -105,8 +113,13 @@ export async function GET(request: NextRequest) {
       }
     });
   } catch (error) {
+    console.error("[orders/list]", error);
+    const message = error instanceof Error && USER_SAFE_ERRORS.some((pattern) => pattern.test(error.message))
+      ? error.message
+      : FRIENDLY_PROVIDER_MESSAGE;
+
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Internal server error" },
+      { error: message },
       { status: 500 }
     );
   }

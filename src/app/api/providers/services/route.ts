@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getRequestUser } from "@/lib/auth/request";
-import { fetchLiveServices, isLiveServiceKind } from "@/lib/providers/live-services";
+import { fetchLiveCountries, fetchLiveServices, isLiveServiceKind } from "@/lib/providers/live-services";
+
+const FRIENDLY_PROVIDER_MESSAGE = "This service is available, but fulfillment is temporarily unavailable. Please contact support.";
 
 export async function GET(request: NextRequest) {
   const user = await getRequestUser(request);
@@ -17,24 +19,46 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const result = await fetchLiveServices(kind);
+    const scope = request.nextUrl.searchParams.get("scope");
+
+    if (scope === "countries") {
+      if (kind !== "foreign-numbers" && kind !== "uk-premium") {
+        return NextResponse.json({ countries: [] });
+      }
+
+      const countries = await fetchLiveCountries(kind);
+      return NextResponse.json({ success: true, countries });
+    }
+
+    const result = await fetchLiveServices(kind, {
+      countryId: request.nextUrl.searchParams.get("countryId") || undefined,
+      countryName: request.nextUrl.searchParams.get("countryName") || undefined,
+      query: request.nextUrl.searchParams.get("q") || undefined,
+      limit: Number(request.nextUrl.searchParams.get("limit") || 30)
+    });
+
     return NextResponse.json({
       success: true,
       kind: result.kind,
       label: "Live services",
       services: result.services.map((service) => ({
         externalId: service.externalId,
+        serviceId: service.serviceId,
         name: service.name,
         description: service.description,
         price: service.price,
         minOrder: service.minOrder,
-        maxOrder: service.maxOrder
+        maxOrder: service.maxOrder,
+        countryId: service.countryId,
+        countryName: service.countryName,
+        availability: service.availability,
+        friendlyLabel: service.friendlyLabel
       }))
     });
   } catch (error) {
     console.error("[providers/services]", { kind, error });
     return NextResponse.json(
-      { error: "Service is available, but fulfillment is temporarily unavailable. Please contact support." },
+      { error: FRIENDLY_PROVIDER_MESSAGE },
       { status: 502 }
     );
   }

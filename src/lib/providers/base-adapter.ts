@@ -56,6 +56,11 @@ export interface ServiceMapping {
   minOrder: number;
   maxOrder?: number;
   description?: string;
+  countryId?: string;
+  countryName?: string;
+  serviceId?: string;
+  availability?: string;
+  friendlyLabel?: string;
 }
 
 export interface ProviderHealth {

@@ -32,6 +32,19 @@ type ServiceItem = {
   price: number;
   minOrder: number;
   maxOrder?: number;
+  countryId?: string;
+  countryName?: string;
+  serviceId?: string;
+  availability?: string;
+  friendlyLabel?: string;
+};
+
+type CountryItem = {
+  id: string;
+  name: string;
+  shortName?: string;
+  dialCode?: string;
+  region?: string;
 };
 
 type PlatformOption = {
@@ -68,7 +81,7 @@ const stockOptions = ["Any stock", "In stock", "High stock"];
 
 function formatPrice(value: number) {
   if (!Number.isFinite(value) || value <= 0) return "Live price";
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 4 }).format(value);
+  return new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 0 }).format(value * 1600);
 }
 
 function matchesKeywords(service: ServiceItem, keywords: string[]) {
@@ -83,6 +96,7 @@ function inferPlatform(service: ServiceItem) {
 }
 
 function inferCountry(service: ServiceItem) {
+  if (service.countryName) return service.countryName;
   const text = `${service.name} ${service.description || ""}`.toLowerCase();
   if (/united states|\busa\b|\bus\b/.test(text)) return "United States";
   if (/united kingdom|\buk\b|\bgb\b/.test(text)) return "United Kingdom";
@@ -104,7 +118,7 @@ function dataSummary(service: ServiceItem) {
 }
 
 function userSafeError() {
-  return "Service is available, but fulfillment is temporarily unavailable. Please contact support.";
+  return "This service is available, but fulfillment is temporarily unavailable. Please contact support.";
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -143,18 +157,14 @@ function ServiceCard({ service, selected, onSelect, variant }: { service: Servic
         <span className="rounded-lg bg-slate-50 px-2.5 py-2 text-slate-700">{formatPrice(service.price)}</span>
         <span className="rounded-lg bg-slate-50 px-2.5 py-2 text-slate-700">{country}</span>
         <span className="rounded-lg bg-slate-50 px-2.5 py-2 text-slate-700">Min {service.minOrder}</span>
-        <span className="rounded-lg bg-slate-50 px-2.5 py-2 text-slate-700">{service.maxOrder ? `${service.maxOrder} available` : "Available"}</span>
+        <span className="rounded-lg bg-slate-50 px-2.5 py-2 text-slate-700">{service.availability || (service.maxOrder ? `${service.maxOrder} available` : "Available")}</span>
       </div>
     </button>
   );
 }
 
 function CheckoutPanel({ service, variant }: { service: ServiceItem | null; variant: ServiceExplorerKind }) {
-  const [notice, setNotice] = useState("");
-
-  useEffect(() => {
-    setNotice("");
-  }, [service?.externalId]);
+  const [notice, setNotice] = useState<{ serviceId: string; message: string } | null>(null);
 
   if (!service) {
     return (
@@ -168,7 +178,7 @@ function CheckoutPanel({ service, variant }: { service: ServiceItem | null; vari
 
   const isBoost = variant === "boosting";
   const isNumber = variant === "foreign-numbers" || variant === "uk-premium";
-  const actionLabel = isBoost ? "Create boost order" : variant === "esim" ? "Continue to eSIM checkout" : isNumber ? "Request number" : "Continue to purchase";
+  const actionLabel = isBoost ? "Create boost order" : variant === "esim" ? "Continue to eSIM checkout" : isNumber ? "Buy Number" : "Continue to purchase";
 
   return (
     <aside className="rounded-xl border border-blue-100 bg-gradient-to-b from-white to-blue-50/40 p-5 shadow-sm shadow-blue-100/60 lg:sticky lg:top-28">
@@ -187,16 +197,200 @@ function CheckoutPanel({ service, variant }: { service: ServiceItem | null; vari
         {isNumber ? <Field label="Service / app"><input className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100" placeholder="WhatsApp, Telegram, Google..." /></Field> : null}
         {variant === "esim" ? <Field label="Travel label"><input className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100" placeholder="Trip name or device" /></Field> : null}
         {isBoost ? <Field label="Quantity"><input className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100" type="number" min={service.minOrder} max={service.maxOrder} defaultValue={service.minOrder} /></Field> : null}
-        <button type="button" onClick={() => setNotice(userSafeError())} className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-bold text-blue-50 shadow-sm shadow-blue-600/20 transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-100">
+        <button type="button" onClick={() => setNotice({ serviceId: service.externalId, message: userSafeError() })} className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-bold text-blue-50 shadow-sm shadow-blue-600/20 transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-100">
           <Zap className="h-4 w-4" /> {actionLabel}
         </button>
-        {notice ? <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm font-semibold leading-6 text-amber-900">{notice}</div> : null}
+        {notice?.serviceId === service.externalId ? <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm font-semibold leading-6 text-amber-900">{notice.message}</div> : null}
       </div>
     </aside>
   );
 }
 
-export function ServiceExplorer({ kind, mode }: { kind: ServiceExplorerKind; mode: "boosting" | "logs" | "numbers" | "esim" }) {
+
+
+const USA_COUNTRY: CountryItem = { id: "1", name: "United States", shortName: "US", dialCode: "1", region: "North America" };
+
+function ServiceDropdownOption({ service, onSelect }: { service: ServiceItem; onSelect: () => void }) {
+  return (
+    <button
+      type="button"
+      onMouseDown={(event) => event.preventDefault()}
+      onClick={onSelect}
+      className="grid w-full gap-2 rounded-lg border border-slate-200 bg-white p-3 text-left transition hover:border-blue-200 hover:bg-blue-50/50 focus:outline-none focus:ring-4 focus:ring-blue-100 sm:grid-cols-[1fr_auto] sm:items-center"
+    >
+      <span className="min-w-0">
+        <span className="block truncate text-sm font-bold text-slate-800">{service.name}</span>
+        <span className="mt-1 flex flex-wrap gap-2 text-xs font-semibold text-slate-500">
+          <span>{service.friendlyLabel || "Verification service"}</span>
+          <span>{service.countryName || "Selected country"}</span>
+          <span>{service.availability || "Live availability"}</span>
+        </span>
+      </span>
+      <span className="text-left sm:text-right">
+        <span className="block text-base font-black text-blue-700">{formatPrice(service.price)}</span>
+        <span className="text-xs font-semibold text-slate-400">Live price</span>
+      </span>
+    </button>
+  );
+}
+
+function NumberServicePicker({ kind }: { kind: Extract<ServiceExplorerKind, "foreign-numbers" | "uk-premium"> }) {
+  const premium = kind === "uk-premium";
+  const [countries, setCountries] = useState<CountryItem[]>(premium ? [USA_COUNTRY] : []);
+  const [countryState, setCountryState] = useState<"idle" | "loading" | "ready" | "error">(premium ? "ready" : "loading");
+  const [selectedCountryId, setSelectedCountryId] = useState(premium ? USA_COUNTRY.id : "");
+  const [query, setQuery] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [services, setServices] = useState<ServiceItem[]>([]);
+  const [serviceState, setServiceState] = useState<"idle" | "loading" | "ready" | "empty" | "error">("idle");
+  const [selectedService, setSelectedService] = useState<ServiceItem | null>(null);
+
+  const selectedCountry = useMemo(() => countries.find((country) => country.id === selectedCountryId) || (premium ? USA_COUNTRY : null), [countries, premium, selectedCountryId]);
+
+  useEffect(() => {
+    if (premium) return;
+    let cancelled = false;
+
+    async function loadCountries() {
+      setCountryState("loading");
+      try {
+        const response = await fetch(`/api/providers/services?kind=${kind}&scope=countries`, { cache: "no-store" });
+        const body = await response.json();
+        if (cancelled) return;
+        if (!response.ok) throw new Error("Countries unavailable");
+        const nextCountries = Array.isArray(body.countries) ? body.countries : [];
+        setCountries(nextCountries);
+        setCountryState(nextCountries.length ? "ready" : "error");
+      } catch {
+        if (!cancelled) setCountryState("error");
+      }
+    }
+
+    loadCountries();
+    return () => { cancelled = true; };
+  }, [kind, premium]);
+
+
+  useEffect(() => {
+    if (!searchOpen || !selectedCountry) return;
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      setServiceState("loading");
+      try {
+        const params = new URLSearchParams({
+          kind,
+          countryId: selectedCountry.id,
+          countryName: selectedCountry.name,
+          limit: "24"
+        });
+        if (query.trim()) params.set("q", query.trim());
+        const response = await fetch(`/api/providers/services?${params.toString()}`, { cache: "no-store" });
+        const body = await response.json();
+        if (cancelled) return;
+        if (!response.ok) throw new Error("Services unavailable");
+        const nextServices = Array.isArray(body.services) ? body.services : [];
+        setServices(nextServices);
+        setServiceState(nextServices.length ? "ready" : "empty");
+      } catch {
+        if (!cancelled) setServiceState("error");
+      }
+    }, 180);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [kind, query, searchOpen, selectedCountry]);
+
+  function selectService(service: ServiceItem) {
+    setSelectedService(service);
+    setQuery(service.name);
+    setSearchOpen(false);
+  }
+
+  const countryDisabled = countryState === "loading" || countryState === "error";
+  const inputDisabled = !selectedCountry || countryDisabled;
+
+  return (
+    <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm shadow-slate-200/70 sm:p-5">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-600">Number checkout</p>
+            <h3 className="mt-2 text-xl font-bold tracking-tight text-slate-800 sm:text-2xl">{premium ? "Choose a USA Premium service" : "Choose country, then service"}</h3>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">{premium ? "Search USA verification services and select one to view live price and availability." : "Pick a country first. Services load only when you click or type in the service search."}</p>
+          </div>
+          <span className="rounded-md bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700 ring-1 ring-emerald-100">Live provider data</span>
+        </div>
+
+        <div className="mt-5 grid gap-4">
+          {!premium ? (
+            <Field label="Select Country">
+              <span className="relative">
+                <select value={selectedCountryId} disabled={countryDisabled} onChange={(event) => { setSelectedCountryId(event.target.value); setServices([]); setSelectedService(null); setQuery(""); setSearchOpen(false); setServiceState("idle"); }} className="h-12 w-full appearance-none rounded-lg border border-slate-200 bg-slate-50 px-3 pr-10 text-sm font-semibold text-slate-800 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:text-slate-400">
+                  <option value="">{countryState === "loading" ? "Loading countries..." : "Select a country..."}</option>
+                  {countries.map((country) => <option key={country.id} value={country.id}>{country.name}{country.shortName ? ` (${country.shortName})` : ""}</option>)}
+                </select>
+                <Globe2 className="pointer-events-none absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+              </span>
+            </Field>
+          ) : (
+            <div className="rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm font-semibold text-blue-950">
+              USA Premium uses United States routes with live service pricing and availability.
+            </div>
+          )}
+
+          <Field label="Select Service">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-5 w-5 -translate-y-1/2 text-slate-400" />
+              <input
+                value={query}
+                disabled={inputDisabled}
+                onFocus={() => { if (!inputDisabled) setSearchOpen(true); }}
+                onChange={(event) => { setQuery(event.target.value); setSearchOpen(true); setSelectedService(null); }}
+                className="h-12 w-full rounded-lg border border-slate-200 bg-slate-50 pl-11 pr-3 text-sm font-semibold text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:text-slate-400"
+                placeholder={inputDisabled ? "Select a country first" : "Click or search service..."}
+              />
+              {searchOpen ? (
+                <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-30 max-h-96 overflow-y-auto rounded-lg border border-slate-200 bg-white p-2 shadow-xl shadow-slate-900/10">
+                  {serviceState === "loading" ? <div className="flex items-center gap-2 p-3 text-sm font-semibold text-slate-600"><Loader2 className="h-4 w-4 animate-spin text-blue-600" /> Loading matching services...</div> : null}
+                  {serviceState === "error" ? <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm font-semibold leading-6 text-amber-900">{userSafeError()}</div> : null}
+                  {serviceState === "empty" ? <div className="p-3 text-sm font-semibold text-slate-500">No matching services for this country. Try another search.</div> : null}
+                  {serviceState === "ready" ? <div className="grid gap-2">{services.map((service) => <ServiceDropdownOption key={service.externalId} service={service} onSelect={() => selectService(service)} />)}</div> : null}
+                </div>
+              ) : null}
+            </div>
+          </Field>
+
+          {selectedService ? (
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">Selected Service</p>
+                  <h4 className="mt-1 text-lg font-bold text-slate-800">{selectedService.name}</h4>
+                  <p className="mt-1 text-sm font-semibold text-slate-500">{selectedService.friendlyLabel || "Verification service"} - {selectedService.countryName || selectedCountry?.name}</p>
+                </div>
+                <div className="text-left sm:text-right">
+                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">Price</p>
+                  <strong className="mt-1 block text-2xl font-black tracking-tight text-blue-700">{formatPrice(selectedService.price)}</strong>
+                  <span className="text-xs font-semibold text-slate-500">{selectedService.availability || "Live availability"}</span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-5 text-sm font-semibold leading-6 text-slate-500">
+              {selectedCountry ? "Click the service search to load matching services and prices." : "Start by selecting a country."}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <CheckoutPanel service={selectedService} variant={kind} />
+    </section>
+  );
+}
+
+function ServiceCatalogExplorer({ kind, mode }: { kind: ServiceExplorerKind; mode: "boosting" | "logs" | "numbers" | "esim" }) {
   const [services, setServices] = useState<ServiceItem[]>([]);
   const [state, setState] = useState<"idle" | "loading" | "ready" | "empty" | "error">(mode === "boosting" ? "idle" : "loading");
   const [selectedPlatform, setSelectedPlatform] = useState<PlatformOption | null>(null);
@@ -251,15 +445,9 @@ export function ServiceExplorer({ kind, mode }: { kind: ServiceExplorerKind; mod
     });
   }, [category, country, mode, price, query, selectedPlatform, services, stock]);
 
-  useEffect(() => {
-    setVisibleCount(60);
-  }, [category, country, price, query, selectedPlatform, stock]);
 
-  useEffect(() => {
-    if (selectedService && !filtered.some((service) => service.externalId === selectedService.externalId)) {
-      setSelectedService(null);
-    }
-  }, [filtered, selectedService]);
+
+  const activeSelectedService = selectedService && filtered.some((service) => service.externalId === selectedService.externalId) ? selectedService : null;
 
   const title = mode === "boosting" ? "Choose a platform" : mode === "logs" ? "Premium logs & accounts" : mode === "esim" ? "Available eSIM plans" : "Available verification services";
   const description = mode === "boosting" ? "Start with a social platform, then choose the exact service that fits your goal." : mode === "logs" ? "Search aged accounts, social media logs, and premium subscriptions with clear filters." : mode === "esim" ? "Browse travel-ready data plans and select the best fit before checkout." : "Search services, choose one, then continue to a clean checkout panel.";
@@ -357,7 +545,7 @@ export function ServiceExplorer({ kind, mode }: { kind: ServiceExplorerKind; mod
                 return (
                   <div key={service.externalId} className={selected && mode === "boosting" ? "sm:col-span-2 2xl:col-span-3" : ""}>
                     <ServiceCard service={service} selected={selected} onSelect={() => setSelectedService(service)} variant={kind} />
-                    {selected && mode === "boosting" ? <div className="mt-3 xl:hidden"><CheckoutPanel service={selectedService} variant={kind} /></div> : null}
+                    {selected && mode === "boosting" ? <div className="mt-3 xl:hidden"><CheckoutPanel service={activeSelectedService} variant={kind} /></div> : null}
                   </div>
                 );
               })}
@@ -377,4 +565,10 @@ export function ServiceExplorer({ kind, mode }: { kind: ServiceExplorerKind; mod
     </section>
   );
 }
+export function ServiceExplorer({ kind, mode }: { kind: ServiceExplorerKind; mode: "boosting" | "logs" | "numbers" | "esim" }) {
+  if (mode === "numbers" && (kind === "foreign-numbers" || kind === "uk-premium")) {
+    return <NumberServicePicker kind={kind} />;
+  }
 
+  return <ServiceCatalogExplorer kind={kind} mode={mode} />;
+}

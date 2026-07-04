@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
@@ -27,7 +27,7 @@ const navItems: Array<{ id: ViewId; label: string }> = [
   { id: "boosting", label: "Boosting" },
   { id: "logs", label: "Logs" },
   { id: "foreign", label: "Foreign numbers" },
-  { id: "ukpremium", label: "UK premium" },
+  { id: "ukpremium", label: "USA premium" },
   { id: "esim", label: "eSIM" },
   { id: "wallet", label: "Wallet" }
 ];
@@ -77,7 +77,7 @@ const logRows = [
   ["LOG-2041", "Inventory refresh", "Account marketplace", { label: "Completed", variant: "done" }, "Jun 24"],
   ["LOG-2037", "Number sync", "Verification services", { label: "Live", variant: "" }, "Jun 24"],
   ["LOG-2032", "Service update", "Digital accounts", { label: "Pending", variant: "waiting" }, "Jun 23"],
-  ["LOG-2028", "Premium batch", "UK numbers", { label: "Completed", variant: "done" }, "Jun 22"]
+  ["LOG-2028", "Premium batch", "USA numbers", { label: "Completed", variant: "done" }, "Jun 22"]
 ];
 
 const foreignNumbers = [
@@ -87,9 +87,9 @@ const foreignNumbers = [
 ];
 
 const ukPremiumNumbers = [
-  { id: "UKP-021", service: "WhatsApp", number: "+44 7894 112345", price: "$4.50/hr" },
-  { id: "UKP-022", service: "Telegram", number: "+44 7700 900123", price: "$4.80/hr" },
-  { id: "UKP-023", service: "Google", number: "+44 7400 330122", price: "$5.20/hr" }
+  { id: "USP-021", service: "WhatsApp", number: "+1 202 555 0148", price: "$4.50/hr" },
+  { id: "USP-022", service: "Telegram", number: "+1 415 555 0196", price: "$4.80/hr" },
+  { id: "USP-023", service: "Google", number: "+1 646 555 0172", price: "$5.20/hr" }
 ];
 
 const esimPlans = [
@@ -135,7 +135,7 @@ const serviceCards = [
   {
     icon: <Smartphone size={24} />,
     title: "Numbers and eSIM",
-    text: "Access virtual numbers, foreign OTP routes, UK premium lines, and travel-ready data plans.",
+    text: "Access virtual numbers, foreign OTP routes, USA premium lines, and travel-ready data plans.",
     bullets: ["Search by country or app", "Clear checkout panels", "Mobile-friendly listings"],
     action: "Browse numbers",
     view: "foreign" as ViewId
@@ -285,7 +285,7 @@ export default function Home() {
             <span>{item.id}</span>
             <strong>{item.number}</strong>
             <div className="quote"><span>{item.price}</span></div>
-            <button className="btn btn-soft" type="button" onClick={() => handleAction("rent-number")}>Reserve UK number</button>
+            <button className="btn btn-soft" type="button" onClick={() => handleAction("rent-number")}>Reserve USA number</button>
           </article>
         ))}
       </section>
@@ -366,7 +366,7 @@ export default function Home() {
               <span className="badge"><Sparkles size={14} /> Boosting, numbers, eSIM, logs, and digital services</span>
               <h1>Digital services that feel fast, clear, and premium.</h1>
               <p>
-                Acctrise helps users buy social media boosting, rent virtual and UK premium numbers, activate eSIM plans, and access digital accounts from one polished wallet.
+                Buy social media boosting, rent virtual and USA premium numbers, activate eSIM plans, and manage digital services from one polished wallet.
               </p>
               <div className="hero-actions">
                 <Link className="btn btn-primary btn-large" href="/auth/signup">Get Started <ArrowRight size={17} /></Link>
@@ -502,7 +502,7 @@ export default function Home() {
           </div>
           <div className="update-list">
             <div><b>New</b><span>TikTok views restocked</span></div>
-            <div><b>Hot</b><span>UK premium numbers available</span></div>
+            <div><b>Hot</b><span>USA premium numbers available</span></div>
             <div><b>Deal</b><span>Reseller bundle discount active</span></div>
           </div>
         </section>
@@ -513,7 +513,7 @@ export default function Home() {
             <h2>Clear answers before users pay.</h2>
           </div>
           <div className="faq-grid">
-            <details open><summary>What can I buy on Acctrise?</summary><p>Social media growth, virtual SMS numbers, UK premium numbers, logs, digital accounts, and eSIM plans.</p></details>
+            <details open><summary>What can I buy on Acctrise?</summary><p>Social media growth, virtual SMS numbers, USA premium numbers, logs, digital accounts, and eSIM plans.</p></details>
             <details><summary>How do verification numbers work?</summary><p>Choose an app and country, rent a number, then copy the OTP code when it arrives.</p></details>
             <details><summary>How fast do orders start?</summary><p>Many services start within seconds or minutes. Each order shows its current status.</p></details>
             <details><summary>Can I resell services?</summary><p>Yes. Acctrise supports reseller workflows, organized inventory, and clear order tracking for accountability.</p></details>

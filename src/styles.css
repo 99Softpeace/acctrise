@@ -1,4 +1,4 @@
-﻿@import "tailwindcss";
+@import "tailwindcss";
 @config "../tailwind.config.ts";
 
 :root {
@@ -240,6 +240,15 @@ a {
     linear-gradient(135deg, #f3f6ff 0%, #ffffff 40%, #f8ecff 100%);
 }
 
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.96) 0%, rgba(255, 255, 255, 0.9) 44%, rgba(255, 255, 255, 0.72) 100%);
+  pointer-events: none;
+}
+
 .hero::after {
   content: "";
   position: absolute;
@@ -257,7 +266,7 @@ a {
   border-radius: 46% 54% 61% 39%;
   filter: blur(2px);
   opacity: 0.55;
-  z-index: -2;
+  z-index: -3;
 }
 
 .hero-bg-one {
@@ -273,6 +282,8 @@ a {
 }
 
 .hero-inner {
+  position: relative;
+  z-index: 1;
   width: min(1180px, calc(100% - 32px));
   min-height: 720px;
   margin: 0 auto;
@@ -318,12 +329,19 @@ a {
   font-weight: 700;
 }
 
+.hero-copy {
+  max-width: 760px;
+}
+
 .hero-copy p {
-  max-width: 620px;
-  margin: 24px 0 0;
-  color: var(--muted);
-  font-size: 19px;
-  line-height: 1.68;
+  max-width: 660px;
+  margin: 22px 0 0;
+  color: #202942;
+  font-size: 20px;
+  font-weight: 720;
+  line-height: 1.62;
+  text-wrap: pretty;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.72);
 }
 
 .hero-actions {
@@ -564,7 +582,7 @@ a {
 .spotlight p {
   margin: 16px 0 0;
   color: var(--muted);
-  font-size: 17px;
+  font-size: 17px !important;
   line-height: 1.65;
 }
 
@@ -1187,7 +1205,7 @@ details p {
   }
 
   .brand-word {
-    font-size: 17px;
+    font-size: 17px !important;
   }
 
   .top-actions {
@@ -1230,6 +1248,8 @@ details p {
   }
 
   .hero-inner {
+  position: relative;
+  z-index: 1;
     padding-top: 46px;
   }
 
@@ -1640,7 +1660,6 @@ body {
   font-weight: 850;
 }
 
-.hero-copy p,
 .section-head p,
 .spotlight p,
 .final-cta p {
@@ -1776,7 +1795,7 @@ details,
   max-width: 650px;
   margin: 16px 0 0;
   color: rgba(255, 255, 255, 0.78);
-  font-size: 17px;
+  font-size: 17px !important;
   line-height: 1.65;
 }
 
@@ -1901,6 +1920,8 @@ details,
   }
 
   .hero-inner {
+  position: relative;
+  z-index: 1;
     width: min(100% - 28px, 1180px);
     gap: 34px;
     padding: 42px 0 78px;
@@ -2592,6 +2613,10 @@ details,
   font-weight: 700;
 }
 
+.hero-copy {
+  max-width: 760px;
+}
+
 .mobile-overview-top strong {
   display: block;
   margin-top: 2px;
@@ -3218,5 +3243,20 @@ details,
   .network-lite-orb {
     width: 54px;
     height: 54px;
+  }
+}
+
+/* Final hero readability guard */
+.hero .hero-copy p {
+  color: #202942 !important;
+  font-weight: 720;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+@media (max-width: 640px) {
+  .hero .hero-copy p {
+    color: #202942 !important;
+    font-size: 17px !important;
+    line-height: 1.58 !important;
   }
 }

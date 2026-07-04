@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import {
@@ -39,7 +39,7 @@ const serviceCards = [
   { title: "Boost Account", href: "/dashboard/boosting", detail: "Social growth services organized by platform.", icon: Rocket, meta: "Fast campaigns" },
   { title: "Buy Logs", href: "/dashboard/logs", detail: "Premium accounts and social log inventory.", icon: FileText, meta: "Secure inventory" },
   { title: "Foreign Numbers", href: "/dashboard/foreign-numbers", detail: "Temporary SMS numbers for app verification.", icon: Smartphone, meta: "Live numbers" },
-  { title: "UK Premium", href: "/dashboard/uk-premium", detail: "Premium UK numbers for higher-trust verification.", icon: Phone, meta: "Live numbers" },
+  { title: "USA Premium", href: "/dashboard/uk-premium", detail: "Premium USA numbers for higher-trust verification.", icon: Phone, meta: "Live numbers" },
   { title: "Buy eSIM", href: "/dashboard/esim", detail: "Travel data plans and regional eSIM options.", icon: Wifi, meta: "Travel ready" },
   { title: "Wallet", href: "/dashboard/wallet", detail: "Funding is paused while PocketFi activation is pending.", icon: Wallet, meta: "PocketFi planned" }
 ];
@@ -47,7 +47,7 @@ const serviceCards = [
 const quickActions = [
   { label: "Boost Account", href: "/dashboard/boosting", icon: Rocket, tone: "blue" },
   { label: "Foreign Number", href: "/dashboard/foreign-numbers", icon: MessageSquare, tone: "orange" },
-  { label: "Rent Number", href: "/dashboard/uk-premium", icon: Clock3, tone: "teal" },
+  { label: "USA Premium", href: "/dashboard/uk-premium", icon: Clock3, tone: "teal" },
   { label: "Buy Logs", href: "/dashboard/logs", icon: FileText, tone: "yellow" },
   { label: "Tutorials", href: "/dashboard/orders", icon: PlayCircle, tone: "indigo" },
   { label: "eSIM", href: "/dashboard/esim", icon: Smartphone, tone: "pink" }
@@ -323,8 +323,8 @@ export function BoostingPage() {
 }
 
 function NumberPurchasePage({ premium = false }: { premium?: boolean }) {
-  const title = premium ? "UK Premium Numbers" : "Foreign Numbers";
-  const description = premium ? "Search premium UK verification services, select one, and continue with a clear checkout panel." : "Search international verification services, select one, and continue with a clean order flow.";
+  const title = premium ? "USA Premium Numbers" : "Foreign Numbers";
+  const description = premium ? "Search premium USA verification services, select one, and continue with a clear checkout panel." : "Search international verification services, select one, and continue with a clean order flow.";
   return (
     <div className="mx-auto grid max-w-7xl gap-6">
       <PageHeader eyebrow="Numbers" title={title} description={description} action={<StatusPill status="Available now" />} />

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -26,7 +26,7 @@ const navItems = [
   { icon: Rocket, label: "Boost Account", href: "/dashboard/boosting" },
   { icon: ReceiptText, label: "Buy Logs", href: "/dashboard/logs" },
   { icon: Smartphone, label: "Foreign Numbers", href: "/dashboard/foreign-numbers" },
-  { icon: Phone, label: "UK Premium", href: "/dashboard/uk-premium" },
+  { icon: Phone, label: "USA Premium", href: "/dashboard/uk-premium" },
   { icon: Wifi, label: "Buy eSIM", href: "/dashboard/esim" },
   { icon: Box, label: "My Orders", href: "/dashboard/orders" },
   { icon: Wallet, label: "Fund Wallet", href: "/dashboard/wallet" }

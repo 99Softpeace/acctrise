@@ -32,7 +32,7 @@ const envProviders: Array<{
     slug: "smspool",
     type: "virtual-numbers",
     envKey: "SMSPOOL_API_KEY",
-    description: "Virtual numbers, UK premium numbers, and SMS verification provider",
+    description: "Virtual numbers, USA premium numbers, and SMS verification provider",
     adapter: SMSPoolAdapter
   },
   {
