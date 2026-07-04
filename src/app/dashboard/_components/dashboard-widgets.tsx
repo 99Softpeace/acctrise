@@ -327,7 +327,7 @@ function NumberPurchasePage({ premium = false }: { premium?: boolean }) {
   const description = premium ? "Search premium USA verification services, select one, and continue with a clear checkout panel." : "Search international verification services, select one, and continue with a clean order flow.";
   return (
     <div className="mx-auto grid max-w-7xl gap-6">
-      <PageHeader eyebrow="Numbers" title={title} description={description} action={<StatusPill status="Available now" />} />
+      <PageHeader eyebrow="Numbers" title={title} description={description} action={<StatusPill status="Live pricing" />} />
       <ServiceExplorer kind={premium ? "uk-premium" : "foreign-numbers"} mode="numbers" />
       <Surface className="border-amber-200 bg-amber-50 p-5 text-amber-950"><div className="flex items-start gap-3"><AlertCircle className="mt-0.5 h-5 w-5" /><p className="text-sm font-semibold leading-6">Numbers are time-sensitive. Request the SMS code immediately after generating your number.</p></div></Surface>
     </div>
@@ -338,21 +338,11 @@ export function ForeignNumbersPage() { return <NumberPurchasePage />; }
 export function UkPremiumPage() { return <NumberPurchasePage premium />; }
 
 export function EsimPage() {
-  return (
-    <div className="mx-auto grid max-w-7xl gap-6">
-      <PageHeader eyebrow="eSIM" title="Buy eSIM plans" description="Browse data plans by region and data size, then select a plan to continue." action={<StatusPill status="Travel ready" />} />
-      <ServiceExplorer kind="esim" mode="esim" />
-    </div>
-  );
+  return <div className="mx-auto grid max-w-7xl gap-6"><ServiceExplorer kind="esim" mode="esim" /></div>;
 }
 
 export function LogsPage() {
-  return (
-    <div className="mx-auto grid max-w-7xl gap-6">
-      <PageHeader eyebrow="Marketplace" title="Premium logs & accounts" description="Search premium accounts and social media logs, filter by category or country, then select a product to view details." action={<StatusPill status="Secure inventory" />} />
-      <ServiceExplorer kind="logs" mode="logs" />
-    </div>
-  );
+  return <div className="mx-auto grid max-w-7xl gap-6"><ServiceExplorer kind="logs" mode="logs" /></div>;
 }
 
 export function OrdersPage() {
