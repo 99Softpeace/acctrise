@@ -178,7 +178,8 @@ function CheckoutPanel({ service, variant }: { service: ServiceItem | null; vari
 
   const isBoost = variant === "boosting";
   const isNumber = variant === "foreign-numbers" || variant === "uk-premium";
-  const actionLabel = isBoost ? "Create boost order" : variant === "esim" ? "Continue to eSIM checkout" : isNumber ? "Buy Number" : "Continue to purchase";
+  const isEsim = variant === "esim";
+  const actionLabel = isBoost ? "Create boost order" : isEsim ? "Buy eSIM" : isNumber ? "Buy Number" : "Continue to purchase";
 
   if (isNumber) {
     return (
@@ -200,6 +201,36 @@ function CheckoutPanel({ service, variant }: { service: ServiceItem | null; vari
     );
   }
 
+  if (isEsim) {
+    return (
+      <aside className="rounded-xl border border-blue-100 bg-white p-5 shadow-sm shadow-blue-100/60 lg:sticky lg:top-28">
+        <p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-600">Selected eSIM</p>
+        <h3 className="mt-2 text-lg font-bold tracking-tight text-slate-900">{service.name}</h3>
+        <p className="mt-2 text-sm leading-6 text-slate-600">{service.description || "Travel-ready data plan with activation details delivered after purchase."}</p>
+        <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
+          <div className="rounded-lg bg-slate-50 p-3 ring-1 ring-slate-200"><dt className="text-xs font-bold text-slate-400">Price</dt><dd className="mt-1 font-black text-blue-700">{formatPrice(service.price)}</dd></div>
+          <div className="rounded-lg bg-slate-50 p-3 ring-1 ring-slate-200"><dt className="text-xs font-bold text-slate-400">Data</dt><dd className="mt-1 font-bold text-slate-800">{dataSummary(service)}</dd></div>
+          <div className="rounded-lg bg-slate-50 p-3 ring-1 ring-slate-200"><dt className="text-xs font-bold text-slate-400">Coverage</dt><dd className="mt-1 font-bold text-slate-800">{inferCountry(service)}</dd></div>
+          <div className="rounded-lg bg-slate-50 p-3 ring-1 ring-slate-200"><dt className="text-xs font-bold text-slate-400">Activation</dt><dd className="mt-1 font-bold text-slate-800">QR or manual setup</dd></div>
+        </dl>
+        <div className="mt-5 grid gap-4 rounded-lg border border-blue-100 bg-blue-50/70 p-4 sm:grid-cols-[112px_1fr] sm:items-center">
+          <div className="grid h-28 w-28 grid-cols-5 gap-1 rounded-lg border border-blue-200 bg-white p-3 shadow-sm">
+            {Array.from({ length: 25 }).map((_, index) => (
+              <span key={index} className={`rounded-sm ${index % 2 === 0 || [6, 8, 16, 18].includes(index) ? "bg-blue-700" : "bg-blue-100"}`} />
+            ))}
+          </div>
+          <div>
+            <h4 className="text-sm font-black text-slate-900">QR code after purchase</h4>
+            <p className="mt-2 text-sm leading-6 text-slate-600">After a successful purchase, the activation QR code or manual eSIM details will appear here for the customer to scan from their phone settings.</p>
+          </div>
+        </div>
+        <button type="button" onClick={() => setNotice({ serviceId: service.externalId, message: userSafeError() })} className="mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-bold text-blue-50 shadow-sm shadow-blue-600/20 transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-100">
+          <Zap className="h-4 w-4" /> Buy eSIM
+        </button>
+        {notice?.serviceId === service.externalId ? <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm font-semibold leading-6 text-amber-900">{notice.message}</div> : null}
+      </aside>
+    );
+  }
   return (
     <aside className="rounded-xl border border-blue-100 bg-gradient-to-b from-white to-blue-50/40 p-5 shadow-sm shadow-blue-100/60 lg:sticky lg:top-28">
       <span className="rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700 ring-1 ring-emerald-100">{service.availability || "Available"}</span>
@@ -214,7 +245,6 @@ function CheckoutPanel({ service, variant }: { service: ServiceItem | null; vari
       <div className="mt-5 grid gap-3">
         {isBoost ? <Field label="Profile or post link"><input className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100" placeholder="Paste the correct link" /></Field> : null}
         {variant === "logs" ? <Field label="Quantity"><input className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100" type="number" min={service.minOrder} max={service.maxOrder} defaultValue={service.minOrder} /></Field> : null}
-        {variant === "esim" ? <Field label="Travel label"><input className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100" placeholder="Trip name or device" /></Field> : null}
         {isBoost ? <Field label="Quantity"><input className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100" type="number" min={service.minOrder} max={service.maxOrder} defaultValue={service.minOrder} /></Field> : null}
         <button type="button" onClick={() => setNotice({ serviceId: service.externalId, message: userSafeError() })} className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-bold text-blue-50 shadow-sm shadow-blue-600/20 transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-100">
           <Zap className="h-4 w-4" /> {actionLabel}
@@ -461,12 +491,10 @@ function LogsMarketplace() {
     return () => { cancelled = true; };
   }, []);
 
-  const counts = useMemo(() => {
-    return logMarketplaceCategories.reduce<Record<string, number>>((acc, category) => {
-      acc[category.label] = services.filter((service) => logCategoryFor(service) === category.label).length;
-      return acc;
-    }, {});
-  }, [services]);
+  const counts = useMemo(() => logMarketplaceCategories.reduce<Record<string, number>>((acc, category) => {
+    acc[category.label] = services.filter((service) => logCategoryFor(service) === category.label).length;
+    return acc;
+  }, {}), [services]);
 
   const filtered = useMemo(() => {
     const search = query.trim().toLowerCase();
@@ -478,33 +506,34 @@ function LogsMarketplace() {
   }, [activeCategory, query, services, showOos, sortLowFirst]);
 
   return (
-    <section className="overflow-hidden rounded-xl border border-slate-800 bg-[#080b18] text-slate-100 shadow-xl shadow-slate-950/20">
-      <div className="grid gap-4 border-b border-slate-800 p-4 lg:grid-cols-[1fr_400px] lg:items-center lg:p-6">
+    <section className="overflow-hidden rounded-xl border border-slate-200 bg-white text-slate-800 shadow-sm shadow-slate-200/70">
+      <div className="grid gap-4 border-b border-slate-200 p-4 lg:grid-cols-[1fr_400px] lg:items-center lg:p-6">
         <div>
-          <h3 className="text-2xl font-black tracking-tight text-white">Premium Logs & Accounts</h3>
-          <p className="mt-2 text-sm leading-6 text-slate-400">High-quality aged accounts, social media logs, and premium subscriptions.</p>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-600">Marketplace</p>
+          <h3 className="mt-2 text-2xl font-black tracking-tight text-slate-900">Premium Logs & Accounts</h3>
+          <p className="mt-2 text-sm leading-6 text-slate-600">High-quality aged accounts, social media logs, and premium subscriptions.</p>
         </div>
         <label className="relative block">
-          <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
-          <input value={query} onChange={(event) => setQuery(event.target.value)} className="h-14 w-full rounded-xl border border-slate-700 bg-slate-900/80 pl-12 pr-4 text-sm font-semibold text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15" placeholder="Search products..." />
+          <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+          <input value={query} onChange={(event) => setQuery(event.target.value)} className="h-14 w-full rounded-xl border border-slate-200 bg-slate-50 pl-12 pr-4 text-sm font-semibold text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100" placeholder="Search products..." />
         </label>
       </div>
 
-      {state === "loading" ? <div className="grid min-h-60 place-items-center p-8 text-sm font-semibold text-slate-300"><span className="inline-flex items-center gap-3"><Loader2 className="h-5 w-5 animate-spin text-blue-500" /> Loading logs...</span></div> : null}
-      {state === "error" ? <div className="m-4 rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm font-semibold text-amber-100">{userSafeError()}</div> : null}
-      {state === "empty" ? <div className="p-8 text-center text-sm font-semibold text-slate-400">No log products are available right now.</div> : null}
+      {state === "loading" ? <div className="grid min-h-60 place-items-center p-8 text-sm font-semibold text-slate-600"><span className="inline-flex items-center gap-3"><Loader2 className="h-5 w-5 animate-spin text-blue-600" /> Loading logs...</span></div> : null}
+      {state === "error" ? <div className="m-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-900">{userSafeError()}</div> : null}
+      {state === "empty" ? <div className="p-8 text-center text-sm font-semibold text-slate-500">No log products are available right now.</div> : null}
 
       {state === "ready" ? (
-        <div className="grid lg:grid-cols-[350px_minmax(0,1fr)]">
-          <aside className="border-b border-slate-800 p-4 lg:border-b-0 lg:border-r lg:p-5">
-            <p className="px-2 text-xs font-black uppercase tracking-[0.16em] text-slate-500">Categories</p>
+        <div className="grid lg:grid-cols-[330px_minmax(0,1fr)]">
+          <aside className="border-b border-slate-200 bg-slate-50/70 p-4 lg:border-b-0 lg:border-r lg:p-5">
+            <p className="px-2 text-xs font-black uppercase tracking-[0.16em] text-slate-400">Categories</p>
             <div className="mt-4 grid gap-2">
               {logMarketplaceCategories.map((category) => {
                 const active = activeCategory === category.label;
                 return (
-                  <button key={category.label} type="button" onClick={() => { setActiveCategory(category.label); setSelectedService(null); }} className={`flex min-h-12 items-center justify-between gap-3 rounded-lg px-4 text-left text-sm font-bold transition ${active ? "bg-blue-600 text-white shadow-lg shadow-blue-950/40" : "text-slate-400 hover:bg-slate-900 hover:text-white"}`}>
+                  <button key={category.label} type="button" onClick={() => { setActiveCategory(category.label); setSelectedService(null); }} className={`flex min-h-12 items-center justify-between gap-3 rounded-lg px-4 text-left text-sm font-bold transition ${active ? "bg-blue-600 text-white shadow-sm shadow-blue-600/20" : "text-slate-600 hover:bg-white hover:text-blue-700 hover:shadow-sm"}`}>
                     <span className="inline-flex min-w-0 items-center gap-3"><category.icon className="h-4 w-4 shrink-0" /><span className="truncate">{category.label}</span></span>
-                    <span className={active ? "text-blue-100" : "text-slate-500"}>{counts[category.label] || 0}</span>
+                    <span className={active ? "text-blue-100" : "text-slate-400"}>{counts[category.label] || 0}</span>
                   </button>
                 );
               })}
@@ -512,27 +541,27 @@ function LogsMarketplace() {
           </aside>
 
           <div className="min-w-0">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 p-4 lg:p-6">
-              <div className="flex items-center gap-3"><h4 className="text-xl font-black text-white">{activeCategory}</h4><span className="rounded-full bg-slate-800 px-3 py-1 text-xs font-bold text-slate-400">{filtered.length} items</span></div>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 p-4 lg:p-6">
+              <div className="flex items-center gap-3"><h4 className="text-xl font-black text-slate-900">{activeCategory}</h4><span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500">{filtered.length} items</span></div>
               <div className="flex flex-wrap gap-2">
-                <label className="inline-flex h-11 items-center gap-2 rounded-lg border border-slate-700 bg-slate-900 px-3 text-sm font-semibold text-slate-300"><input type="checkbox" checked={showOos} onChange={(event) => setShowOos(event.target.checked)} className="h-4 w-4 accent-blue-600" /> Show OOS</label>
-                <button type="button" onClick={() => setSortLowFirst((value) => !value)} className="h-11 rounded-lg border border-slate-700 bg-slate-900 px-3 text-sm font-semibold text-slate-300">Price: {sortLowFirst ? "Low to High" : "High to Low"}</button>
+                <label className="inline-flex h-11 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-600"><input type="checkbox" checked={showOos} onChange={(event) => setShowOos(event.target.checked)} className="h-4 w-4 accent-blue-600" /> Show OOS</label>
+                <button type="button" onClick={() => setSortLowFirst((value) => !value)} className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-600">Price: {sortLowFirst ? "Low to High" : "High to Low"}</button>
               </div>
             </div>
 
-            {selectedService ? <div className="m-4 rounded-lg border border-blue-500/30 bg-blue-500/10 p-4 text-sm text-blue-50 lg:m-6"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[0.14em] text-blue-200">Selected product</p><h5 className="mt-1 text-base font-black text-white">{selectedService.name}</h5><p className="mt-1 text-slate-300">{selectedService.description || logCategoryFor(selectedService)}</p></div><strong className="text-xl text-blue-300">{formatPrice(selectedService.price)}</strong></div></div> : null}
+            {selectedService ? <div className="m-4 rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm text-blue-950 lg:m-6"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[0.14em] text-blue-600">Selected product</p><h5 className="mt-1 text-base font-black text-slate-900">{selectedService.name}</h5><p className="mt-1 text-slate-600">{selectedService.description || logCategoryFor(selectedService)}</p></div><strong className="text-xl text-blue-700">{formatPrice(selectedService.price)}</strong></div></div> : null}
 
             <div className="hidden overflow-x-auto md:block">
               <table className="w-full min-w-[760px] border-collapse text-left">
-                <thead className="bg-slate-900 text-xs font-black uppercase tracking-[0.12em] text-slate-500"><tr><th className="px-6 py-4">Product Name</th><th className="px-6 py-4">Price</th><th className="px-6 py-4">Stock</th><th className="px-6 py-4 text-right">Action</th></tr></thead>
-                <tbody className="divide-y divide-slate-800 text-sm">
-                  {filtered.map((service) => <tr key={service.externalId} className="transition hover:bg-slate-900/70"><td className="px-6 py-5"><div className="font-bold text-slate-100">{service.name}</div><div className="mt-1 text-xs font-semibold text-slate-500">{logCategoryFor(service).toLowerCase()}</div></td><td className="px-6 py-5 text-base font-black text-blue-400">{formatPrice(service.price)}</td><td className="px-6 py-5"><span className="rounded-full bg-emerald-500/12 px-3 py-1 text-xs font-black text-emerald-300">{stockLabel(service)}</span></td><td className="px-6 py-5 text-right"><button type="button" onClick={() => setSelectedService(service)} className="font-bold text-blue-400 hover:text-blue-300">View Details</button></td></tr>)}
+                <thead className="bg-slate-50 text-xs font-black uppercase tracking-[0.12em] text-slate-500"><tr><th className="px-6 py-4">Product Name</th><th className="px-6 py-4">Price</th><th className="px-6 py-4">Stock</th><th className="px-6 py-4 text-right">Action</th></tr></thead>
+                <tbody className="divide-y divide-slate-100 text-sm">
+                  {filtered.map((service) => <tr key={service.externalId} className="transition hover:bg-slate-50"><td className="px-6 py-5"><div className="font-bold text-slate-900">{service.name}</div><div className="mt-1 text-xs font-semibold text-slate-500">{logCategoryFor(service).toLowerCase()}</div></td><td className="px-6 py-5 text-base font-black text-blue-700">{formatPrice(service.price)}</td><td className="px-6 py-5"><span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-100">{stockLabel(service)}</span></td><td className="px-6 py-5 text-right"><button type="button" onClick={() => setSelectedService(service)} className="font-bold text-blue-700 hover:text-blue-800">View Details</button></td></tr>)}
                 </tbody>
               </table>
             </div>
 
             <div className="grid gap-3 p-4 md:hidden">
-              {filtered.map((service) => <article key={service.externalId} className="rounded-lg border border-slate-800 bg-slate-900 p-4"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><h5 className="text-sm font-black text-white">{service.name}</h5><p className="mt-1 text-xs font-semibold text-slate-500">{logCategoryFor(service)}</p></div><strong className="shrink-0 text-blue-400">{formatPrice(service.price)}</strong></div><div className="mt-3 flex items-center justify-between gap-3"><span className="rounded-full bg-emerald-500/12 px-3 py-1 text-xs font-black text-emerald-300">{stockLabel(service)}</span><button type="button" onClick={() => setSelectedService(service)} className="text-sm font-bold text-blue-400">View Details</button></div></article>)}
+              {filtered.map((service) => <article key={service.externalId} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><h5 className="text-sm font-black text-slate-900">{service.name}</h5><p className="mt-1 text-xs font-semibold text-slate-500">{logCategoryFor(service)}</p></div><strong className="shrink-0 text-blue-700">{formatPrice(service.price)}</strong></div><div className="mt-3 flex items-center justify-between gap-3"><span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-100">{stockLabel(service)}</span><button type="button" onClick={() => setSelectedService(service)} className="text-sm font-bold text-blue-700">View Details</button></div></article>)}
             </div>
           </div>
         </div>
@@ -590,12 +619,17 @@ function EsimPlanBrowser() {
             {filtered.map((service) => {
               const selected = selectedService?.externalId === service.externalId;
               return (
-                <button key={service.externalId} type="button" onClick={() => setSelectedService(service)} className={`min-h-44 rounded-lg border bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md ${selected ? "border-blue-500 ring-4 ring-blue-100" : "border-slate-200"}`}>
+                <article key={service.externalId} className={`flex min-h-48 flex-col rounded-lg border bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md ${selected ? "border-blue-500 ring-4 ring-blue-100" : "border-slate-200"}`}>
                   <div className="flex items-start justify-between gap-3"><span className="rounded-md bg-blue-50 px-2.5 py-1 text-xs font-black text-blue-700 ring-1 ring-blue-100">{dataSummary(service)}</span>{selected ? <CheckCircle2 className="h-5 w-5 text-blue-600" /> : null}</div>
                   <h4 className="mt-4 line-clamp-2 text-sm font-black leading-5 text-slate-900">{service.name}</h4>
                   <p className="mt-2 line-clamp-2 text-xs font-semibold leading-5 text-slate-500">{service.description || "Travel-ready data plan"}</p>
-                  <div className="mt-4 flex items-center justify-between gap-3"><strong className="text-lg font-black text-blue-700">{formatPrice(service.price)}</strong><span className="text-xs font-bold text-emerald-600">{service.availability || "Available"}</span></div>
-                </button>
+                  <div className="mt-auto pt-4">
+                    <div className="flex items-center justify-between gap-3"><strong className="text-lg font-black text-blue-700">{formatPrice(service.price)}</strong><span className="text-xs font-bold text-emerald-600">{service.availability || "Activation details after purchase"}</span></div>
+                    <button type="button" onClick={() => setSelectedService(service)} className={`mt-4 inline-flex h-11 w-full items-center justify-center rounded-lg px-4 text-sm font-bold transition focus:outline-none focus:ring-4 focus:ring-blue-100 ${selected ? "bg-blue-50 text-blue-700 ring-1 ring-blue-100" : "bg-blue-600 text-white shadow-sm shadow-blue-600/20 hover:bg-blue-700"}`}>
+                      {selected ? "Selected" : "Buy eSIM"}
+                    </button>
+                  </div>
+                </article>
               );
             })}
           </div>

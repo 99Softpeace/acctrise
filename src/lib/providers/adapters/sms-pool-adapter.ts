@@ -159,7 +159,7 @@ export class SMSPoolAdapter extends BaseProviderAdapter {
         price: Number(plan.price || 0),
         minOrder: 1,
         maxOrder: 1,
-        availability: "Available when inventory is live",
+        availability: "Activation details after purchase",
         friendlyLabel: "Travel data",
         description: `${plan.speed || "Data"} eSIM plan${plan.countryCode ? ` - ${plan.countryCode}` : ""}`
       }));
