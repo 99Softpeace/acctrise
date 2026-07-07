@@ -7,6 +7,7 @@ import { connectMongo } from "@/lib/mongodb";
 import { Order, type OrderStatus } from "@/models/order";
 import { OrderLog } from "@/models/order-log";
 import { ProviderOrder } from "@/models/provider-order";
+import { Category } from "@/models/category";
 import { Service } from "@/models/service";
 import { SupportTicket } from "@/models/support-ticket";
 import { Transaction } from "@/models/transaction";
@@ -104,6 +105,8 @@ export class OrderService {
 
     const service = await Service.findById(serviceId);
     if (!service) throw new Error("Service not found");
+    const category = await Category.findById(service.categoryId);
+    const isBoostingService = Boolean(category && /^smm-|social|boost/i.test(`${category.slug || ""} ${category.name || ""}`));
     if (!service.isActive) throw new Error("Service is currently unavailable");
 
     if (request.quantity < service.minOrder) {
@@ -114,7 +117,9 @@ export class OrderService {
       throw new Error(`Maximum order quantity is ${service.maxOrder}`);
     }
 
-    const totalPriceCents = service.priceCents * request.quantity;
+    const totalPriceCents = isBoostingService
+      ? Math.ceil((service.priceCents * request.quantity) / 1000)
+      : service.priceCents * request.quantity;
     const wallet = await getWallet(request.userId);
     if (!wallet || wallet.balanceCents < totalPriceCents) {
       throw new Error("Insufficient wallet balance");

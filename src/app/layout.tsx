@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   description:
     "Acctrise helps you buy social media growth, rent verification numbers, and resell digital services from one colorful wallet.",
   icons: {
-    icon: "/acctrise-logo.jpeg"
+    icon: "/acctrise-mark.svg"
   },
   openGraph: {
     title: "Acctrise | All your digital services in one wallet",

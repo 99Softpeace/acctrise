@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { signOut } from "next-auth/react";
+import { SessionProvider, signOut } from "next-auth/react";
 import {
   BadgeHelp,
   Box,
@@ -18,7 +18,8 @@ import {
   Rocket,
   Smartphone,
   Wallet,
-  Wifi
+  Wifi,
+  ShieldCheck
 } from "lucide-react";
 
 const navItems = [
@@ -29,7 +30,8 @@ const navItems = [
   { icon: Phone, label: "USA Premium", href: "/dashboard/uk-premium" },
   { icon: Wifi, label: "Buy eSIM", href: "/dashboard/esim" },
   { icon: Box, label: "My Orders", href: "/dashboard/orders" },
-  { icon: Wallet, label: "Fund Wallet", href: "/dashboard/wallet" }
+  { icon: Wallet, label: "Fund Wallet", href: "/dashboard/wallet" },
+  { icon: ShieldCheck, label: "Admin", href: "/dashboard/admin" }
 ];
 
 function isActivePath(pathname: string, href: string) {
@@ -47,16 +49,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800">
+    <SessionProvider>
+      <div className="dashboard-shell-app dashboard-redesign min-h-screen bg-slate-50 text-slate-800">
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 border-r border-slate-200 bg-white lg:flex lg:flex-col">
-        <Link href="/dashboard" className="flex items-center gap-3 border-b border-slate-200 px-5 py-5 transition hover:bg-slate-50">
-          <span className="grid h-11 w-11 place-items-center overflow-hidden rounded-lg bg-blue-50 ring-1 ring-blue-100">
-            <Image src="/acctrise-logo.jpeg" alt="Acctrise" width={40} height={40} className="h-full w-full object-cover" />
-          </span>
-          <span>
-            <span className="block text-sm font-bold tracking-tight">Acctrise</span>
-            <span className="block text-xs font-semibold text-slate-500">Service console</span>
-          </span>
+        <Link href="/dashboard" className="dashboard-side-brand flex items-center border-b border-slate-200 px-5 py-5 transition hover:bg-slate-50">
+          <Image src="/acctrise-wordmark.jpeg" alt="Acctrise" width={190} height={64} className="h-14 w-48 object-contain object-left mix-blend-multiply" priority />
         </Link>
 
         <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4" aria-label="Dashboard navigation">
@@ -92,13 +89,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <header className="dashboard-mobile-header sticky top-0 z-30 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur sm:px-6">
           <div className="flex items-center justify-between gap-3">
             <Link href="/dashboard" className="dashboard-mobile-brand flex min-w-0 items-center gap-3 lg:hidden" onClick={() => setMobileMenuOpen(false)}>
-              <span className="dashboard-mobile-logo grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-xl bg-blue-50 shadow-sm shadow-blue-100 ring-1 ring-blue-100">
-                <Image src="/acctrise-logo.jpeg" alt="Acctrise" width={48} height={48} className="h-full w-full object-cover" />
-              </span>
-              <span className="min-w-0">
-                <span className="dashboard-mobile-name block truncate text-base font-bold tracking-tight text-slate-800">Acctrise</span>
-                <span className="dashboard-mobile-label block truncate text-xs font-semibold text-slate-500">Dashboard</span>
-              </span>
+              <Image src="/acctrise-wordmark.jpeg" alt="Acctrise" width={160} height={54} className="h-11 w-36 object-contain object-left mix-blend-multiply" priority />
             </Link>
 
             <div className="hidden lg:block">
@@ -155,8 +146,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         </header>
 
-        <main className="px-4 py-6 sm:px-6 lg:px-8">{children}</main>
+        <main className="px-4 py-6 pb-28 sm:px-6 lg:px-8 lg:pb-8">{children}</main>
+        <nav className="dashboard-bottom-nav lg:hidden" aria-label="Primary mobile dashboard navigation">
+          {navItems.filter((item) => ["/dashboard", "/dashboard/boosting", "/dashboard/rent-number", "/dashboard/orders", "/dashboard/admin"].includes(item.href)).map((item) => {
+            const active = isActivePath(pathname, item.href);
+            return (
+              <Link key={item.label} href={item.href as any} className={active ? "active" : ""} aria-current={active ? "page" : undefined}>
+                <item.icon className="h-5 w-5" />
+                <span>{item.label.replace(" Account", "")}</span>
+              </Link>
+            );
+          })}
+        </nav>
       </div>
-    </div>
+      </div>
+    </SessionProvider>
   );
 }

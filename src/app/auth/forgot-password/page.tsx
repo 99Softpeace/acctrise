@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useState } from "react";
@@ -34,7 +34,7 @@ export default function ForgotPasswordPage() {
     <>
       <header className="topbar">
         <Link className="brand" href="/" aria-label="acctrise home">
-          <img src="/acctrise-logo.jpeg" alt="acctrise" />
+          <img src="/acctrise-mark.svg" alt="acctrise" />
         </Link>
         <nav className="nav-links" aria-label="Primary navigation">
           <Link href="/#services">Services</Link>

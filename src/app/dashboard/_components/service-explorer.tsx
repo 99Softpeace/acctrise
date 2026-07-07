@@ -90,6 +90,11 @@ function formatPrice(value: number) {
   return new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 0 }).format(value * 1600);
 }
 
+function formatBoostRate(value: number) {
+  const price = formatPrice(value);
+  return price === "Live price" ? price : `${price} / 1k`;
+}
+
 function matchesKeywords(service: ServiceItem, keywords: string[]) {
   if (!keywords.length) return true;
   const haystack = `${service.name} ${service.description || ""}`.toLowerCase();
@@ -147,6 +152,21 @@ function matchesBoostPlatform(service: ServiceItem, platform: BoostPlatformOptio
   return matchesKeywords(service, platform.keywords);
 }
 
+
+function orderEstimate(service: ServiceItem, quantity: number) {
+  const safeQuantity = Number.isFinite(quantity) && quantity > 0 ? quantity : service.minOrder;
+  const total = service.price > 0 ? (service.price * safeQuantity * 1600) / 1000 : 0;
+  if (!Number.isFinite(total) || total <= 0) return "Live total";
+  return new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 0 }).format(total);
+}
+
+function linkPlaceholder(service: ServiceItem) {
+  const text = service.name.toLowerCase();
+  if (/views?|watch|video|reel/.test(text)) return "Paste the post, reel, or video link";
+  if (/followers?|subscribers?|members?/.test(text)) return "Paste the profile, page, channel, or group link";
+  if (/likes?|comments?|shares?|saves?/.test(text)) return "Paste the exact post link";
+  return "Paste the profile or post link";
+}
 function userSafeError() {
   return "This service is available, but fulfillment is temporarily unavailable. Please contact support.";
 }
@@ -186,7 +206,7 @@ function ServiceCard({ service, selected, onSelect, variant }: { service: Servic
       <h4 className="mt-4 line-clamp-2 text-sm font-bold leading-5 text-slate-800">{service.name}</h4>
       <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-500">{service.description || inferDelivery(service)}</p>
       <div className="mt-auto grid gap-2 pt-4 text-xs font-semibold text-slate-500 sm:grid-cols-2">
-        <span className="rounded-lg bg-slate-50 px-2.5 py-2 text-slate-700">{formatPrice(service.price)}</span>
+        <span className="rounded-lg bg-slate-50 px-2.5 py-2 text-slate-700">{variant === "boosting" ? formatBoostRate(service.price) : formatPrice(service.price)}</span>
         <span className="rounded-lg bg-slate-50 px-2.5 py-2 text-slate-700">{country}</span>
         <span className="rounded-lg bg-slate-50 px-2.5 py-2 text-slate-700">Min {service.minOrder}</span>
         <span className="rounded-lg bg-slate-50 px-2.5 py-2 text-slate-700">{service.availability || (service.maxOrder ? `${service.maxOrder} available` : "Available")}</span>
@@ -197,6 +217,8 @@ function ServiceCard({ service, selected, onSelect, variant }: { service: Servic
 
 function CheckoutPanel({ service, variant }: { service: ServiceItem | null; variant: ServiceExplorerKind }) {
   const [notice, setNotice] = useState<{ serviceId: string; message: string } | null>(null);
+  const [quantity, setQuantity] = useState(() => service?.minOrder || 0);
+
 
   if (!service) {
     return (
@@ -269,19 +291,25 @@ function CheckoutPanel({ service, variant }: { service: ServiceItem | null; vari
       <h3 className="mt-4 text-lg font-bold tracking-tight text-slate-800">{service.name}</h3>
       <p className="mt-2 text-sm leading-6 text-slate-600">{service.description || inferDelivery(service)}</p>
       <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
-        <div className="rounded-lg bg-white p-3 ring-1 ring-slate-200"><dt className="text-xs font-bold text-slate-400">Price</dt><dd className="mt-1 font-bold text-slate-700">{formatPrice(service.price)}</dd></div>
+        <div className="rounded-lg bg-white p-3 ring-1 ring-slate-200"><dt className="text-xs font-bold text-slate-400">{isBoost ? "Rate / 1k" : "Price"}</dt><dd className="mt-1 font-bold text-slate-700">{isBoost ? formatBoostRate(service.price) : formatPrice(service.price)}</dd></div>
         <div className="rounded-lg bg-white p-3 ring-1 ring-slate-200"><dt className="text-xs font-bold text-slate-400">Quantity</dt><dd className="mt-1 font-bold text-slate-700">{service.minOrder} - {service.maxOrder || "available"}</dd></div>
         <div className="rounded-lg bg-white p-3 ring-1 ring-slate-200"><dt className="text-xs font-bold text-slate-400">Delivery</dt><dd className="mt-1 font-bold text-slate-700">{inferDelivery(service)}</dd></div>
         <div className="rounded-lg bg-white p-3 ring-1 ring-slate-200"><dt className="text-xs font-bold text-slate-400">Region</dt><dd className="mt-1 font-bold text-slate-700">{inferCountry(service)}</dd></div>
       </dl>
       <div className="mt-5 grid gap-3">
-        {isBoost ? <Field label="Profile or post link"><input className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100" placeholder="Paste the correct link" /></Field> : null}
-        {variant === "logs" ? <Field label="Quantity"><input className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100" type="number" min={service.minOrder} max={service.maxOrder} defaultValue={service.minOrder} /></Field> : null}
-        {isBoost ? <Field label="Quantity"><input className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100" type="number" min={service.minOrder} max={service.maxOrder} defaultValue={service.minOrder} /></Field> : null}
-        <button type="button" onClick={() => setNotice({ serviceId: service.externalId, message: userSafeError() })} className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-bold text-blue-50 shadow-sm shadow-blue-600/20 transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-100">
+        {isBoost ? <Field label="Profile or post link"><input className="h-12 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100" placeholder={linkPlaceholder(service)} /></Field> : null}
+        {(variant === "logs" || isBoost) ? <Field label="Quantity"><input className="h-12 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100" type="number" min={service.minOrder} max={service.maxOrder} value={quantity || service.minOrder} onChange={(event) => setQuantity(Number(event.target.value))} /></Field> : null}
+        {isBoost ? (
+          <div className="grid gap-3 rounded-2xl border border-blue-100 bg-blue-50/80 p-4 sm:grid-cols-3">
+            <div><span className="text-xs font-black uppercase tracking-[0.14em] text-blue-500">Rate / 1k</span><strong className="mt-1 block text-sm font-black text-blue-950">{formatBoostRate(service.price)}</strong></div>
+            <div><span className="text-xs font-black uppercase tracking-[0.14em] text-blue-500">Quantity</span><strong className="mt-1 block text-sm font-black text-blue-950">{quantity || service.minOrder}</strong></div>
+            <div><span className="text-xs font-black uppercase tracking-[0.14em] text-blue-500">Estimated total</span><strong className="mt-1 block text-lg font-black text-blue-700">{orderEstimate(service, quantity || service.minOrder)}</strong></div>
+          </div>
+        ) : null}
+        <button type="button" onClick={() => setNotice({ serviceId: service.externalId, message: userSafeError() })} className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-black text-blue-50 shadow-lg shadow-blue-600/20 transition hover:-translate-y-0.5 hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-100">
           <Zap className="h-4 w-4" /> {actionLabel}
         </button>
-        {notice?.serviceId === service.externalId ? <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm font-semibold leading-6 text-amber-900">{notice.message}</div> : null}
+        {notice?.serviceId === service.externalId ? <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-semibold leading-6 text-amber-900">{notice.message}</div> : null}
       </div>
     </aside>
   );
@@ -777,7 +805,7 @@ function BoostAccountBrowser() {
             <span className="relative">
               <select value={activeSelectedService?.externalId || ""} onChange={(event) => setSelectedService(filtered.find((service) => service.externalId === event.target.value) || null)} disabled={!filtered.length || state !== "ready"} className="h-14 w-full appearance-none rounded-xl border border-slate-200 bg-white px-4 pr-10 text-sm font-semibold text-slate-800 outline-none transition disabled:bg-slate-100 disabled:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100">
                 <option value="">{filtered.length ? "Choose a service..." : "No matching services"}</option>
-                {filtered.slice(0, 300).map((service) => <option key={service.externalId} value={service.externalId}>{service.name} - {formatPrice(service.price)}</option>)}
+                {filtered.slice(0, 300).map((service) => <option key={service.externalId} value={service.externalId}>{service.name} - {formatBoostRate(service.price)}</option>)}
               </select>
               <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
             </span>
@@ -789,14 +817,8 @@ function BoostAccountBrowser() {
         {state === "empty" ? <div className="mt-5 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm font-semibold text-slate-500">No boosting services are available right now.</div> : null}
 
         {activeSelectedService ? (
-          <div className="mt-5 rounded-xl border border-blue-100 bg-blue-50 p-4">
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-blue-600">Selected service</p>
-            <h4 className="mt-1 text-base font-black text-slate-900">{activeSelectedService.name}</h4>
-            <div className="mt-3 grid gap-3 text-sm sm:grid-cols-3">
-              <span className="rounded-lg bg-white p-3 font-bold text-blue-700 ring-1 ring-blue-100">{formatPrice(activeSelectedService.price)}</span>
-              <span className="rounded-lg bg-white p-3 font-bold text-slate-700 ring-1 ring-blue-100">Min {activeSelectedService.minOrder}</span>
-              <span className="rounded-lg bg-white p-3 font-bold text-slate-700 ring-1 ring-blue-100">{activeSelectedService.maxOrder ? `Max ${activeSelectedService.maxOrder}` : "Live limits"}</span>
-            </div>
+          <div className="boost-inline-checkout mt-5">
+            <CheckoutPanel key={activeSelectedService.externalId} service={activeSelectedService} variant="boosting" />
           </div>
         ) : null}
 
@@ -828,7 +850,7 @@ function BoostAccountBrowser() {
           <div className="flex items-start gap-3"><AlertCircle className="mt-0.5 h-5 w-5 shrink-0" /> Drip-feed is currently disabled for maintenance. Standard delivery is working normally.</div>
         </div>
 
-        <CheckoutPanel service={activeSelectedService} variant="boosting" />
+        <div className="rounded-2xl border border-blue-100 bg-blue-50 p-5 text-sm font-semibold leading-6 text-blue-950">Choose a service on the left. The link field, quantity, and live estimated total will appear immediately under your selected service.</div>
       </div>
     </section>
   );

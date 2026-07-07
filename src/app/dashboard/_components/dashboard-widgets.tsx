@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import {
   AlertCircle,
   ArrowRight,
-  ArrowUpRight,
   Bell,
   CheckCircle2,
   Clock3,
@@ -29,8 +29,8 @@ import { ServiceExplorer } from "./service-explorer";
 type StatusTone = "success" | "warning" | "neutral" | "danger" | "info";
 
 const stats = [
-  { label: "Available Balance", value: "NGN 7,628.24", detail: "+15% deposit bonus", icon: Wallet, tone: "blue" },
-  { label: "Total Spent", value: "NGN 5,599.76", detail: "Lifetime expenditure", icon: ArrowUpRight, tone: "violet" },
+  { label: "Available Balance", value: "NGN 0.00", detail: "Wallet starts at zero", icon: Wallet, tone: "blue" },
+  { label: "Available Services", value: "620+", detail: "Boosting, numbers, logs, and eSIM", icon: Layers3, tone: "violet" },
   { label: "Active Orders", value: "0", detail: "Currently processing", icon: Clock3, tone: "amber" },
   { label: "Total Orders", value: "20", detail: "Lifetime orders", icon: CheckCircle2, tone: "green" }
 ];
@@ -53,11 +53,24 @@ const quickActions = [
   { label: "eSIM", href: "/dashboard/esim", icon: Smartphone, tone: "pink" }
 ];
 
+
+function userDisplayName(user?: { name?: string | null; username?: string | null; email?: string | null }) {
+  const value = user?.name || user?.username || user?.email?.split("@")[0] || "Acctrise user";
+  return value.trim() || "Acctrise user";
+}
+
+function firstName(value: string) {
+  return value.trim().split(/\s+/)[0] || "there";
+}
+
+function userInitial(value: string) {
+  return (value.trim()[0] || "A").toUpperCase();
+}
 const recentOrders = [
-  { id: "#560431", service: "Rental: 2RedBeans", link: "-", quantity: "1", status: "Cancelled", date: "Jul 2, 2026" },
-  { id: "#546411", service: "Rental: Snapchat", link: "-", quantity: "1", status: "Cancelled", date: "Jul 2, 2026" },
-  { id: "#545167", service: "Instagram Likes", link: "instagram.com/post", quantity: "500", status: "Completed", date: "Jul 1, 2026" },
-  { id: "#544373", service: "Telegram Members", link: "t.me/channel", quantity: "250", status: "Processing", date: "Jun 30, 2026" }
+  { id: "#560431", service: "Rental: 2RedBeans", link: "-", quantity: "1", status: "Cancelled", date: "Jul 2, 2026", time: "10:24 AM" },
+  { id: "#546411", service: "Rental: Snapchat", link: "-", quantity: "1", status: "Cancelled", date: "Jul 2, 2026", time: "9:18 AM" },
+  { id: "#545167", service: "Instagram Likes", link: "instagram.com/post", quantity: "500", status: "Completed", date: "Jul 1, 2026", time: "8:42 PM" },
+  { id: "#544373", service: "Telegram Members", link: "t.me/channel", quantity: "250", status: "Processing", date: "Jun 30, 2026", time: "4:06 PM" }
 ];
 
 const toneClasses: Record<string, string> = {
@@ -76,6 +89,15 @@ const mobileToneClasses: Record<string, string> = {
   pink: "bg-pink-50 text-pink-700 ring-pink-100"
 };
 
+
+function orderIconFor(service: string) {
+  const normalized = service.toLowerCase();
+  if (normalized.includes("rental")) return Smartphone;
+  if (normalized.includes("instagram") || normalized.includes("telegram")) return Rocket;
+  if (normalized.includes("esim")) return Wifi;
+  if (normalized.includes("log")) return FileText;
+  return Package;
+}
 function statusTone(status: string): StatusTone {
   const normalized = status.toLowerCase();
   if (["completed", "configured", "active", "live", "paid"].includes(normalized)) return "success";
@@ -119,14 +141,14 @@ function Surface({ children, className = "" }: { children: React.ReactNode; clas
   return <article className={`rounded-lg border border-slate-200 bg-white shadow-sm shadow-slate-200/60 ${className}`}>{children}</article>;
 }
 
-function MobileOverviewHeader() {
+function MobileOverviewHeader({ displayName }: { displayName: string }) {
   return (
     <section className="mobile-overview md:hidden" aria-label="Mobile dashboard summary">
       <div className="mobile-overview-top">
-        <div className="mobile-avatar">P</div>
+        <div className="mobile-avatar">{userInitial(displayName)}</div>
         <div>
           <span>Welcome back</span>
-          <strong>Peace Olowo</strong>
+          <strong>{displayName}</strong>
         </div>
         <button className="mobile-bell" type="button" aria-label="Notifications"><Bell className="h-4 w-4" /></button>
       </div>
@@ -134,7 +156,7 @@ function MobileOverviewHeader() {
       <div className="mobile-balance-card">
         <div>
           <span>Total Balance</span>
-          <strong>NGN 7,628.24</strong>
+          <strong>NGN 0.00</strong>
         </div>
         <Wallet className="mobile-wallet-mark" aria-hidden="true" />
         <div className="mobile-balance-actions">
@@ -164,22 +186,22 @@ function MobileOverviewHeader() {
   );
 }
 
-function DesktopOverviewHero() {
+function DesktopOverviewHero({ displayName }: { displayName: string }) {
   return (
     <section className="hidden gap-5 md:grid xl:grid-cols-[1.05fr_0.95fr] xl:items-stretch">
       <Surface className="overflow-hidden p-6">
         <div className="desktop-overview-card">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-600">Dashboard</p>
-            <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-800 sm:text-4xl">Welcome back, Peace</h2>
+            <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-800 sm:text-4xl">Welcome back, {firstName(displayName)}</h2>
             <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600">Track balance, orders, and service shortcuts without digging through menus.</p>
           </div>
           <PrimaryButton href="/dashboard/boosting"><Rocket className="h-4 w-4" /> New boost order</PrimaryButton>
         </div>
         <div className="mt-6 grid gap-3 sm:grid-cols-3">
-          <Link href="/dashboard/wallet" className="rounded-lg bg-blue-50 p-4 text-blue-800 ring-1 ring-blue-100"><span className="text-xs font-bold uppercase tracking-[0.12em] text-blue-500">Balance</span><strong className="mt-2 block text-2xl tracking-tight">NGN 7,628.24</strong></Link>
+          <Link href="/dashboard/wallet" className="rounded-lg bg-blue-50 p-4 text-blue-800 ring-1 ring-blue-100"><span className="text-xs font-bold uppercase tracking-[0.12em] text-blue-500">Balance</span><strong className="mt-2 block text-2xl tracking-tight">NGN 0.00</strong></Link>
           <Link href="/dashboard/orders" className="rounded-lg bg-slate-50 p-4 text-slate-700 ring-1 ring-slate-200"><span className="text-xs font-bold uppercase tracking-[0.12em] text-slate-400">Orders</span><strong className="mt-2 block text-2xl tracking-tight">20</strong></Link>
-          <Link href={"/dashboard/rent-number" as any} className="rounded-lg bg-emerald-50 p-4 text-emerald-800 ring-1 ring-emerald-100"><span className="text-xs font-bold uppercase tracking-[0.12em] text-emerald-600">Numbers</span><strong className="mt-2 block text-2xl tracking-tight">17 live</strong></Link>
+          <Link href="#services" className="rounded-lg bg-emerald-50 p-4 text-emerald-800 ring-1 ring-emerald-100"><span className="text-xs font-bold uppercase tracking-[0.12em] text-emerald-600">Services</span><strong className="mt-2 block text-2xl tracking-tight">620+</strong><small className="mt-1 block text-xs font-bold text-emerald-700/70">Available now</small></Link>
         </div>
       </Surface>
       <AnimatedGlobe />
@@ -245,21 +267,25 @@ function RecentOrdersTable({ compact = false }: { compact?: boolean }) {
         <Link href="/dashboard/orders" className="text-sm font-bold text-blue-700 hover:text-blue-800">View all</Link>
       </div>
       <div className="grid gap-3 p-3 md:hidden">
-        {rows.map((order) => (
-          <article key={order.id} className="mobile-order-card rounded-lg border border-slate-200 bg-slate-50 p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-xs font-bold text-slate-400">{order.id}</p>
-                <h4 className="mt-1 truncate text-sm font-bold text-slate-800">{order.service}</h4>
+        {rows.map((order) => {
+          const OrderIcon = orderIconFor(order.service);
+          return (
+            <article key={order.id} className="mobile-order-card rounded-lg border border-slate-200 bg-slate-50 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <span className="order-service-icon"><OrderIcon className="h-4 w-4" /></span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-bold text-slate-400">{order.id}</p>
+                  <h4 className="mt-1 truncate text-sm font-bold text-slate-800">{order.service}</h4>
+                </div>
+                <StatusPill status={order.status} />
               </div>
-              <StatusPill status={order.status} />
-            </div>
-            <div className="mt-3 flex items-center justify-between gap-3 text-xs font-semibold text-slate-500">
-              <span>Qty {order.quantity}</span>
-              <span>{order.date}</span>
-            </div>
-          </article>
-        ))}
+              <div className="mt-3 flex items-center justify-between gap-3 text-xs font-semibold text-slate-500">
+                <span>Qty {order.quantity}</span>
+                <span>{order.date} - {order.time}</span>
+              </div>
+            </article>
+          );
+        })}
       </div>
       <div className="hidden overflow-x-auto md:block">
         <table className="w-full min-w-[760px] border-collapse text-left">
@@ -269,28 +295,33 @@ function RecentOrdersTable({ compact = false }: { compact?: boolean }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 text-sm">
-            {rows.map((order) => (
-              <tr key={order.id} className="transition hover:bg-slate-50">
-                <td className="px-5 py-4 font-bold text-slate-800">{order.id}</td>
-                <td className="px-5 py-4 font-semibold text-slate-700">{order.service}</td>
-                <td className="px-5 py-4 text-slate-500">{order.link}</td>
-                <td className="px-5 py-4 text-slate-500">{order.quantity}</td>
-                <td className="px-5 py-4"><StatusPill status={order.status} /></td>
-                <td className="px-5 py-4 text-slate-500">{order.date}</td>
-              </tr>
-            ))}
+            {rows.map((order) => {
+              const OrderIcon = orderIconFor(order.service);
+              return (
+                <tr key={order.id} className="transition hover:bg-slate-50">
+                  <td className="px-5 py-4 font-bold text-slate-800">{order.id}</td>
+                  <td className="px-5 py-4 font-semibold text-slate-700"><span className="inline-flex items-center gap-3"><span className="order-service-icon"><OrderIcon className="h-4 w-4" /></span>{order.service}</span></td>
+                  <td className="px-5 py-4 text-slate-500">{order.link}</td>
+                  <td className="px-5 py-4 text-slate-500">{order.quantity}</td>
+                  <td className="px-5 py-4"><StatusPill status={order.status} /></td>
+                  <td className="px-5 py-4 text-slate-500"><span className="block font-bold text-slate-700">{order.date}</span><span className="text-xs font-semibold text-slate-400">{order.time}</span></td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
     </Surface>
   );
 }
-
 export function OverviewPage() {
+  const sessionResult = useSession();
+  const displayName = userDisplayName(sessionResult?.data?.user);
+
   return (
     <div className="dashboard-overview mx-auto grid max-w-7xl gap-5 sm:gap-6">
-      <MobileOverviewHeader />
-      <DesktopOverviewHero />
+      <MobileOverviewHeader displayName={displayName} />
+      <DesktopOverviewHero displayName={displayName} />
       <StatGrid />
       <section className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr] xl:gap-6">
         <RecentOrdersTable compact />
@@ -360,7 +391,7 @@ export function WalletPage() {
     <div className="mx-auto grid max-w-7xl gap-6">
       <PageHeader eyebrow="Wallet" title="Wallet funding" description="Funding remains on hold while PocketFi activation is pending. The interface is ready, but payment capture is intentionally paused." action={<StatusPill status="PocketFi on hold" />} />
       <section className="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
-        <Surface className="p-5"><div className="rounded-lg bg-blue-700 p-5 text-blue-50"><p className="text-sm font-semibold text-slate-300">Available balance</p><strong className="mt-2 block text-3xl font-bold tracking-tight">NGN 7,628.24</strong><p className="mt-3 text-sm leading-6 text-slate-300">Payment collection is paused. PocketFi is the planned funding gateway.</p></div><div className="mt-5 grid gap-4"><label className="grid gap-2 text-sm font-bold text-slate-700">Amount<input className="h-12 rounded-lg border border-slate-200 bg-slate-50 px-4" value="Funding paused" readOnly /></label><button className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-slate-200 px-4 text-sm font-bold text-slate-500" type="button" disabled><Wallet className="h-4 w-4" /> Funding Paused</button></div></Surface>
+        <Surface className="p-5"><div className="rounded-lg bg-blue-700 p-5 text-blue-50"><p className="text-sm font-semibold text-slate-300">Available balance</p><strong className="mt-2 block text-3xl font-bold tracking-tight">NGN 0.00</strong><p className="mt-3 text-sm leading-6 text-slate-300">Payment collection is paused. PocketFi is the planned funding gateway.</p></div><div className="mt-5 grid gap-4"><label className="grid gap-2 text-sm font-bold text-slate-700">Amount<input className="h-12 rounded-lg border border-slate-200 bg-slate-50 px-4" value="Funding paused" readOnly /></label><button className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-slate-200 px-4 text-sm font-bold text-slate-500" type="button" disabled><Wallet className="h-4 w-4" /> Funding Paused</button></div></Surface>
         <Surface className="overflow-hidden"><div className="border-b border-slate-200 px-5 py-4"><h3 className="text-lg font-bold tracking-tight text-slate-800">Wallet history</h3></div><div className="grid gap-3 p-4 md:hidden">{walletRows.map((row) => <article key={row.item} className="rounded-lg border border-slate-200 bg-slate-50 p-4"><div className="flex items-start justify-between gap-3"><div><h4 className="font-bold text-slate-800">{row.item}</h4><p className="mt-1 text-xs font-semibold text-slate-500">{row.method}</p></div><StatusPill status={row.status} /></div><p className="mt-3 text-lg font-bold text-slate-800">{row.amount}</p></article>)}</div><div className="hidden overflow-x-auto md:block"><table className="w-full min-w-[560px] border-collapse text-left"><thead className="bg-slate-50 text-xs font-bold uppercase tracking-[0.12em] text-slate-500"><tr><th className="px-5 py-4">Item</th><th className="px-5 py-4">Method</th><th className="px-5 py-4">Amount</th><th className="px-5 py-4">Status</th></tr></thead><tbody className="divide-y divide-slate-100 text-sm">{walletRows.map((row) => <tr key={row.item} className="transition hover:bg-slate-50"><td className="px-5 py-4 font-semibold text-slate-700">{row.item}</td><td className="px-5 py-4 text-slate-500">{row.method}</td><td className="px-5 py-4 font-bold text-slate-800">{row.amount}</td><td className="px-5 py-4"><StatusPill status={row.status} /></td></tr>)}</tbody></table></div></Surface>
       </section>
     </div>

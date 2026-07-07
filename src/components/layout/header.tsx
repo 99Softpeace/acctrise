@@ -21,11 +21,11 @@ export function Header({ variant = "landing", transparent = false }: HeaderProps
           <Link href="/" className="flex items-center gap-3 group">
             <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-primary-500 to-secondary-600 p-1 flex items-center justify-center overflow-hidden">
               <Image
-                src="/acctrise-logo.jpeg"
+                src="/acctrise-mark.svg"
                 alt="Acctrise"
                 width={48}
                 height={48}
-                className="w-full h-full object-cover rounded-md drop-shadow-lg"
+                className="w-full h-full object-contain rounded-md drop-shadow-lg"
               />
             </div>
             <span className="text-base sm:text-lg font-800 font-display bg-gradient-to-r from-primary-400 via-secondary-400 to-accent-cyan bg-clip-text text-transparent">

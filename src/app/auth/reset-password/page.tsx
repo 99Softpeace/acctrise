@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -50,7 +50,7 @@ export default function ResetPasswordPage() {
     <>
       <header className="topbar">
         <Link className="brand" href="/" aria-label="acctrise home">
-          <img src="/acctrise-logo.jpeg" alt="acctrise" />
+          <img src="/acctrise-mark.svg" alt="acctrise" />
         </Link>
         <nav className="nav-links" aria-label="Primary navigation">
           <Link href="/#services">Services</Link>
