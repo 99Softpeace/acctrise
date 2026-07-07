@@ -7,9 +7,15 @@ import { Transaction } from "@/models/transaction";
 import { User } from "@/models/user";
 import { Wallet } from "@/models/wallet";
 
+const assignableRoles = ["CUSTOMER", "RESELLER", "SUPPORT_AGENT", "ADMIN"] as const;
+type AssignableRole = (typeof assignableRoles)[number];
+
 const updateUserSchema = z.object({
   userId: z.string().min(1),
-  status: z.enum(["active", "banned"])
+  status: z.enum(["active", "banned"]).optional(),
+  role: z.enum(assignableRoles).optional()
+}).refine((value) => value.status || value.role, {
+  message: "Choose a role or status to update."
 });
 
 async function requireAdmin(request: NextRequest) {
@@ -80,12 +86,21 @@ export async function PATCH(request: NextRequest) {
   if (auth.response) return auth.response;
 
   const input = updateUserSchema.parse(await request.json());
-  if (auth.user?.id === input.userId) {
-    return NextResponse.json({ error: "You cannot change your own admin status." }, { status: 400 });
+
+  if (auth.user?.id === input.userId && input.status) {
+    return NextResponse.json({ error: "You cannot change your own account status." }, { status: 400 });
+  }
+
+  if (auth.user?.id === input.userId && input.role) {
+    return NextResponse.json({ error: "You cannot change your own admin role." }, { status: 400 });
   }
 
   await connectMongo();
-  const user = await User.findByIdAndUpdate(input.userId, { $set: { status: input.status } }, { new: true });
+  const updates: { status?: "active" | "banned"; role?: AssignableRole } = {};
+  if (input.status) updates.status = input.status;
+  if (input.role) updates.role = input.role;
+
+  const user = await User.findByIdAndUpdate(input.userId, { $set: updates }, { new: true });
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
   const wallet = await Wallet.findOne({ userId: user._id }).lean();

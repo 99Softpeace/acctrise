@@ -6436,7 +6436,7 @@ details,
   gap: 8px;
 }
 
-.auth-clean-field span {
+.auth-clean-field > span {
   color: #424a57;
   font-size: 13px;
   font-weight: 850;
@@ -6458,10 +6458,12 @@ details,
 .auth-password-control {
   position: relative;
   display: block;
+  width: 100%;
 }
 
 .auth-password-control input {
-  padding-right: 52px;
+  display: block;
+  padding-right: 54px;
 }
 
 .auth-password-control button {

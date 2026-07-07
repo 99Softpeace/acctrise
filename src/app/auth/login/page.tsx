@@ -55,12 +55,12 @@ export default function LoginPage() {
 
         <label className="auth-clean-field" htmlFor="password">
           <span>Password</span>
-          <span className="auth-password-control">
+          <div className="auth-password-control">
             <input id="password" type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Your password" required />
             <button type="button" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? "Hide password" : "Show password"} title={showPassword ? "Hide password" : "Show password"}>
               {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
             </button>
-          </span>
+          </div>
         </label>
 
         <div className="auth-clean-row">
@@ -76,3 +76,4 @@ export default function LoginPage() {
     </main>
   );
 }
+

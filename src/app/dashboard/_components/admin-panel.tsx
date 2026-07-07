@@ -26,6 +26,8 @@ type AdminPayload = {
   users: AdminUser[];
 };
 
+const roleOptions = ["CUSTOMER", "RESELLER", "SUPPORT_AGENT", "ADMIN"];
+
 function formatDate(value?: string | null) {
   if (!value) return "Never";
   return new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value));
@@ -57,14 +59,14 @@ export function AdminPanel() {
     return () => window.clearTimeout(timer);
   }, []);
 
-  async function updateUser(userId: string, status: "active" | "banned") {
+  async function updateUser(userId: string, updates: { status?: "active" | "banned"; role?: string }) {
     setBusyUserId(userId);
     setMessage("");
     try {
       const response = await fetch("/api/admin/users", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, status })
+        body: JSON.stringify({ userId, ...updates })
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || "Unable to update user.");
@@ -140,12 +142,16 @@ export function AdminPanel() {
                   {data.users.map((user) => (
                     <tr key={user.id} className="transition hover:bg-slate-50/70">
                       <td className="px-5 py-4"><div className="font-black text-slate-900">{user.name}</div><div className="mt-1 text-xs font-semibold text-slate-500">{user.email}</div></td>
-                      <td className="px-5 py-4 font-bold text-slate-600">{user.role}</td>
+                      <td className="px-5 py-4">
+                        <select value={user.role} disabled={busyUserId === user.id} onChange={(event) => void updateUser(user.id, { role: event.target.value })} className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-700 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100 disabled:opacity-60">
+                          {roleOptions.map((role) => <option key={role} value={role}>{role}</option>)}
+                        </select>
+                      </td>
                       <td className="px-5 py-4 font-black text-slate-900">{user.balance}</td>
                       <td className="px-5 py-4 text-slate-500">{formatDate(user.joinedAt)}</td>
                       <td className="px-5 py-4"><StatusPill status={user.status} /></td>
                       <td className="px-5 py-4 text-right">
-                        <button type="button" disabled={busyUserId === user.id} onClick={() => void updateUser(user.id, user.status === "banned" ? "active" : "banned")} className={`inline-flex h-10 items-center justify-center rounded-xl px-4 text-xs font-black transition disabled:opacity-60 ${user.status === "banned" ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100" : "bg-rose-50 text-rose-700 ring-1 ring-rose-100"}`}>
+                        <button type="button" disabled={busyUserId === user.id} onClick={() => void updateUser(user.id, { status: user.status === "banned" ? "active" : "banned" })} className={`inline-flex h-10 items-center justify-center rounded-xl px-4 text-xs font-black transition disabled:opacity-60 ${user.status === "banned" ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100" : "bg-rose-50 text-rose-700 ring-1 ring-rose-100"}`}>
                           {busyUserId === user.id ? "Updating..." : user.status === "banned" ? "Unban" : "Ban"}
                         </button>
                       </td>
@@ -158,8 +164,13 @@ export function AdminPanel() {
               {data.users.map((user) => (
                 <article key={user.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                   <div className="flex items-start justify-between gap-3"><div><h4 className="font-black text-slate-900">{user.name}</h4><p className="mt-1 text-xs font-semibold text-slate-500">{user.email}</p></div><StatusPill status={user.status} /></div>
-                  <div className="mt-4 grid grid-cols-2 gap-3 text-sm"><span><b>Role</b><br />{user.role}</span><span><b>Balance</b><br />{user.balance}</span></div>
-                  <button type="button" disabled={busyUserId === user.id} onClick={() => void updateUser(user.id, user.status === "banned" ? "active" : "banned")} className="mt-4 h-11 w-full rounded-xl bg-slate-950 text-sm font-black text-white disabled:opacity-60">
+                  <div className="mt-4 grid grid-cols-2 gap-3 text-sm"><span><b>Balance</b><br />{user.balance}</span><span><b>Joined</b><br />{formatDate(user.joinedAt)}</span></div>
+                  <label className="mt-4 grid gap-2 text-sm font-black text-slate-700">Role
+                    <select value={user.role} disabled={busyUserId === user.id} onChange={(event) => void updateUser(user.id, { role: event.target.value })} className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 disabled:opacity-60">
+                      {roleOptions.map((role) => <option key={role} value={role}>{role}</option>)}
+                    </select>
+                  </label>
+                  <button type="button" disabled={busyUserId === user.id} onClick={() => void updateUser(user.id, { status: user.status === "banned" ? "active" : "banned" })} className="mt-4 h-11 w-full rounded-xl bg-slate-950 text-sm font-black text-white disabled:opacity-60">
                     {busyUserId === user.id ? "Updating..." : user.status === "banned" ? "Unban user" : "Ban user"}
                   </button>
                 </article>
@@ -171,3 +182,4 @@ export function AdminPanel() {
     </div>
   );
 }
+

@@ -35,19 +35,19 @@ export const authOptions: NextAuthOptions = {
         }
 
         const isValid = await verifyPassword(password, user.passwordHash);
-        await LoginHistory.create({
+        void LoginHistory.create({
           userId: user._id,
           ipAddress,
           userAgent,
           isSuccessful: isValid,
           failureReason: isValid ? null : "invalid_credentials"
-        });
+        }).catch((error) => console.error("[auth/login-history]", error));
 
         if (!isValid || user.status !== "active") {
           return null;
         }
 
-        await User.updateOne(
+        void User.updateOne(
           { _id: user._id },
           {
             $set: {
@@ -55,7 +55,7 @@ export const authOptions: NextAuthOptions = {
               lastLoginIp: ipAddress
             }
           }
-        );
+        ).catch((error) => console.error("[auth/last-login]", error));
 
         return {
           id: user._id.toString(),
