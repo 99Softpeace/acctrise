@@ -6,7 +6,6 @@ import {
   AlertCircle,
   ArrowRight,
   Bell,
-  CheckCircle2,
   Clock3,
   FileText,
   History,
@@ -23,17 +22,10 @@ import {
   Zap
 } from "lucide-react";
 import { useMemo } from "react";
-import { AnimatedGlobe } from "./animated-globe";
 import { ServiceExplorer } from "./service-explorer";
 
 type StatusTone = "success" | "warning" | "neutral" | "danger" | "info";
 
-const stats = [
-  { label: "Available Balance", value: "NGN 0.00", detail: "Wallet starts at zero", icon: Wallet, tone: "blue" },
-  { label: "Available Services", value: "620+", detail: "Boosting, numbers, logs, and eSIM", icon: Layers3, tone: "violet" },
-  { label: "Active Orders", value: "0", detail: "Currently processing", icon: Clock3, tone: "amber" },
-  { label: "Total Orders", value: "20", detail: "Lifetime orders", icon: CheckCircle2, tone: "green" }
-];
 
 const serviceCards = [
   { title: "Boost Account", href: "/dashboard/boosting", detail: "Social growth services organized by platform.", icon: Rocket, meta: "Fast campaigns" },
@@ -73,12 +65,6 @@ const recentOrders = [
   { id: "#544373", service: "Telegram Members", link: "t.me/channel", quantity: "250", status: "Processing", date: "Jun 30, 2026", time: "4:06 PM" }
 ];
 
-const toneClasses: Record<string, string> = {
-  blue: "bg-blue-50 text-blue-700 ring-blue-100",
-  violet: "bg-violet-50 text-violet-700 ring-violet-100",
-  amber: "bg-amber-50 text-amber-700 ring-amber-100",
-  green: "bg-emerald-50 text-emerald-700 ring-emerald-100"
-};
 
 const mobileToneClasses: Record<string, string> = {
   blue: "bg-blue-50 text-blue-700 ring-blue-100",
@@ -188,43 +174,21 @@ function MobileOverviewHeader({ displayName }: { displayName: string }) {
 
 function DesktopOverviewHero({ displayName }: { displayName: string }) {
   return (
-    <section className="hidden gap-5 md:grid xl:grid-cols-[1.05fr_0.95fr] xl:items-stretch">
-      <Surface className="overflow-hidden p-6">
+    <section className="hidden md:block">
+      <Surface className="desktop-overview-hero overflow-hidden p-6">
         <div className="desktop-overview-card">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-600">Dashboard</p>
             <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-800 sm:text-4xl">Welcome back, {firstName(displayName)}</h2>
             <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600">Track balance, orders, and service shortcuts without digging through menus.</p>
           </div>
-          <PrimaryButton href="/dashboard/boosting"><Rocket className="h-4 w-4" /> New boost order</PrimaryButton>
         </div>
-        <div className="mt-6 grid gap-3 sm:grid-cols-3">
-          <Link href="/dashboard/wallet" className="rounded-lg bg-blue-50 p-4 text-blue-800 ring-1 ring-blue-100"><span className="text-xs font-bold uppercase tracking-[0.12em] text-blue-500">Balance</span><strong className="mt-2 block text-2xl tracking-tight">NGN 0.00</strong></Link>
-          <Link href="/dashboard/orders" className="rounded-lg bg-slate-50 p-4 text-slate-700 ring-1 ring-slate-200"><span className="text-xs font-bold uppercase tracking-[0.12em] text-slate-400">Orders</span><strong className="mt-2 block text-2xl tracking-tight">20</strong></Link>
-          <Link href="#services" className="rounded-lg bg-emerald-50 p-4 text-emerald-800 ring-1 ring-emerald-100"><span className="text-xs font-bold uppercase tracking-[0.12em] text-emerald-600">Services</span><strong className="mt-2 block text-2xl tracking-tight">620+</strong><small className="mt-1 block text-xs font-bold text-emerald-700/70">Available now</small></Link>
+        <div className="desktop-overview-metrics mt-6 grid gap-3 sm:grid-cols-3">
+          <Link href="/dashboard/wallet" className="desktop-balance-tile rounded-lg p-4"><span className="text-xs font-bold uppercase tracking-[0.12em]">Balance</span><strong className="mt-2 block text-2xl tracking-tight">NGN 0.00</strong></Link>
+          <Link href="/dashboard/orders" className="desktop-orders-tile rounded-lg p-4"><span className="text-xs font-bold uppercase tracking-[0.12em]">Orders</span><strong className="mt-2 block text-2xl tracking-tight">20</strong></Link>
+          <Link href="#services" className="desktop-services-tile rounded-lg p-4"><span className="text-xs font-bold uppercase tracking-[0.12em]">Services</span><strong className="mt-2 block text-2xl tracking-tight">620+</strong><small className="mt-1 block text-xs font-bold">Available now</small></Link>
         </div>
       </Surface>
-      <AnimatedGlobe />
-    </section>
-  );
-}
-
-function StatGrid() {
-  return (
-    <section className="hidden gap-4 md:grid md:grid-cols-2 xl:grid-cols-4">
-      {stats.map((stat) => (
-        <Surface key={stat.label} className="p-5 transition hover:-translate-y-0.5 hover:shadow-md">
-          <div className="flex items-center justify-between gap-3">
-            <div className={`grid h-11 w-11 place-items-center rounded-lg ring-1 ${toneClasses[stat.tone]}`}>
-              <stat.icon className="h-5 w-5" />
-            </div>
-            <span className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Live</span>
-          </div>
-          <p className="mt-5 text-sm font-semibold text-slate-500">{stat.label}</p>
-          <strong className="mt-2 block text-3xl font-bold tracking-tight text-slate-800">{stat.value}</strong>
-          <span className="mt-2 block text-sm font-semibold text-emerald-600">{stat.detail}</span>
-        </Surface>
-      ))}
     </section>
   );
 }
@@ -322,7 +286,6 @@ export function OverviewPage() {
     <div className="dashboard-overview mx-auto grid max-w-7xl gap-5 sm:gap-6">
       <MobileOverviewHeader displayName={displayName} />
       <DesktopOverviewHero displayName={displayName} />
-      <StatGrid />
       <section className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr] xl:gap-6">
         <RecentOrdersTable compact />
         <Surface className="hidden p-5 md:block">
@@ -403,3 +366,4 @@ export function WalletPage() {
 export function DashboardLoading() {
   return <div className="mx-auto grid max-w-7xl gap-4"><div className="h-8 w-48 animate-pulse rounded-lg bg-slate-200" /><div className="h-20 animate-pulse rounded-lg bg-slate-200" /><div className="grid gap-4 md:grid-cols-3"><div className="h-36 animate-pulse rounded-lg bg-slate-200" /><div className="h-36 animate-pulse rounded-lg bg-slate-200" /><div className="h-36 animate-pulse rounded-lg bg-slate-200" /></div></div>;
 }
+
