@@ -36,12 +36,18 @@ const navItems: NavItem[] = [
   { icon: ShieldCheck, label: "Admin", href: "/dashboard/admin", adminOnly: true }
 ];
 
-const mobileBottomHrefs = ["/dashboard", "/dashboard/boosting", "/dashboard/rent-number", "/dashboard/orders", "/dashboard/admin"];
 const adminRoles = new Set(["ADMIN", "SUPER_ADMIN", "DEVELOPER"]);
 
 function isActivePath(pathname: string, href: string) {
   if (href === "/dashboard") return pathname === "/dashboard";
   return pathname === href || pathname.startsWith(`${href}/`);
+}
+function compactName(user?: { name?: string | null; username?: string | null; email?: string | null }) {
+  return user?.name || user?.username || user?.email?.split("@")[0] || "Acctrise user";
+}
+
+function userInitial(value: string) {
+  return (value.trim()[0] || "A").toUpperCase();
 }
 
 function DashboardChrome({ children }: { children: React.ReactNode }) {
@@ -50,6 +56,7 @@ function DashboardChrome({ children }: { children: React.ReactNode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const canSeeAdmin = adminRoles.has(session?.user?.role || "");
   const visibleNavItems = navItems.filter((item) => !item.adminOnly || canSeeAdmin);
+  const displayName = compactName(session?.user);
 
   function handleLogout() {
     setMobileMenuOpen(false);
@@ -83,9 +90,15 @@ function DashboardChrome({ children }: { children: React.ReactNode }) {
             );
           })}
         </nav>
-
-        <div className="border-t border-slate-200 p-3">
-          <button className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-sm font-semibold text-red-600 transition hover:bg-red-50" onClick={handleLogout} type="button">
+        <div className="dashboard-sidebar-footer border-t border-slate-200 p-3">
+          <div className="dashboard-user-card">
+            <span>{userInitial(displayName)}</span>
+            <div>
+              <strong>{displayName}</strong>
+              <small>{session?.user?.role || "CUSTOMER"}</small>
+            </div>
+          </div>
+          <button className="dashboard-logout-button" onClick={handleLogout} type="button">
             <LogOut className="h-5 w-5" />
             Logout
           </button>
@@ -93,7 +106,7 @@ function DashboardChrome({ children }: { children: React.ReactNode }) {
       </aside>
 
       <div className="lg:pl-72">
-        <header className="dashboard-mobile-header sticky top-0 z-30 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur sm:px-6">
+        <header className="dashboard-mobile-header dashboard-topbar sticky top-0 z-30 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur sm:px-6">
           <div className="flex items-center justify-between gap-3">
             <Link href="/dashboard" className="dashboard-mobile-brand flex min-w-0 items-center gap-3 lg:hidden" onClick={() => setMobileMenuOpen(false)}>
               <Image src="/acctrise-wordmark.jpeg" alt="Acctrise" width={160} height={54} className="h-11 w-36 object-contain object-left mix-blend-multiply" priority />
@@ -101,7 +114,7 @@ function DashboardChrome({ children }: { children: React.ReactNode }) {
 
             <div className="hidden lg:block">
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-600">Dashboard</p>
-              <h1 className="text-2xl font-bold tracking-tight text-slate-800">Welcome back</h1>
+              <h1 className="text-2xl font-bold tracking-tight text-slate-800">Welcome back, {displayName}</h1>
             </div>
 
             <div className="hidden items-center gap-2 lg:flex">
@@ -113,6 +126,10 @@ function DashboardChrome({ children }: { children: React.ReactNode }) {
                 <Package className="h-4 w-4" />
                 My Orders
               </Link>
+              <button className="dashboard-topbar-logout" onClick={handleLogout} type="button">
+                <LogOut className="h-4 w-4" />
+                Logout
+              </button>
             </div>
 
             <button className="dashboard-mobile-menu-button inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm shadow-slate-200 transition hover:bg-slate-50 lg:hidden" type="button" aria-label="Toggle dashboard navigation" aria-expanded={mobileMenuOpen} aria-controls="mobile-dashboard-menu" onClick={() => setMobileMenuOpen((open) => !open)}>
@@ -153,18 +170,7 @@ function DashboardChrome({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <main className="px-4 py-6 pb-28 sm:px-6 lg:px-8 lg:pb-8">{children}</main>
-        <nav className="dashboard-bottom-nav lg:hidden" aria-label="Primary mobile dashboard navigation">
-          {visibleNavItems.filter((item) => mobileBottomHrefs.includes(item.href)).map((item) => {
-            const active = isActivePath(pathname, item.href);
-            return (
-              <Link key={item.label} href={item.href as any} className={active ? "active" : ""} aria-current={active ? "page" : undefined}>
-                <item.icon className="h-5 w-5" />
-                <span>{item.label.replace(" Account", "")}</span>
-              </Link>
-            );
-          })}
-        </nav>
+        <main className="px-4 py-6 pb-8 sm:px-6 lg:px-8">{children}</main>
       </div>
       </div>
   );
@@ -177,4 +183,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     </SessionProvider>
   );
 }
+
+
+
+
+
 

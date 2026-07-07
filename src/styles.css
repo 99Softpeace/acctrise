@@ -6790,3 +6790,185 @@ details,
 .dashboard-redesign .admin-panel-page section.overflow-hidden {
   border-radius: 24px;
 }
+
+/* Desktop dashboard cleanup */
+@media (min-width: 1024px) {
+  .dashboard-redesign {
+    background:
+      radial-gradient(circle at 94% 0%, rgba(20, 184, 166, 0.08), transparent 28%),
+      radial-gradient(circle at 20% 100%, rgba(245, 158, 11, 0.06), transparent 30%),
+      linear-gradient(180deg, #f8fafc 0%, #eef3f8 100%) !important;
+  }
+
+  .dashboard-redesign aside.fixed {
+    border-right-color: rgba(15, 23, 42, 0.1) !important;
+    background: rgba(255, 255, 255, 0.96) !important;
+    box-shadow: 18px 0 55px rgba(15, 23, 42, 0.045);
+  }
+
+  .dashboard-redesign .dashboard-side-brand {
+    min-height: 86px;
+    padding-block: 18px !important;
+  }
+
+  .dashboard-redesign aside.fixed nav a {
+    min-height: 46px;
+    border-radius: 12px;
+    font-weight: 780;
+  }
+
+  .dashboard-topbar {
+    min-height: 76px;
+    background: rgba(255, 255, 255, 0.88) !important;
+    box-shadow: 0 14px 36px rgba(15, 23, 42, 0.045);
+  }
+
+  .dashboard-topbar > div {
+    min-height: 50px;
+  }
+
+  .dashboard-topbar-logout,
+  .dashboard-logout-button {
+    min-height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    border: 1px solid rgba(225, 29, 72, 0.16);
+    border-radius: 12px;
+    background: #fff1f2;
+    color: #be123c;
+    padding: 0 14px;
+    font-size: 13px;
+    font-weight: 850;
+    transition: transform 160ms ease, background 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+  }
+
+  .dashboard-topbar-logout:hover,
+  .dashboard-logout-button:hover {
+    transform: translateY(-1px);
+    border-color: rgba(225, 29, 72, 0.26);
+    background: #ffe4e6;
+    box-shadow: 0 12px 28px rgba(225, 29, 72, 0.1);
+  }
+
+  .dashboard-sidebar-footer {
+    display: grid;
+    gap: 10px;
+    background: linear-gradient(180deg, rgba(248, 250, 252, 0), rgba(248, 250, 252, 0.95));
+  }
+
+  .dashboard-user-card {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 11px;
+    border: 1px solid rgba(226, 232, 240, 0.95);
+    border-radius: 16px;
+    background: #ffffff;
+    padding: 11px;
+  }
+
+  .dashboard-user-card > span {
+    width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    border-radius: 13px;
+    background: #ecfeff;
+    color: #0f766e;
+    font-size: 13px;
+    font-weight: 900;
+  }
+
+  .dashboard-user-card strong,
+  .dashboard-user-card small {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .dashboard-user-card strong {
+    color: #172033;
+    font-size: 13px;
+    font-weight: 850;
+  }
+
+  .dashboard-user-card small {
+    margin-top: 2px;
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 750;
+  }
+
+  .dashboard-logout-button {
+    width: 100%;
+  }
+
+  .dashboard-overview {
+    gap: 22px !important;
+  }
+
+  .dashboard-shell-app main {
+    padding-top: 26px !important;
+  }
+
+  .dashboard-overview .rounded-lg,
+  .dashboard-overview .recent-orders-surface,
+  .dashboard-overview .service-shortcut-card {
+    border-color: rgba(203, 213, 225, 0.82) !important;
+    box-shadow: 0 18px 42px rgba(15, 23, 42, 0.055) !important;
+  }
+
+  .desktop-overview-card {
+    align-items: center;
+  }
+
+  .desktop-overview-card h2 {
+    color: #111827;
+    font-size: clamp(30px, 3vw, 42px);
+    line-height: 1.05;
+  }
+
+  .desktop-overview-card p:last-child {
+    max-width: 580px;
+  }
+
+  .desktop-overview-card + div a {
+    min-height: 118px;
+    border: 1px solid rgba(226, 232, 240, 0.9);
+    background: #ffffff !important;
+  }
+
+  .desktop-overview-card + div a:nth-child(1) {
+    border-left: 4px solid #0f766e;
+  }
+
+  .desktop-overview-card + div a:nth-child(2) {
+    border-left: 4px solid #4f46e5;
+  }
+
+  .desktop-overview-card + div a:nth-child(3) {
+    border-left: 4px solid #d97706;
+  }
+
+  .dashboard-overview section.hidden.gap-5.md\:grid {
+    grid-template-columns: minmax(0, 1.2fr) minmax(360px, 0.8fr);
+  }
+
+  .overview-services {
+    gap: 16px !important;
+  }
+
+  .service-shortcut-card {
+    min-height: 220px;
+    border-radius: 18px !important;
+  }
+
+  .recent-orders-surface table th,
+  .recent-orders-surface table td {
+    padding-inline: 22px;
+  }
+}
