@@ -7071,3 +7071,64 @@ details,
 .dashboard-redesign .hover\:bg-blue-700:hover {
   background-color: #2338d6 !important;
 }
+
+/* Dashboard nav and balance card refresh */
+.dashboard-redesign .dashboard-nav-active {
+  background:
+    linear-gradient(135deg, rgba(255, 77, 166, 0.13), rgba(35, 199, 255, 0.16)),
+    #ffffff !important;
+  color: #26304f !important;
+  border: 1px solid rgba(61, 90, 254, 0.16);
+  box-shadow: 0 12px 28px rgba(61, 90, 254, 0.1), inset 4px 0 0 #ff4da6;
+}
+
+.dashboard-redesign .dashboard-nav-active svg {
+  color: #ff4da6;
+}
+
+.dashboard-redesign .dashboard-mobile-menu .dashboard-nav-active {
+  border-radius: 14px;
+  box-shadow: 0 10px 24px rgba(61, 90, 254, 0.09), inset 4px 0 0 #23c7ff;
+}
+
+.mobile-balance-card,
+.dashboard-redesign .mobile-balance-card {
+  border: 1px solid rgba(61, 90, 254, 0.14) !important;
+  background:
+    radial-gradient(circle at 88% 18%, rgba(255, 77, 166, 0.18), transparent 30%),
+    radial-gradient(circle at 12% 88%, rgba(35, 199, 255, 0.22), transparent 28%),
+    linear-gradient(135deg, #ffffff 0%, #f4fbff 45%, #fff3fb 100%) !important;
+  color: #172033 !important;
+  box-shadow: 0 24px 58px rgba(37, 55, 130, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.92) !important;
+}
+
+.mobile-balance-card::after {
+  right: -36px;
+  bottom: -48px;
+  border-color: rgba(61, 90, 254, 0.08);
+}
+
+.mobile-balance-card span {
+  color: #53627f !important;
+}
+
+.mobile-balance-card strong {
+  color: #151626 !important;
+}
+
+.mobile-wallet-mark {
+  color: rgba(61, 90, 254, 0.13) !important;
+}
+
+.mobile-balance-actions a:first-child {
+  background: linear-gradient(135deg, #3d5afe, #7c3cff) !important;
+  color: #ffffff !important;
+  box-shadow: 0 14px 28px rgba(61, 90, 254, 0.2) !important;
+}
+
+.mobile-balance-actions a:nth-child(2) {
+  border: 1px solid rgba(61, 90, 254, 0.14) !important;
+  background: rgba(255, 255, 255, 0.82) !important;
+  color: #3d5afe !important;
+  box-shadow: 0 12px 26px rgba(37, 55, 130, 0.08) !important;
+}

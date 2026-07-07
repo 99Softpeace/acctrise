@@ -79,7 +79,7 @@ function DashboardChrome({ children }: { children: React.ReactNode }) {
                 href={item.href as any}
                 className={`flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-bold transition ${
                   active
-                    ? "bg-blue-600 text-blue-50 shadow-sm shadow-blue-600/20"
+                    ? "dashboard-nav-active"
                     : "text-slate-600 hover:bg-slate-50 hover:text-blue-700"
                 }`}
                 aria-current={active ? "page" : undefined}
@@ -148,7 +148,7 @@ function DashboardChrome({ children }: { children: React.ReactNode }) {
                     onClick={() => setMobileMenuOpen(false)}
                     className={`flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-bold ${
                       active
-                        ? "bg-blue-600 text-blue-50 shadow-sm shadow-blue-600/20"
+                        ? "dashboard-nav-active"
                         : "text-slate-600 hover:bg-slate-50 hover:text-blue-700"
                     }`}
                     aria-current={active ? "page" : undefined}
@@ -183,6 +183,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     </SessionProvider>
   );
 }
+
 
 
 
