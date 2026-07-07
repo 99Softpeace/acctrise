@@ -6455,6 +6455,35 @@ details,
   outline: none;
 }
 
+.auth-password-control {
+  position: relative;
+  display: block;
+}
+
+.auth-password-control input {
+  padding-right: 52px;
+}
+
+.auth-password-control button {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  color: #64748b;
+  transform: translateY(-50%);
+}
+
+.auth-password-control button:hover {
+  background: #f1f5f9;
+  color: #2563eb;
+}
+
 .auth-clean-field input:focus {
   border-color: rgba(55, 119, 227, 0.52);
   box-shadow: 0 0 0 5px rgba(55, 119, 227, 0.1);
@@ -6752,7 +6781,7 @@ details,
 }
 
 .dashboard-redesign .dashboard-bottom-nav a.active {
-  background: linear-gradient(135deg, #111827, #4f46e5) !important;
+  background: linear-gradient(135deg, #111827, #0f766e) !important;
 }
 
 .dashboard-redesign .admin-panel-page article,

@@ -3,8 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
-import { SessionProvider, signOut } from "next-auth/react";
+import { useState, type ComponentType } from "react";
+import { SessionProvider, signOut, useSession } from "next-auth/react";
 import {
   BadgeHelp,
   Box,
@@ -22,7 +22,9 @@ import {
   ShieldCheck
 } from "lucide-react";
 
-const navItems = [
+type NavItem = { icon: ComponentType<{ className?: string }>; label: string; href: string; adminOnly?: boolean };
+
+const navItems: NavItem[] = [
   { icon: Gauge, label: "Overview", href: "/dashboard" },
   { icon: Rocket, label: "Boost Account", href: "/dashboard/boosting" },
   { icon: ReceiptText, label: "Buy Logs", href: "/dashboard/logs" },
@@ -31,17 +33,23 @@ const navItems = [
   { icon: Wifi, label: "Buy eSIM", href: "/dashboard/esim" },
   { icon: Box, label: "My Orders", href: "/dashboard/orders" },
   { icon: Wallet, label: "Fund Wallet", href: "/dashboard/wallet" },
-  { icon: ShieldCheck, label: "Admin", href: "/dashboard/admin" }
+  { icon: ShieldCheck, label: "Admin", href: "/dashboard/admin", adminOnly: true }
 ];
+
+const mobileBottomHrefs = ["/dashboard", "/dashboard/boosting", "/dashboard/rent-number", "/dashboard/orders", "/dashboard/admin"];
+const adminRoles = new Set(["ADMIN", "SUPER_ADMIN", "DEVELOPER"]);
 
 function isActivePath(pathname: string, href: string) {
   if (href === "/dashboard") return pathname === "/dashboard";
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+function DashboardChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { data: session } = useSession();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const canSeeAdmin = adminRoles.has(session?.user?.role || "");
+  const visibleNavItems = navItems.filter((item) => !item.adminOnly || canSeeAdmin);
 
   function handleLogout() {
     setMobileMenuOpen(false);
@@ -49,7 +57,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <SessionProvider>
       <div className="dashboard-shell-app dashboard-redesign min-h-screen bg-slate-50 text-slate-800">
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 border-r border-slate-200 bg-white lg:flex lg:flex-col">
         <Link href="/dashboard" className="dashboard-side-brand flex items-center border-b border-slate-200 px-5 py-5 transition hover:bg-slate-50">
@@ -57,7 +64,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </Link>
 
         <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4" aria-label="Dashboard navigation">
-          {navItems.map((item) => {
+          {visibleNavItems.map((item) => {
             const active = isActivePath(pathname, item.href);
             return (
               <Link
@@ -115,7 +122,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           <div id="mobile-dashboard-menu" className={`dashboard-mobile-menu ${mobileMenuOpen ? "grid" : "hidden"} mt-3 gap-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-lg shadow-slate-200/70 lg:hidden`}>
             <nav className="grid gap-1" aria-label="Mobile dashboard navigation">
-              {navItems.map((item) => {
+              {visibleNavItems.map((item) => {
                 const active = isActivePath(pathname, item.href);
                 return (
                   <Link
@@ -148,7 +155,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         <main className="px-4 py-6 pb-28 sm:px-6 lg:px-8 lg:pb-8">{children}</main>
         <nav className="dashboard-bottom-nav lg:hidden" aria-label="Primary mobile dashboard navigation">
-          {navItems.filter((item) => ["/dashboard", "/dashboard/boosting", "/dashboard/rent-number", "/dashboard/orders", "/dashboard/admin"].includes(item.href)).map((item) => {
+          {visibleNavItems.filter((item) => mobileBottomHrefs.includes(item.href)).map((item) => {
             const active = isActivePath(pathname, item.href);
             return (
               <Link key={item.label} href={item.href as any} className={active ? "active" : ""} aria-current={active ? "page" : undefined}>
@@ -160,6 +167,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </nav>
       </div>
       </div>
+  );
+}
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <SessionProvider>
+      <DashboardChrome>{children}</DashboardChrome>
     </SessionProvider>
   );
 }
+

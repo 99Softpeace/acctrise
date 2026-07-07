@@ -37,6 +37,10 @@ type ServiceItem = {
   serviceId?: string;
   availability?: string;
   friendlyLabel?: string;
+  exchangeRate?: number;
+  rateSource?: string;
+  rateFetchedAt?: string;
+  rateFallback?: boolean;
 };
 
 type CountryItem = {
@@ -85,13 +89,19 @@ const logCategories = [
 const countryOptions = ["Any country", "USA", "United States", "UK", "United Kingdom", "Germany", "France", "Canada", "Brazil", "Nigeria"];
 const priceOptions = ["Any price", "Under $1", "$1 - $5", "$5+"];
 const stockOptions = ["Any stock", "In stock", "High stock"];
-function formatPrice(value: number) {
-  if (!Number.isFinite(value) || value <= 0) return "Live price";
-  return new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 0 }).format(value * 1600);
+const DEFAULT_USD_TO_NGN_RATE = 1600;
+
+function displayExchangeRate(service?: Pick<ServiceItem, "exchangeRate"> | null) {
+  return Number.isFinite(service?.exchangeRate) && service?.exchangeRate ? service.exchangeRate : DEFAULT_USD_TO_NGN_RATE;
 }
 
-function formatBoostRate(value: number) {
-  const price = formatPrice(value);
+function formatPrice(value: number, exchangeRate = DEFAULT_USD_TO_NGN_RATE) {
+  if (!Number.isFinite(value) || value <= 0) return "Live price";
+  return new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 0 }).format(value * exchangeRate);
+}
+
+function formatBoostRate(value: number, exchangeRate = DEFAULT_USD_TO_NGN_RATE) {
+  const price = formatPrice(value, exchangeRate);
   return price === "Live price" ? price : `${price} / 1k`;
 }
 
@@ -155,7 +165,7 @@ function matchesBoostPlatform(service: ServiceItem, platform: BoostPlatformOptio
 
 function orderEstimate(service: ServiceItem, quantity: number) {
   const safeQuantity = Number.isFinite(quantity) && quantity > 0 ? quantity : service.minOrder;
-  const total = service.price > 0 ? (service.price * safeQuantity * 1600) / 1000 : 0;
+  const total = service.price > 0 ? (service.price * safeQuantity * displayExchangeRate(service)) / 1000 : 0;
   if (!Number.isFinite(total) || total <= 0) return "Live total";
   return new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 0 }).format(total);
 }
@@ -168,9 +178,19 @@ function linkPlaceholder(service: ServiceItem) {
   return "Paste the profile or post link";
 }
 function userSafeError() {
-  return "This service is available, but fulfillment is temporarily unavailable. Please contact support.";
+  return "Checkout is ready, but automatic fulfillment is not enabled yet. Please contact support to complete this purchase.";
 }
 
+function PriceSourceNote({ service, compact = false }: { service?: ServiceItem | null; compact?: boolean }) {
+  const rate = displayExchangeRate(service);
+  const source = service?.rateSource || "live exchange provider";
+  const fallback = service?.rateFallback ? " Fallback rate shown because live rate lookup is unavailable." : "";
+  return (
+    <p className={`text-xs font-semibold leading-5 text-slate-500 ${compact ? "mt-1" : "mt-3"}`}>
+      Provider price converted with USD/NGN {rate.toLocaleString()} from {source}.{fallback}
+    </p>
+  );
+}
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return <label className="grid gap-2 text-sm font-semibold text-slate-600">{label}{children}</label>;
 }
@@ -206,7 +226,7 @@ function ServiceCard({ service, selected, onSelect, variant }: { service: Servic
       <h4 className="mt-4 line-clamp-2 text-sm font-bold leading-5 text-slate-800">{service.name}</h4>
       <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-500">{service.description || inferDelivery(service)}</p>
       <div className="mt-auto grid gap-2 pt-4 text-xs font-semibold text-slate-500 sm:grid-cols-2">
-        <span className="rounded-lg bg-slate-50 px-2.5 py-2 text-slate-700">{variant === "boosting" ? formatBoostRate(service.price) : formatPrice(service.price)}</span>
+        <span className="rounded-lg bg-slate-50 px-2.5 py-2 text-slate-700">{variant === "boosting" ? formatBoostRate(service.price, displayExchangeRate(service)) : formatPrice(service.price, displayExchangeRate(service))}</span>
         <span className="rounded-lg bg-slate-50 px-2.5 py-2 text-slate-700">{country}</span>
         <span className="rounded-lg bg-slate-50 px-2.5 py-2 text-slate-700">Min {service.minOrder}</span>
         <span className="rounded-lg bg-slate-50 px-2.5 py-2 text-slate-700">{service.availability || (service.maxOrder ? `${service.maxOrder} available` : "Available")}</span>
@@ -241,8 +261,9 @@ function CheckoutPanel({ service, variant }: { service: ServiceItem | null; vari
         <p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-600">Ready to buy</p>
         <h3 className="mt-2 text-lg font-bold tracking-tight text-slate-900">{service.name}</h3>
         <p className="mt-2 text-sm leading-6 text-slate-600">{service.countryName || inferCountry(service)} SMS verification service.</p>
+        <PriceSourceNote service={service} compact />
         <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
-          <div className="rounded-lg bg-slate-50 p-3 ring-1 ring-slate-200"><dt className="text-xs font-bold text-slate-400">Price</dt><dd className="mt-1 font-black text-blue-700">{formatPrice(service.price)}</dd></div>
+          <div className="rounded-lg bg-slate-50 p-3 ring-1 ring-slate-200"><dt className="text-xs font-bold text-slate-400">Price</dt><dd className="mt-1 font-black text-blue-700">{formatPrice(service.price, displayExchangeRate(service))}</dd></div>
           <div className="rounded-lg bg-slate-50 p-3 ring-1 ring-slate-200"><dt className="text-xs font-bold text-slate-400">Region</dt><dd className="mt-1 font-bold text-slate-800">{service.countryName || inferCountry(service)}</dd></div>
           <div className="rounded-lg bg-slate-50 p-3 ring-1 ring-slate-200"><dt className="text-xs font-bold text-slate-400">Availability</dt><dd className="mt-1 font-bold text-slate-800">{service.availability || "Live stock"}</dd></div>
           <div className="rounded-lg bg-slate-50 p-3 ring-1 ring-slate-200"><dt className="text-xs font-bold text-slate-400">Window</dt><dd className="mt-1 font-bold text-slate-800">15 minutes</dd></div>
@@ -262,7 +283,7 @@ function CheckoutPanel({ service, variant }: { service: ServiceItem | null; vari
         <h3 className="mt-2 text-lg font-bold tracking-tight text-slate-900">{service.name}</h3>
         <p className="mt-2 text-sm leading-6 text-slate-600">{service.description || "Travel-ready data plan with activation details delivered after purchase."}</p>
         <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
-          <div className="rounded-lg bg-slate-50 p-3 ring-1 ring-slate-200"><dt className="text-xs font-bold text-slate-400">Price</dt><dd className="mt-1 font-black text-blue-700">{formatPrice(service.price)}</dd></div>
+          <div className="rounded-lg bg-slate-50 p-3 ring-1 ring-slate-200"><dt className="text-xs font-bold text-slate-400">Price</dt><dd className="mt-1 font-black text-blue-700">{formatPrice(service.price, displayExchangeRate(service))}</dd></div>
           <div className="rounded-lg bg-slate-50 p-3 ring-1 ring-slate-200"><dt className="text-xs font-bold text-slate-400">Data</dt><dd className="mt-1 font-bold text-slate-800">{dataSummary(service)}</dd></div>
           <div className="rounded-lg bg-slate-50 p-3 ring-1 ring-slate-200"><dt className="text-xs font-bold text-slate-400">Coverage</dt><dd className="mt-1 font-bold text-slate-800">{inferCountry(service)}</dd></div>
           <div className="rounded-lg bg-slate-50 p-3 ring-1 ring-slate-200"><dt className="text-xs font-bold text-slate-400">Activation</dt><dd className="mt-1 font-bold text-slate-800">QR or manual setup</dd></div>
@@ -290,8 +311,9 @@ function CheckoutPanel({ service, variant }: { service: ServiceItem | null; vari
       <span className="rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700 ring-1 ring-emerald-100">{service.availability || "Available"}</span>
       <h3 className="mt-4 text-lg font-bold tracking-tight text-slate-800">{service.name}</h3>
       <p className="mt-2 text-sm leading-6 text-slate-600">{service.description || inferDelivery(service)}</p>
+      <PriceSourceNote service={service} compact />
       <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
-        <div className="rounded-lg bg-white p-3 ring-1 ring-slate-200"><dt className="text-xs font-bold text-slate-400">{isBoost ? "Rate / 1k" : "Price"}</dt><dd className="mt-1 font-bold text-slate-700">{isBoost ? formatBoostRate(service.price) : formatPrice(service.price)}</dd></div>
+        <div className="rounded-lg bg-white p-3 ring-1 ring-slate-200"><dt className="text-xs font-bold text-slate-400">{isBoost ? "Rate / 1k" : "Price"}</dt><dd className="mt-1 font-bold text-slate-700">{isBoost ? formatBoostRate(service.price, displayExchangeRate(service)) : formatPrice(service.price, displayExchangeRate(service))}</dd></div>
         <div className="rounded-lg bg-white p-3 ring-1 ring-slate-200"><dt className="text-xs font-bold text-slate-400">Quantity</dt><dd className="mt-1 font-bold text-slate-700">{service.minOrder} - {service.maxOrder || "available"}</dd></div>
         <div className="rounded-lg bg-white p-3 ring-1 ring-slate-200"><dt className="text-xs font-bold text-slate-400">Delivery</dt><dd className="mt-1 font-bold text-slate-700">{inferDelivery(service)}</dd></div>
         <div className="rounded-lg bg-white p-3 ring-1 ring-slate-200"><dt className="text-xs font-bold text-slate-400">Region</dt><dd className="mt-1 font-bold text-slate-700">{inferCountry(service)}</dd></div>
@@ -301,7 +323,7 @@ function CheckoutPanel({ service, variant }: { service: ServiceItem | null; vari
         {(variant === "logs" || isBoost) ? <Field label="Quantity"><input className="h-12 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100" type="number" min={service.minOrder} max={service.maxOrder} value={quantity || service.minOrder} onChange={(event) => setQuantity(Number(event.target.value))} /></Field> : null}
         {isBoost ? (
           <div className="grid gap-3 rounded-2xl border border-blue-100 bg-blue-50/80 p-4 sm:grid-cols-3">
-            <div><span className="text-xs font-black uppercase tracking-[0.14em] text-blue-500">Rate / 1k</span><strong className="mt-1 block text-sm font-black text-blue-950">{formatBoostRate(service.price)}</strong></div>
+            <div><span className="text-xs font-black uppercase tracking-[0.14em] text-blue-500">Rate / 1k</span><strong className="mt-1 block text-sm font-black text-blue-950">{formatBoostRate(service.price, displayExchangeRate(service))}</strong></div>
             <div><span className="text-xs font-black uppercase tracking-[0.14em] text-blue-500">Quantity</span><strong className="mt-1 block text-sm font-black text-blue-950">{quantity || service.minOrder}</strong></div>
             <div><span className="text-xs font-black uppercase tracking-[0.14em] text-blue-500">Estimated total</span><strong className="mt-1 block text-lg font-black text-blue-700">{orderEstimate(service, quantity || service.minOrder)}</strong></div>
           </div>
@@ -335,7 +357,7 @@ function ServiceDropdownOption({ service, onSelect }: { service: ServiceItem; on
         </span>
       </span>
       <span className="text-left sm:text-right">
-        <span className="block text-base font-black text-blue-700">{formatPrice(service.price)}</span>
+        <span className="block text-base font-black text-blue-700">{formatPrice(service.price, displayExchangeRate(service))}</span>
         <span className="text-xs font-semibold text-slate-400">Live price</span>
       </span>
     </button>
@@ -482,7 +504,7 @@ function NumberServicePicker({ kind }: { kind: Extract<ServiceExplorerKind, "for
                 </div>
                 <div className="text-left sm:text-right">
                   <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">Price</p>
-                  <strong className="mt-1 block text-2xl font-black tracking-tight text-blue-700">{formatPrice(selectedService.price)}</strong>
+                  <strong className="mt-1 block text-2xl font-black tracking-tight text-blue-700">{formatPrice(selectedService.price, displayExchangeRate(selectedService))}</strong>
                   <span className="text-xs font-semibold text-slate-500">{selectedService.availability || "Live availability"}</span>
                 </div>
               </div>
@@ -569,6 +591,8 @@ function LogsMarketplace() {
       .sort((a, b) => sortLowFirst ? a.price - b.price : b.price - a.price);
   }, [activeCategory, query, services, showOos, sortLowFirst]);
 
+  const selectedQuantity = selectedService?.minOrder || 1;
+
   return (
     <section className="overflow-hidden rounded-xl border border-slate-200 bg-white text-slate-800 shadow-sm shadow-slate-200/70">
       <div className="grid gap-4 border-b border-slate-200 p-4 lg:grid-cols-[1fr_400px] lg:items-center lg:p-6">
@@ -613,19 +637,43 @@ function LogsMarketplace() {
               </div>
             </div>
 
-            {selectedService ? <div className="m-4 rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm text-blue-950 lg:m-6"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[0.14em] text-blue-600">Selected product</p><h5 className="mt-1 text-base font-black text-slate-900">{selectedService.name}</h5><p className="mt-1 text-slate-600">{selectedService.description || logCategoryFor(selectedService)}</p></div><strong className="text-xl text-blue-700">{formatPrice(selectedService.price)}</strong></div></div> : null}
+            {selectedService ? (
+              <div className="m-4 rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-950 lg:m-6">
+                <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_280px] xl:items-start">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-blue-600">Selected product</p>
+                    <h5 className="mt-1 text-lg font-black text-slate-900">{selectedService.name}</h5>
+                    <p className="mt-2 text-sm leading-6 text-slate-700">{selectedService.description || logCategoryFor(selectedService)}</p>
+                    <dl className="mt-4 grid gap-3 sm:grid-cols-3">
+                      <div className="rounded-lg bg-white p-3 ring-1 ring-blue-100"><dt className="text-xs font-bold text-slate-400">Category</dt><dd className="mt-1 font-black text-slate-900">{logCategoryFor(selectedService)}</dd></div>
+                      <div className="rounded-lg bg-white p-3 ring-1 ring-blue-100"><dt className="text-xs font-bold text-slate-400">Stock</dt><dd className="mt-1 font-black text-slate-900">{stockLabel(selectedService)}</dd></div>
+                      <div className="rounded-lg bg-white p-3 ring-1 ring-blue-100"><dt className="text-xs font-bold text-slate-400">Minimum</dt><dd className="mt-1 font-black text-slate-900">{selectedService.minOrder}</dd></div>
+                    </dl>
+                  </div>
+                  <div className="rounded-xl border border-blue-100 bg-white p-4 shadow-sm">
+                    <span className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">Checkout</span>
+                    <strong className="mt-2 block text-2xl text-blue-700">{formatPrice(selectedService.price, displayExchangeRate(selectedService))}</strong>
+                    <PriceSourceNote service={selectedService} compact />
+                    <div className="mt-4 rounded-lg bg-slate-50 p-3 text-xs font-semibold leading-5 text-slate-600">Quantity: {selectedQuantity}. Product details are delivered inside the order after payment is confirmed.</div>
+                    <button type="button" onClick={() => alert(userSafeError())} className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-black text-white shadow-sm shadow-blue-600/20 transition hover:bg-blue-700">
+                      <ShoppingBag className="h-4 w-4" /> Purchase product
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : null}
 
             <div className="hidden overflow-x-auto md:block">
               <table className="w-full min-w-[760px] border-collapse text-left">
                 <thead className="bg-slate-50 text-xs font-black uppercase tracking-[0.12em] text-slate-500"><tr><th className="px-6 py-4">Product Name</th><th className="px-6 py-4">Price</th><th className="px-6 py-4">Stock</th><th className="px-6 py-4 text-right">Action</th></tr></thead>
                 <tbody className="divide-y divide-slate-100 text-sm">
-                  {filtered.map((service) => <tr key={service.externalId} className="transition hover:bg-slate-50"><td className="px-6 py-5"><div className="font-bold text-slate-900">{service.name}</div><div className="mt-1 text-xs font-semibold text-slate-500">{logCategoryFor(service).toLowerCase()}</div></td><td className="px-6 py-5 text-base font-black text-blue-700">{formatPrice(service.price)}</td><td className="px-6 py-5"><span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-100">{stockLabel(service)}</span></td><td className="px-6 py-5 text-right"><button type="button" onClick={() => setSelectedService(service)} className="font-bold text-blue-700 hover:text-blue-800">View Details</button></td></tr>)}
+                  {filtered.map((service) => <tr key={service.externalId} className="transition hover:bg-slate-50"><td className="px-6 py-5"><div className="font-bold text-slate-900">{service.name}</div><div className="mt-1 text-xs font-semibold text-slate-500">{logCategoryFor(service).toLowerCase()}</div></td><td className="px-6 py-5 text-base font-black text-blue-700">{formatPrice(service.price, displayExchangeRate(service))}</td><td className="px-6 py-5"><span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-100">{stockLabel(service)}</span></td><td className="px-6 py-5 text-right"><button type="button" onClick={() => setSelectedService(service)} className="font-bold text-blue-700 hover:text-blue-800">View Details</button></td></tr>)}
                 </tbody>
               </table>
             </div>
 
             <div className="grid gap-3 p-4 md:hidden">
-              {filtered.map((service) => <article key={service.externalId} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><h5 className="text-sm font-black text-slate-900">{service.name}</h5><p className="mt-1 text-xs font-semibold text-slate-500">{logCategoryFor(service)}</p></div><strong className="shrink-0 text-blue-700">{formatPrice(service.price)}</strong></div><div className="mt-3 flex items-center justify-between gap-3"><span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-100">{stockLabel(service)}</span><button type="button" onClick={() => setSelectedService(service)} className="text-sm font-bold text-blue-700">View Details</button></div></article>)}
+              {filtered.map((service) => <article key={service.externalId} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><h5 className="text-sm font-black text-slate-900">{service.name}</h5><p className="mt-1 text-xs font-semibold text-slate-500">{logCategoryFor(service)}</p></div><strong className="shrink-0 text-blue-700">{formatPrice(service.price, displayExchangeRate(service))}</strong></div><div className="mt-3 flex items-center justify-between gap-3"><span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-100">{stockLabel(service)}</span><button type="button" onClick={() => setSelectedService(service)} className="text-sm font-bold text-blue-700">View Details</button></div></article>)}
             </div>
           </div>
         </div>
@@ -689,7 +737,7 @@ function EsimPlanBrowser() {
                   <h4 className="mt-4 line-clamp-2 text-sm font-black leading-5 text-slate-900">{service.name}</h4>
                   <p className="mt-2 line-clamp-2 text-xs font-semibold leading-5 text-slate-500">{service.description || "Travel-ready data plan"}</p>
                   <div className="mt-auto pt-4">
-                    <div className="flex items-center justify-between gap-3"><strong className="text-lg font-black text-blue-700">{formatPrice(service.price)}</strong><span className="text-xs font-bold text-emerald-600">{service.availability || "Activation details after purchase"}</span></div>
+                    <div className="flex items-center justify-between gap-3"><strong className="text-lg font-black text-blue-700">{formatPrice(service.price, displayExchangeRate(service))}</strong><span className="text-xs font-bold text-emerald-600">{service.availability || "Activation details after purchase"}</span></div>
                     <button type="button" onClick={() => setSelectedService(service)} className={`mt-4 inline-flex h-11 w-full items-center justify-center rounded-lg px-4 text-sm font-bold transition focus:outline-none focus:ring-4 focus:ring-blue-100 ${selected ? "bg-blue-50 text-blue-700 ring-1 ring-blue-100" : "bg-blue-600 text-white shadow-sm shadow-blue-600/20 hover:bg-blue-700"}`}>
                       {selected ? "Selected" : "Buy eSIM"}
                     </button>
@@ -805,7 +853,7 @@ function BoostAccountBrowser() {
             <span className="relative">
               <select value={activeSelectedService?.externalId || ""} onChange={(event) => setSelectedService(filtered.find((service) => service.externalId === event.target.value) || null)} disabled={!filtered.length || state !== "ready"} className="h-14 w-full appearance-none rounded-xl border border-slate-200 bg-white px-4 pr-10 text-sm font-semibold text-slate-800 outline-none transition disabled:bg-slate-100 disabled:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100">
                 <option value="">{filtered.length ? "Choose a service..." : "No matching services"}</option>
-                {filtered.slice(0, 300).map((service) => <option key={service.externalId} value={service.externalId}>{service.name} - {formatBoostRate(service.price)}</option>)}
+                {filtered.slice(0, 300).map((service) => <option key={service.externalId} value={service.externalId}>{service.name} - {formatBoostRate(service.price, displayExchangeRate(service))}</option>)}
               </select>
               <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
             </span>
@@ -1050,3 +1098,4 @@ export function ServiceExplorer({ kind, mode }: { kind: ServiceExplorerKind; mod
 
   return <ServiceCatalogExplorer kind={kind} mode={mode} />;
 }
+

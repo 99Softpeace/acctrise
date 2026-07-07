@@ -338,7 +338,9 @@ export function OverviewPage() {
           <div className="mt-5 rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm leading-6 text-blue-950">PocketFi funding is intentionally paused. Wallet UI stays visible, but funding actions are held until activation.</div>
         </Surface>
       </section>
-      <ServiceCards />
+      <div className="hidden md:block">
+        <ServiceCards />
+      </div>
     </div>
   );
 }
