@@ -28,7 +28,7 @@ export const authOptions: NextAuthOptions = {
         const ipAddress = request?.headers?.["x-forwarded-for"]?.toString().split(",")[0] || "unknown";
         const userAgent = request?.headers?.["user-agent"]?.toString() || "unknown";
 
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ email }).select("_id email username passwordHash role status emailVerified").lean();
 
         if (!user) {
           return null;

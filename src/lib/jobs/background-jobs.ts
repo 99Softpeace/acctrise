@@ -7,6 +7,7 @@ import { Queue, Worker } from "bullmq";
 import { getRedisClient } from "@/lib/cache/redis";
 import { connectMongo } from "@/lib/mongodb";
 import { getServices } from "@/lib/services";
+import { applyProfitMarginCents } from "@/lib/pricing/profit-margin";
 import { Category } from "@/models/category";
 import { Order } from "@/models/order";
 import { Provider } from "@/models/provider";
@@ -78,7 +79,7 @@ async function syncProviderServices(providerId: string) {
           name: externalService.name,
           description: externalService.description,
           categoryId: category._id,
-          priceCents: cents(externalService.price),
+          priceCents: applyProfitMarginCents(cents(externalService.price)),
           minOrder: externalService.minOrder,
           maxOrder: externalService.maxOrder,
           isActive: true

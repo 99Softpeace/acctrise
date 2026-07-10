@@ -47,7 +47,8 @@ export async function GET(request: NextRequest) {
       exchangeRate: exchangeRate.rate,
       rateSource: exchangeRate.source,
       rateFetchedAt: exchangeRate.fetchedAt,
-      fallback: exchangeRate.fallback
+      fallback: exchangeRate.fallback,
+      profitMarginPercent: result.profitMarginPercent
     };
 
     return NextResponse.json({

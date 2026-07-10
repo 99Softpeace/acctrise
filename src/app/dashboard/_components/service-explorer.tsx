@@ -919,6 +919,13 @@ function BoostAccountBrowser() {
             <CheckoutPanel key={activeSelectedService.externalId} service={activeSelectedService} variant="boosting" />
           </div>
         ) : null}
+
+        <div className="mx-auto mt-6 flex max-w-xl flex-wrap items-center justify-between gap-3 rounded-full border border-slate-200 bg-slate-50 px-4 py-3 text-xs font-bold text-slate-600">
+          <span>Acctrise service color categorization</span>
+          <span className="inline-flex items-center gap-2"><i className="h-2.5 w-2.5 rounded-full bg-amber-400" /> Basic</span>
+          <span className="inline-flex items-center gap-2"><i className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> Medium</span>
+          <span className="inline-flex items-center gap-2"><i className="h-2.5 w-2.5 rounded-full bg-blue-600" /> Elite</span>
+        </div>
       </div>
 
       <div className="grid gap-5">

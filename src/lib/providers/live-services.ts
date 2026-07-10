@@ -3,6 +3,7 @@ import { BulkAccAdapter } from "@/lib/providers/adapters/bulkacc-adapter";
 import { SMSPoolAdapter } from "@/lib/providers/adapters/sms-pool-adapter";
 import { ResellingSMMAdapter } from "@/lib/providers/adapters/smm-adapter";
 import type { BaseProviderAdapter, ProviderConfig, ServiceMapping } from "@/lib/providers/base-adapter";
+import { applyProfitMargin, PROFIT_MARGIN_PERCENT } from "@/lib/pricing/profit-margin";
 
 export type LiveServiceKind = "boosting" | "logs" | "foreign-numbers" | "uk-premium" | "esim";
 
@@ -59,6 +60,7 @@ export interface LiveServicesResult {
   provider: string;
   services: LiveService[];
   fetchedAt: string;
+  profitMarginPercent: number;
 }
 
 function configured(value: string | undefined) {
@@ -136,7 +138,7 @@ export async function fetchLiveServices(kind: LiveServiceKind, options: FetchLiv
       externalId: service.externalId,
       name: service.name,
       description: service.description,
-      price: service.price,
+      price: applyProfitMargin(service.price),
       minOrder: service.minOrder,
       maxOrder: service.maxOrder,
       provider: definition.name,
@@ -146,7 +148,8 @@ export async function fetchLiveServices(kind: LiveServiceKind, options: FetchLiv
       availability: service.availability,
       friendlyLabel: service.friendlyLabel
     })),
-    fetchedAt: new Date().toISOString()
+    fetchedAt: new Date().toISOString(),
+    profitMarginPercent: PROFIT_MARGIN_PERCENT
   };
 }
 

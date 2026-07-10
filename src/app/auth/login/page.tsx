@@ -32,8 +32,7 @@ export default function LoginPage() {
     }
 
     setMessage("Opening dashboard...");
-    router.push((result?.url || callbackUrl) as any);
-    router.refresh();
+    router.replace((result?.url || callbackUrl) as any);
   }
 
   return (
