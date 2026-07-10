@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, BarChart3, Globe2, Menu, Phone, ShieldCheck, Sparkles, WalletCards, X } from "lucide-react";
+import { ArrowRight, BarChart3, Globe2, Mail, Menu, Phone, ShieldCheck, Sparkles, WalletCards, X } from "lucide-react";
+import { FacebookIcon, InstagramIcon, LinkedInIcon } from "@/components/social-icons";
 import { useState } from "react";
 
 const services = [
@@ -137,8 +138,35 @@ export default function Home() {
       </section>
 
       <footer className="act-footer">
-        <img src="/acctrise-wordmark.jpeg" alt="Acctrise" />
-        <span>&copy; 2026 Acctrise. All rights reserved.</span>
+        <div className="act-footer-brand">
+          <img src="/acctrise-wordmark.jpeg" alt="Acctrise" />
+          <h2>Acctrise</h2>
+          <p>Boost your digital presence today.</p>
+          <div className="act-social-links" aria-label="Social media links">
+            <a href="https://instagram.com" target="_blank" rel="noreferrer" aria-label="Instagram"><InstagramIcon className="h-4 w-4" /></a>
+            <a href="https://facebook.com" target="_blank" rel="noreferrer" aria-label="Facebook"><FacebookIcon className="h-4 w-4" /></a>
+            <a href="https://linkedin.com" target="_blank" rel="noreferrer" aria-label="LinkedIn"><LinkedInIcon className="h-4 w-4" /></a>
+            <a href="mailto:support@acctrise.com" aria-label="Email support"><Mail size={18} /></a>
+          </div>
+        </div>
+
+        <div className="act-footer-column">
+          <h3>Quick Links</h3>
+          <a href="#services">All Services</a>
+          <Link href="/auth/signup">Create Account</Link>
+          <Link href="/auth/login">Login</Link>
+          <a href="#faq">Terms of Service</a>
+        </div>
+
+        <div className="act-footer-column">
+          <h3>Contact Us</h3>
+          <a href="mailto:support@acctrise.com">support@acctrise.com</a>
+          <span>Available for wallet, orders, and service support.</span>
+        </div>
+
+        <div className="act-footer-bottom">
+          <span>&copy; 2026 Acctrise. All rights reserved.</span>
+        </div>
       </footer>
     </main>
   );

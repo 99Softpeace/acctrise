@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Mail } from "lucide-react";
+import { FacebookIcon, InstagramIcon, LinkedInIcon } from "@/components/social-icons";
 import { useState, type FormEvent } from "react";
 
 export default function LoginPage() {
@@ -75,6 +76,29 @@ export default function LoginPage() {
         <button className="auth-clean-submit" type="submit" disabled={isLoading}>{isLoading ? "Signing in..." : "Login"}</button>
         <p className="auth-clean-switch">No account? <Link href="/auth/signup">Sign up</Link></p>
       </form>
+
+      <footer className="auth-clean-footer">
+        <div>
+          <img src="/acctrise-logo.jpeg" alt="Acctrise" />
+          <p>Boost your digital presence today.</p>
+        </div>
+        <nav aria-label="Auth footer quick links">
+          <strong>Quick Links</strong>
+          <Link href="/#services">All Services</Link>
+          <Link href="/auth/signup">Create Account</Link>
+          <Link href="/#faq">Terms of Service</Link>
+        </nav>
+        <div className="auth-clean-contact">
+          <strong>Contact Us</strong>
+          <a href="mailto:support@acctrise.com">support@acctrise.com</a>
+          <span>
+            <a href="https://instagram.com" target="_blank" rel="noreferrer" aria-label="Instagram"><InstagramIcon className="h-4 w-4" /></a>
+            <a href="https://facebook.com" target="_blank" rel="noreferrer" aria-label="Facebook"><FacebookIcon className="h-4 w-4" /></a>
+            <a href="https://linkedin.com" target="_blank" rel="noreferrer" aria-label="LinkedIn"><LinkedInIcon className="h-4 w-4" /></a>
+            <a href="mailto:support@acctrise.com" aria-label="Email support"><Mail size={16} /></a>
+          </span>
+        </div>
+      </footer>
     </main>
   );
 }
