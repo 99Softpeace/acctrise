@@ -164,9 +164,10 @@ function matchesBoostPlatform(service: ServiceItem, platform: BoostPlatformOptio
 
 
 function orderEstimate(service: ServiceItem, quantity: number) {
-  const safeQuantity = Number.isFinite(quantity) && quantity > 0 ? quantity : service.minOrder;
-  const total = service.price > 0 ? (service.price * safeQuantity * displayExchangeRate(service)) / 1000 : 0;
-  if (!Number.isFinite(total) || total <= 0) return "Live total";
+  const safeQuantity = Number.isFinite(quantity) && quantity >= 0 ? quantity : service.minOrder;
+  if (service.price <= 0) return "Live total";
+  const total = (service.price * safeQuantity * displayExchangeRate(service)) / 1000;
+  if (!Number.isFinite(total) || total < 0) return "Live total";
   return new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 0 }).format(total);
 }
 
@@ -320,12 +321,12 @@ function CheckoutPanel({ service, variant }: { service: ServiceItem | null; vari
       </dl>
       <div className="mt-5 grid gap-3">
         {isBoost ? <Field label="Profile or post link"><input className="h-12 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100" placeholder={linkPlaceholder(service)} /></Field> : null}
-        {(variant === "logs" || isBoost) ? <Field label="Quantity"><input className="h-12 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100" type="number" min={service.minOrder} max={service.maxOrder} value={quantity || service.minOrder} onChange={(event) => setQuantity(Number(event.target.value))} /></Field> : null}
+        {(variant === "logs" || isBoost) ? <Field label="Quantity"><input className="h-12 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100" type="number" min={isBoost ? 0 : service.minOrder} max={service.maxOrder} value={quantity} onChange={(event) => setQuantity(event.target.value === "" ? 0 : Number(event.target.value))} /></Field> : null}
         {isBoost ? (
           <div className="grid gap-3 rounded-2xl border border-blue-100 bg-blue-50/80 p-4 sm:grid-cols-3">
             <div><span className="text-xs font-black uppercase tracking-[0.14em] text-blue-500">Rate / 1k</span><strong className="mt-1 block text-sm font-black text-blue-950">{formatBoostRate(service.price, displayExchangeRate(service))}</strong></div>
-            <div><span className="text-xs font-black uppercase tracking-[0.14em] text-blue-500">Quantity</span><strong className="mt-1 block text-sm font-black text-blue-950">{quantity || service.minOrder}</strong></div>
-            <div><span className="text-xs font-black uppercase tracking-[0.14em] text-blue-500">Estimated total</span><strong className="mt-1 block text-lg font-black text-blue-700">{orderEstimate(service, quantity || service.minOrder)}</strong></div>
+            <div><span className="text-xs font-black uppercase tracking-[0.14em] text-blue-500">Quantity</span><strong className="mt-1 block text-sm font-black text-blue-950">{quantity}</strong></div>
+            <div><span className="text-xs font-black uppercase tracking-[0.14em] text-blue-500">Estimated total</span><strong className="mt-1 block text-lg font-black text-blue-700">{orderEstimate(service, quantity)}</strong></div>
           </div>
         ) : null}
         <button type="button" onClick={() => setNotice({ serviceId: service.externalId, message: userSafeError() })} className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-black text-blue-50 shadow-lg shadow-blue-600/20 transition hover:-translate-y-0.5 hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-100">
@@ -340,6 +341,9 @@ function CheckoutPanel({ service, variant }: { service: ServiceItem | null; vari
 
 const USA_COUNTRY: CountryItem = { id: "1", name: "United States", shortName: "US", dialCode: "1", region: "North America" };
 
+function countryLabel(country: CountryItem) {
+  return country.name + (country.shortName ? " (" + country.shortName + ")" : "");
+}
 function ServiceDropdownOption({ service, onSelect }: { service: ServiceItem; onSelect: () => void }) {
   return (
     <button
@@ -369,6 +373,8 @@ function NumberServicePicker({ kind }: { kind: Extract<ServiceExplorerKind, "for
   const [countries, setCountries] = useState<CountryItem[]>(premium ? [USA_COUNTRY] : []);
   const [countryState, setCountryState] = useState<"idle" | "loading" | "ready" | "error">(premium ? "ready" : "loading");
   const [selectedCountryId, setSelectedCountryId] = useState(premium ? USA_COUNTRY.id : "");
+  const [countryQuery, setCountryQuery] = useState(premium ? countryLabel(USA_COUNTRY) : "");
+  const [countryOpen, setCountryOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [services, setServices] = useState<ServiceItem[]>([]);
@@ -376,6 +382,17 @@ function NumberServicePicker({ kind }: { kind: Extract<ServiceExplorerKind, "for
   const [selectedService, setSelectedService] = useState<ServiceItem | null>(null);
 
   const selectedCountry = useMemo(() => countries.find((country) => country.id === selectedCountryId) || (premium ? USA_COUNTRY : null), [countries, premium, selectedCountryId]);
+
+  const filteredCountries = useMemo(() => {
+    const search = countryQuery.trim().toLowerCase();
+    if (!search || (selectedCountry && countryQuery === countryLabel(selectedCountry))) return countries;
+
+    return countries.filter((country) => {
+      const haystack = [country.name, country.shortName || "", country.dialCode || "", country.region || ""].join(" ").toLowerCase();
+      return haystack.includes(search);
+    });
+  }, [countries, countryQuery, selectedCountry]);
+
 
   useEffect(() => {
     if (premium) return;
@@ -440,6 +457,21 @@ function NumberServicePicker({ kind }: { kind: Extract<ServiceExplorerKind, "for
     setSearchOpen(false);
   }
 
+  function resetServiceSelection() {
+    setServices([]);
+    setSelectedService(null);
+    setQuery("");
+    setSearchOpen(false);
+    setServiceState("idle");
+  }
+
+  function selectCountry(country: CountryItem) {
+    setSelectedCountryId(country.id);
+    setCountryQuery(countryLabel(country));
+    setCountryOpen(false);
+    resetServiceSelection();
+  }
+
   const countryDisabled = countryState === "loading" || countryState === "error";
   const inputDisabled = !selectedCountry || countryDisabled;
 
@@ -458,13 +490,31 @@ function NumberServicePicker({ kind }: { kind: Extract<ServiceExplorerKind, "for
         <div className="mt-5 grid gap-4">
           {!premium ? (
             <Field label="Select Country">
-              <span className="relative">
-                <select value={selectedCountryId} disabled={countryDisabled} onChange={(event) => { setSelectedCountryId(event.target.value); setServices([]); setSelectedService(null); setQuery(""); setSearchOpen(false); setServiceState("idle"); }} className="h-12 w-full appearance-none rounded-lg border border-slate-200 bg-slate-50 px-3 pr-10 text-sm font-semibold text-slate-800 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:text-slate-400">
-                  <option value="">{countryState === "loading" ? "Loading countries..." : "Select a country..."}</option>
-                  {countries.map((country) => <option key={country.id} value={country.id}>{country.name}{country.shortName ? ` (${country.shortName})` : ""}</option>)}
-                </select>
-                <Globe2 className="pointer-events-none absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-              </span>
+              <div className="relative">
+                <Globe2 className="pointer-events-none absolute left-3 top-1/2 z-10 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                <input
+                  value={countryQuery}
+                  disabled={countryDisabled}
+                  onFocus={() => { if (!countryDisabled) setCountryOpen(true); }}
+                  onBlur={() => window.setTimeout(() => setCountryOpen(false), 120)}
+                  onChange={(event) => { setCountryQuery(event.target.value); setCountryOpen(true); setSelectedCountryId(""); resetServiceSelection(); }}
+                  className="h-12 w-full rounded-lg border border-slate-200 bg-slate-50 pl-11 pr-10 text-sm font-semibold text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:text-slate-400"
+                  placeholder={countryState === "loading" ? "Loading countries..." : "Search country..."}
+                />
+                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                {countryOpen ? (
+                  <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-40 max-h-72 overflow-y-auto rounded-lg border border-slate-200 bg-white p-2 shadow-xl shadow-slate-900/10">
+                    {countryState === "ready" && filteredCountries.length ? <div className="grid gap-1">{filteredCountries.map((country) => (
+                      <button key={country.id} type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => selectCountry(country)} className={`flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-bold transition hover:bg-blue-50 hover:text-blue-700 ${selectedCountryId === country.id ? "bg-blue-50 text-blue-700" : "text-slate-700"}`}>
+                        <span>{countryLabel(country)}</span>
+                        {country.dialCode ? <span className="text-xs font-semibold text-slate-400">+{country.dialCode}</span> : null}
+                      </button>
+                    ))}</div> : null}
+                    {countryState === "ready" && !filteredCountries.length ? <div className="p-3 text-sm font-semibold text-slate-500">No countries match that search.</div> : null}
+                    {countryState === "error" ? <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm font-semibold leading-6 text-amber-900">Countries are unavailable right now.</div> : null}
+                  </div>
+                ) : null}
+              </div>
             </Field>
           ) : (
             <div className="rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm font-semibold text-blue-950">
@@ -869,13 +919,6 @@ function BoostAccountBrowser() {
             <CheckoutPanel key={activeSelectedService.externalId} service={activeSelectedService} variant="boosting" />
           </div>
         ) : null}
-
-        <div className="mx-auto mt-6 flex max-w-xl flex-wrap items-center justify-between gap-3 rounded-full border border-slate-200 bg-slate-50 px-4 py-3 text-xs font-bold text-slate-600">
-          <span>Acctrise service color categorization</span>
-          <span className="inline-flex items-center gap-2"><i className="h-2.5 w-2.5 rounded-full bg-amber-400" /> Basic</span>
-          <span className="inline-flex items-center gap-2"><i className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> Medium</span>
-          <span className="inline-flex items-center gap-2"><i className="h-2.5 w-2.5 rounded-full bg-blue-600" /> Elite</span>
-        </div>
       </div>
 
       <div className="grid gap-5">

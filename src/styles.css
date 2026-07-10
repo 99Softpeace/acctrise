@@ -6368,10 +6368,12 @@ details,
 
 .auth-clean-page {
   min-height: 100vh;
-  display: grid;
-  place-items: center;
-  gap: 24px;
-  padding: 34px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 36px;
+  padding: 22px 16px 44px;
   color: #151a23;
   background:
     radial-gradient(circle at 50% 0%, rgba(205, 235, 255, 0.72), transparent 34%),
@@ -6379,11 +6381,48 @@ details,
   font-family: "Plus Jakarta Sans", Inter, ui-sans-serif, system-ui, sans-serif;
 }
 
+.auth-clean-header {
+  width: min(980px, 100%);
+  min-height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border: 1px solid rgba(21, 33, 62, 0.08);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.88);
+  padding: 10px 12px 10px 18px;
+  box-shadow: 0 18px 52px rgba(21, 33, 62, 0.08);
+  backdrop-filter: blur(18px);
+}
+
+.auth-clean-logo {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+}
+
 .auth-clean-logo img {
-  width: 240px;
-  height: 82px;
+  width: 190px;
+  height: 58px;
   object-fit: contain;
+  object-position: left center;
   mix-blend-mode: multiply;
+}
+
+.auth-clean-header-link {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #121923;
+  color: #ffffff;
+  padding: 0 18px;
+  font-size: 13px;
+  font-weight: 900;
+  white-space: nowrap;
+  box-shadow: 0 14px 30px rgba(18, 25, 35, 0.14);
 }
 
 .auth-clean-card {

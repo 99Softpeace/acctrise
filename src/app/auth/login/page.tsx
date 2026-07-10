@@ -38,9 +38,12 @@ export default function LoginPage() {
 
   return (
     <main className="auth-clean-page">
-      <Link className="auth-clean-logo" href="/" aria-label="Acctrise home">
-        <img src="/acctrise-wordmark.jpeg" alt="Acctrise" />
-      </Link>
+      <header className="auth-clean-header">
+        <Link className="auth-clean-logo" href="/" aria-label="Acctrise home">
+          <img src="/acctrise-logo.jpeg" alt="Acctrise" />
+        </Link>
+        <Link className="auth-clean-header-link" href="/auth/signup">Sign up</Link>
+      </header>
 
       <form className="auth-clean-card" onSubmit={handleSubmit}>
         <div className="auth-clean-head">

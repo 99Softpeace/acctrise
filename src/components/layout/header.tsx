@@ -17,20 +17,15 @@ export function Header({ variant = "landing", transparent = false }: HeaderProps
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 sm:h-20">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-primary-500 to-secondary-600 p-1 flex items-center justify-center overflow-hidden">
-              <Image
-                src="/acctrise-mark.svg"
-                alt="Acctrise"
-                width={48}
-                height={48}
-                className="w-full h-full object-contain rounded-md drop-shadow-lg"
-              />
-            </div>
-            <span className="text-base sm:text-lg font-800 font-display bg-gradient-to-r from-primary-400 via-secondary-400 to-accent-cyan bg-clip-text text-transparent">
-              acctrise
-            </span>
+          <Link href="/" className="flex items-center">
+            <Image
+              src="/acctrise-logo.jpeg"
+              alt="Acctrise"
+              width={190}
+              height={64}
+              className="h-12 w-36 object-contain object-left mix-blend-multiply sm:h-14 sm:w-44"
+              priority
+            />
           </Link>
 
           {/* Navigation Links - Hidden on mobile */}
