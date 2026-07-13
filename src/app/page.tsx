@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, BarChart3, Globe2, Mail, Menu, Phone, ShieldCheck, Sparkles, WalletCards, X } from "lucide-react";
+import { ArrowRight, BarChart3, ChevronDown, Globe2, Mail, Menu, Phone, ShieldCheck, Sparkles, WalletCards, X } from "lucide-react";
 import { FacebookIcon, InstagramIcon, LinkedInIcon } from "@/components/social-icons";
 import { useState } from "react";
 
@@ -29,6 +29,14 @@ const services = [
 ];
 
 const categories = ["Social growth", "Virtual numbers", "USA premium", "eSIM plans"];
+const faqs = [
+  { question: "What services can I buy on Acctrise?", answer: "You can buy social media growth services, rent virtual and USA premium numbers, purchase eSIM plans, and manage everything from one wallet." },
+  { question: "How do I fund my wallet?", answer: "Log in, open Fund Wallet in your dashboard, choose an available payment method, and follow the payment instructions. Your balance updates after confirmation." },
+  { question: "How quickly are orders delivered?", answer: "Delivery time depends on the service you choose. You can follow the live status of every purchase from My Orders in your dashboard." },
+  { question: "Where will I receive my verification code?", answer: "Keep the number order open after renting it. Your verification code will appear on that screen as soon as the provider delivers it." },
+  { question: "What should I do if an order is delayed?", answer: "Check My Orders for an updated status first. If it remains delayed beyond the expected delivery window, contact support with your order reference." },
+  { question: "How can I contact support?", answer: "Email support@acctrise.com with your account email and order reference. Never include your password or sensitive verification codes." }
+];
 
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -130,11 +138,26 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="faq" className="act-final">
-        <ShieldCheck size={28} />
-        <h2>Start with a secure wallet.</h2>
-        <p>Create your account, fund your wallet, and buy the digital services you need without confusion.</p>
-        <Link className="act-primary" href="/auth/signup">Sign up <ArrowRight size={16} /></Link>
+      <section id="faq" className="scroll-mt-24 bg-white px-5 py-20 sm:px-8">
+        <div className="mx-auto max-w-5xl">
+          <div className="mx-auto max-w-3xl text-center">
+            <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-700"><ShieldCheck size={25} /></span>
+            <p className="mt-5 text-xs font-extrabold uppercase tracking-[0.2em] text-blue-600">Frequently asked questions</p>
+            <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950 sm:text-5xl">We answered some of the most frequently asked questions about our panel.</h2>
+            <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">Everything you need to know about your wallet, orders, virtual numbers, delivery, and support.</p>
+          </div>
+          <div className="mx-auto mt-10 grid max-w-4xl gap-3">
+            {faqs.map((faq) => (
+              <details key={faq.question} className="group rounded-2xl border border-slate-200 bg-slate-50 p-5 transition open:border-blue-200 open:bg-white open:shadow-lg open:shadow-blue-950/5">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-left text-base font-extrabold text-slate-900 marker:hidden">
+                  {faq.question}
+                  <ChevronDown className="h-5 w-5 shrink-0 text-blue-600 transition-transform duration-200 group-open:rotate-180" />
+                </summary>
+                <p className="mt-4 border-t border-slate-200 pt-4 text-sm leading-7 text-slate-600">{faq.answer}</p>
+              </details>
+            ))}
+          </div>
+        </div>
       </section>
 
       <footer className="act-footer">
@@ -155,7 +178,9 @@ export default function Home() {
           <a href="#services">All Services</a>
           <Link href="/auth/signup">Create Account</Link>
           <Link href="/auth/login">Login</Link>
-          <a href="#faq">Terms of Service</a>
+          <a href="#faq">Frequently Asked Questions</a>
+          <Link href={"/privacy" as any}>Privacy Policy</Link>
+          <Link href={"/terms" as any}>Terms of Service</Link>
         </div>
 
         <div className="act-footer-column">

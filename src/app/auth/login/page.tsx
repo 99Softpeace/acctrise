@@ -86,7 +86,8 @@ export default function LoginPage() {
           <strong>Quick Links</strong>
           <Link href="/#services">All Services</Link>
           <Link href="/auth/signup">Create Account</Link>
-          <Link href="/#faq">Terms of Service</Link>
+          <Link href={"/terms" as any}>Terms of Service</Link>
+          <Link href={"/privacy" as any}>Privacy Policy</Link>
         </nav>
         <div className="auth-clean-contact">
           <strong>Contact Us</strong>
@@ -102,4 +103,3 @@ export default function LoginPage() {
     </main>
   );
 }
-

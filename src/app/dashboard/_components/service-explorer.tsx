@@ -401,7 +401,7 @@ function NumberServicePicker({ kind }: { kind: Extract<ServiceExplorerKind, "for
     async function loadCountries() {
       setCountryState("loading");
       try {
-        const response = await fetch(`/api/providers/services?kind=${kind}&scope=countries`, { cache: "no-store" });
+        const response = await fetch(`/api/providers/services?kind=${kind}&scope=countries`);
         const body = await response.json();
         if (cancelled) return;
         if (!response.ok) throw new Error("Countries unavailable");
@@ -432,7 +432,7 @@ function NumberServicePicker({ kind }: { kind: Extract<ServiceExplorerKind, "for
           limit: "24"
         });
         if (query.trim()) params.set("q", query.trim());
-        const response = await fetch(`/api/providers/services?${params.toString()}`, { cache: "no-store" });
+        const response = await fetch(`/api/providers/services?${params.toString()}`);
         const body = await response.json();
         if (cancelled) return;
         if (!response.ok) throw new Error("Services unavailable");
@@ -443,7 +443,7 @@ function NumberServicePicker({ kind }: { kind: Extract<ServiceExplorerKind, "for
       } catch {
         if (!cancelled) setServiceState("error");
       }
-    }, 180);
+    }, 300);
 
     return () => {
       cancelled = true;
@@ -611,7 +611,7 @@ function LogsMarketplace() {
     async function load() {
       setState("loading");
       try {
-        const response = await fetch("/api/providers/services?kind=logs", { cache: "no-store" });
+        const response = await fetch("/api/providers/services?kind=logs");
         const body = await response.json();
         if (cancelled) return;
         if (!response.ok) throw new Error("Logs unavailable");
@@ -743,7 +743,7 @@ function EsimPlanBrowser() {
     async function load() {
       setState("loading");
       try {
-        const response = await fetch("/api/providers/services?kind=esim", { cache: "no-store" });
+        const response = await fetch("/api/providers/services?kind=esim");
         const body = await response.json();
         if (cancelled) return;
         if (!response.ok) throw new Error("eSIM unavailable");
@@ -817,7 +817,7 @@ function BoostAccountBrowser() {
     async function load() {
       setState("loading");
       try {
-        const response = await fetch("/api/providers/services?kind=boosting", { cache: "no-store" });
+        const response = await fetch("/api/providers/services?kind=boosting");
         const body = await response.json();
         if (cancelled) return;
         if (!response.ok) throw new Error("Boosting unavailable");
@@ -972,7 +972,7 @@ function ServiceCatalogExplorer({ kind, mode }: { kind: ServiceExplorerKind; mod
     async function load() {
       setState("loading");
       try {
-        const response = await fetch(`/api/providers/services?kind=${kind}`, { cache: "no-store" });
+        const response = await fetch(`/api/providers/services?kind=${kind}`);
         const body = await response.json();
         if (cancelled) return;
         if (!response.ok) throw new Error("Service unavailable");
@@ -1148,4 +1148,3 @@ export function ServiceExplorer({ kind, mode }: { kind: ServiceExplorerKind; mod
 
   return <ServiceCatalogExplorer kind={kind} mode={mode} />;
 }
-

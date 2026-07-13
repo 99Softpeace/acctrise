@@ -7,6 +7,7 @@ import { useState, type ComponentType } from "react";
 import { SessionProvider, signOut, useSession } from "next-auth/react";
 import {
   BadgeHelp,
+  BookOpen,
   Box,
   Gauge,
   LogOut,
@@ -33,6 +34,7 @@ const navItems: NavItem[] = [
   { icon: Wifi, label: "Buy eSIM", href: "/dashboard/esim" },
   { icon: Box, label: "My Orders", href: "/dashboard/orders" },
   { icon: Wallet, label: "Fund Wallet", href: "/dashboard/wallet" },
+  { icon: BookOpen, label: "Tutorials", href: "/dashboard/tutorials" },
   { icon: ShieldCheck, label: "Admin", href: "/dashboard/admin", adminOnly: true }
 ];
 
@@ -118,10 +120,10 @@ function DashboardChrome({ children }: { children: React.ReactNode }) {
             </div>
 
             <div className="hidden items-center gap-2 lg:flex">
-              <button className="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50" type="button">
+              <a href="mailto:support@acctrise.com" className="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50">
                 <BadgeHelp className="h-4 w-4" />
                 Support
-              </button>
+              </a>
               <Link href={"/dashboard/orders" as any} className="inline-flex h-10 items-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-bold text-blue-50 shadow-sm shadow-blue-600/20 transition hover:bg-blue-700">
                 <Package className="h-4 w-4" />
                 My Orders
@@ -160,9 +162,9 @@ function DashboardChrome({ children }: { children: React.ReactNode }) {
               })}
             </nav>
             <div className="grid grid-cols-2 gap-2 border-t border-slate-100 pt-2">
-              <button className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50" type="button" onClick={() => setMobileMenuOpen(false)}>
+              <a href="mailto:support@acctrise.com" className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50" onClick={() => setMobileMenuOpen(false)}>
                 <BadgeHelp className="h-4 w-4" /> Support
-              </button>
+              </a>
               <button className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-red-100 px-3 text-sm font-bold text-red-600 transition hover:bg-red-50" onClick={handleLogout} type="button">
                 <LogOut className="h-4 w-4" /> Logout
               </button>
@@ -183,10 +185,3 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     </SessionProvider>
   );
 }
-
-
-
-
-
-
-

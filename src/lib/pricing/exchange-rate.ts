@@ -57,7 +57,7 @@ export async function getUsdToNgnRate() {
   const source = sourceName(url);
 
   try {
-    const response = await fetch(url, { cache: "no-store" });
+    const response = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(5000) });
     if (!response.ok) throw new Error(`Exchange rate request failed with ${response.status}`);
 
     const payload = await response.json();
