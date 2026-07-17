@@ -14,8 +14,7 @@ const fundWalletSchema = z.object({
   paymentMethod: z.string().min(2),
   paymentGateway: z.literal("pocketfi"),
   email: z.string().email().optional(),
-  callbackUrl: z.string().url().optional(),
-  phone: z.string().min(7, "Enter a valid phone number.")
+  callbackUrl: z.string().url().optional()
 });
 
 export async function POST(request: NextRequest) {
@@ -38,7 +37,7 @@ export async function POST(request: NextRequest) {
       amount: validatedData.amount,
       currency: "NGN",
       email: validatedData.email || process.env.PAYMENT_FALLBACK_EMAIL,
-      phone: validatedData.phone,
+      phone: process.env.POCKETFI_FALLBACK_PHONE,
       firstName: "Acctrise",
       lastName: "Customer",
       callbackUrl: validatedData.callbackUrl || `${request.nextUrl.origin}/dashboard/wallet?payment=processing`,

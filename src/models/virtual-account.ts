@@ -7,7 +7,8 @@ const virtualAccountSchema = new Schema({
   accountNumber: { type: String, required: true },
   bankName: { type: String, required: true },
   bankCode: { type: String, default: null },
-  providerReference: { type: String, default: null }
+  providerReference: { type: String, default: null },
+  creditedCents: { type: Number, default: 0, min: 0 }
 }, { timestamps: true });
 
 export type VirtualAccountDocument = InferSchemaType<typeof virtualAccountSchema> & { _id: Types.ObjectId };
