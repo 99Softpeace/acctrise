@@ -30,7 +30,7 @@ export default function SignupPage() {
     const response = await fetch("/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, firstName: firstName || undefined, lastName: lastName || undefined })
+      body: JSON.stringify({ email, password, firstName, lastName })
     });
 
     const payload = await response.json();
@@ -71,13 +71,14 @@ export default function SignupPage() {
         <div className="auth-clean-two">
           <label className="auth-clean-field" htmlFor="firstName">
             <span>First name</span>
-            <input id="firstName" value={firstName} onChange={(event) => setFirstName(event.target.value)} placeholder="First name" />
+            <input id="firstName" value={firstName} onChange={(event) => setFirstName(event.target.value)} placeholder="First name" required />
           </label>
           <label className="auth-clean-field" htmlFor="lastName">
             <span>Last name</span>
-            <input id="lastName" value={lastName} onChange={(event) => setLastName(event.target.value)} placeholder="Last name" />
+            <input id="lastName" value={lastName} onChange={(event) => setLastName(event.target.value)} placeholder="Last name" required />
           </label>
         </div>
+
 
         <label className="auth-clean-field" htmlFor="email">
           <span>Email</span>

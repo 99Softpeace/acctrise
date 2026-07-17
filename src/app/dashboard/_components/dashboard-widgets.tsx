@@ -384,22 +384,36 @@ export function OrdersPage() {
 }
 
 type DedicatedAccount = { accountName: string; accountNumber: string; bankName: string; bankCode?: string | null };
+type MissingProfile = { firstName: boolean; lastName: boolean };
 function DedicatedAccountCard() {
   const [account, setAccount] = useState<DedicatedAccount | null>(null);
+  const [missing, setMissing] = useState<MissingProfile | null>(null);
+  const [profile, setProfile] = useState({ firstName: "", lastName: "" });
   const [loading, setLoading] = useState(true);
-  const [creating, setCreating] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState("");
-  const [details, setDetails] = useState({ firstName: "", lastName: "", phone: "", bank: "saveheaven" });
-  useEffect(() => { fetch("/api/wallet/virtual-account", { cache: "no-store" }).then((r) => r.json()).then((body) => { if (body?.account) setAccount(body.account); }).finally(() => setLoading(false)); }, []);
-  async function createAccount() {
-    setCreating(true); setNotice("");
-    try { const response = await fetch("/api/wallet/virtual-account", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(details) }); const body = await response.json(); if (!response.ok) throw new Error(body.error || "Unable to create account."); setAccount(body.account); }
-    catch (error) { setNotice(error instanceof Error ? error.message : "Unable to create account."); }
-    finally { setCreating(false); }
+  const [copied, setCopied] = useState(false);
+  async function provision(details: Record<string, string> = {}) {
+    const response = await fetch("/api/wallet/virtual-account", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(details) });
+    const body = await response.json();
+    if (response.status === 409) { setMissing(body.missingProfile || null); setNotice(body.error || "Complete your profile."); return; }
+    if (!response.ok) throw new Error(body.error || "Your dedicated account is still being prepared.");
+    setAccount(body.account); setMissing(null); setNotice("");
   }
-  return <Surface className="p-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-600">Dedicated funding account</p><h3 className="mt-2 text-xl font-bold text-slate-900">Transfer directly to your wallet</h3><p className="mt-1 text-sm leading-6 text-slate-500">This bank account is unique to you and remains available for future wallet deposits.</p></div><StatusPill status={account ? "Active" : "PocketFi"} /></div>{loading ? <div className="mt-5 text-sm font-semibold text-slate-500">Loading account...</div> : account ? <div className="mt-5 grid gap-3 rounded-xl border border-blue-200 bg-blue-50 p-5 sm:grid-cols-3"><div><span className="text-xs font-bold text-blue-600">Bank</span><strong className="mt-1 block text-slate-900">{account.bankName}</strong></div><div><span className="text-xs font-bold text-blue-600">Account number</span><strong className="mt-1 block text-xl tracking-wider text-slate-900">{account.accountNumber}</strong></div><div><span className="text-xs font-bold text-blue-600">Account name</span><strong className="mt-1 block text-slate-900">{account.accountName}</strong></div></div> : <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><input value={details.firstName} onChange={(e) => setDetails((v) => ({ ...v, firstName: e.target.value }))} className="h-11 rounded-lg border border-slate-200 px-3" placeholder="First name" /><input value={details.lastName} onChange={(e) => setDetails((v) => ({ ...v, lastName: e.target.value }))} className="h-11 rounded-lg border border-slate-200 px-3" placeholder="Last name" /><input value={details.phone} onChange={(e) => setDetails((v) => ({ ...v, phone: e.target.value }))} className="h-11 rounded-lg border border-slate-200 px-3" placeholder="Phone number" /><select value={details.bank} onChange={(e) => setDetails((v) => ({ ...v, bank: e.target.value }))} className="h-11 rounded-lg border border-slate-200 px-3"><option value="saveheaven">Safe Haven</option><option value="kuda">Kuda</option></select><button type="button" onClick={createAccount} disabled={creating} className="h-11 rounded-lg bg-blue-600 px-4 text-sm font-bold text-white disabled:bg-slate-300 sm:col-span-2 lg:col-span-4">{creating ? "Creating account..." : "Create dedicated account"}</button></div>}{notice ? <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-900">{notice}</div> : null}</Surface>;
+  useEffect(() => {
+    let active = true;
+    async function load() {
+      try { const response = await fetch("/api/wallet/virtual-account", { cache: "no-store" }); const body = await response.json(); if (!active) return; if (body?.account) setAccount(body.account); else { setMissing(body.missingProfile || null); if (!Object.values(body.missingProfile || {}).some(Boolean)) await provision(); } }
+      catch (error) { if (active) setNotice(error instanceof Error ? error.message : "Your dedicated account is still being prepared."); }
+      finally { if (active) setLoading(false); }
+    }
+    load(); return () => { active = false; };
+  }, []);
+  async function completeProfile() { setSaving(true); setNotice(""); try { await provision(profile); } catch (error) { setNotice(error instanceof Error ? error.message : "Unable to complete account setup."); } finally { setSaving(false); } }
+  async function copyNumber() { if (!account) return; await navigator.clipboard.writeText(account.accountNumber); setCopied(true); window.setTimeout(() => setCopied(false), 1600); }
+  const needsProfile = missing && Object.values(missing).some(Boolean);
+  return <Surface className="overflow-hidden"><div className="h-1 bg-gradient-to-r from-emerald-400 to-blue-600" /><div className="p-5 sm:p-6"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-600">Fund wallet with virtual account</p><h3 className="mt-2 text-xl font-bold text-slate-900">Your dedicated funding account</h3><p className="mt-2 text-sm leading-6 text-slate-500">Transfer funds to this account whenever you want to fund your Acctrise wallet.</p></div><StatusPill status={account ? "Active" : "PocketFi"} /></div>{loading ? <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-6 text-sm font-semibold text-slate-500">Preparing your dedicated account...</div> : account ? <div className="mt-5 grid gap-4"><div className="grid gap-3 sm:grid-cols-2"><div><span className="text-xs font-bold text-slate-400">Account name</span><strong className="mt-1 block text-slate-900">{account.accountName}</strong></div><div><span className="text-xs font-bold text-slate-400">Bank name</span><strong className="mt-1 block text-slate-900">{account.bankName}</strong></div></div><div className="flex flex-wrap items-center justify-between gap-4 rounded-xl bg-slate-950 p-5 text-white"><div><span className="text-xs font-bold text-slate-400">Account number</span><strong className="mt-1 block text-2xl tracking-widest sm:text-3xl">{account.accountNumber}</strong></div><button type="button" onClick={copyNumber} className="rounded-lg bg-white px-4 py-2 text-sm font-bold text-slate-900">{copied ? "Copied" : "Copy"}</button></div><div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm font-semibold leading-6 text-blue-900">This live account was generated from your verified profile and is unique to your wallet.</div></div> : needsProfile ? <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4"><h4 className="font-bold text-amber-950">Complete your profile once</h4><p className="mt-1 text-sm text-amber-900">PocketFi requires your missing name details before it can issue a real bank account.</p><div className="mt-4 grid gap-3 sm:grid-cols-3">{missing.firstName ? <input value={profile.firstName} onChange={(e) => setProfile((v) => ({ ...v, firstName: e.target.value }))} className="h-11 rounded-lg border border-amber-200 bg-white px-3" placeholder="First name" /> : null}{missing.lastName ? <input value={profile.lastName} onChange={(e) => setProfile((v) => ({ ...v, lastName: e.target.value }))} className="h-11 rounded-lg border border-amber-200 bg-white px-3" placeholder="Last name" /> : null}<button type="button" onClick={completeProfile} disabled={saving} className="h-11 rounded-lg bg-blue-600 px-4 text-sm font-bold text-white disabled:bg-slate-300 sm:col-span-3">{saving ? "Generating account..." : "Save details"}</button></div>{notice ? <p className="mt-3 text-sm font-semibold text-amber-900">{notice}</p> : null}</div> : <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-900">{notice || "Your dedicated account is being prepared. Refresh shortly or contact support."}</div>}</div></Surface>;
 }
-
 export function WalletPage() {
   const balance = useWalletBalance();
   const session = useSession();

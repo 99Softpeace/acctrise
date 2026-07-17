@@ -3,6 +3,7 @@ import { z } from "zod";
 import { appUrl, sendAuthEmail } from "@/lib/auth/email";
 import { addMinutes, createSecureToken, hashPassword, normalizeEmail, usernameFromEmail } from "@/lib/auth/security";
 import { connectMongo } from "@/lib/mongodb";
+import { provisionVirtualAccount } from "@/lib/payments/virtual-account-service";
 import { EmailVerificationToken } from "@/models/auth-token";
 import { User } from "@/models/user";
 import { Wallet } from "@/models/wallet";
@@ -57,6 +58,9 @@ export async function POST(request: NextRequest) {
       })
     ]);
 
+    let virtualAccountReady = true;
+    try { await provisionVirtualAccount(user._id.toString()); } catch (error) { virtualAccountReady = false; console.error("[register/virtual-account]", error instanceof Error ? error.message : "Provisioning failed"); }
+
     const verifyUrl = appUrl(`/api/auth/verify-email?token=${token}`);
     await sendAuthEmail({
       to: email,
@@ -72,7 +76,8 @@ export async function POST(request: NextRequest) {
           email: user.email,
           username: user.username,
           role: user.role
-        }
+        },
+        virtualAccountReady
       },
       { status: 201 }
     );
