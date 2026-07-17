@@ -1,4 +1,4 @@
-﻿/**
+/**
  * BulkAcc Logs Provider Adapter
  * Handles account logs and bulk account services
  */
@@ -17,6 +17,20 @@ interface BulkAccProductResponse {
   price: number;
 }
 
+function cleanProductDescription(value?: string) {
+  if (!value) return undefined;
+  return value
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>|<\/li>/gi, "\n")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/\s*\n\s*/g, "\n")
+    .replace(/[ \t]+/g, " ")
+    .trim();
+}
 export class BulkAccAdapter extends BaseProviderAdapter {
   private client: AxiosInstance;
   private baseUrl: string;
@@ -78,7 +92,10 @@ export class BulkAccAdapter extends BaseProviderAdapter {
         price: Number(product.price || 0),
         minOrder: product.min || 1,
         maxOrder: product.inStock,
-        description: `${product.groupName || "Bulkacc"} - ${product.categoryName || product.description || product.name}`
+        description: cleanProductDescription(product.description) || product.name,
+        categoryName: product.categoryName,
+        groupName: product.groupName,
+        stock: product.inStock
       }));
     } catch (error) {
       this.log("error", "Failed to fetch BulkAcc services", error);
@@ -97,10 +114,14 @@ export class BulkAccAdapter extends BaseProviderAdapter {
       });
 
       if (response.data?.statusCode === 200 && response.data.data) {
+        const externalOrderId = String(response.data.data);
+        const fulfillment = await this.client.get("/api/orders", { params: { apiKey: this.config.apiKey, orderCode: externalOrderId } });
+        const accounts = Array.isArray(fulfillment.data?.data) ? fulfillment.data.data.map((item: any) => item.accountInformation).filter(Boolean) : [];
         return {
-          externalOrderId: String(response.data.data),
-          status: "pending",
-          message: response.data.message || "Order placed successfully"
+          externalOrderId,
+          status: accounts.length ? "completed" : "pending",
+          message: accounts.length ? accounts.length + " account delivered" : response.data.message || "Order placed successfully",
+          data: { accounts }
         };
       }
 

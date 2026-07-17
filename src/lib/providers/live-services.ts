@@ -22,10 +22,10 @@ const USA_COUNTRY_NAME = "United States";
 const definitions: Record<LiveServiceKind, {
   id: string;
   name: string;
-  envKey: "BULKACC_API_KEY" | "SMSPOOL_API_KEY" | "RESELLER_SMM_API_KEY";
+  envKey: "BULKACC_API_KEY" | "SMSPOOL_API_KEY" | "JUSTANOTHERPANEL_API_KEY";
   adapter: AdapterClass;
 }> = {
-  boosting: { id: "reseller-smm", name: "Reseller SMM", envKey: "RESELLER_SMM_API_KEY", adapter: ResellingSMMAdapter },
+  boosting: { id: "justanotherpanel", name: "JustAnotherPanel", envKey: "JUSTANOTHERPANEL_API_KEY", adapter: ResellingSMMAdapter },
   logs: { id: "bulkacc", name: "Bulkacc", envKey: "BULKACC_API_KEY", adapter: BulkAccAdapter },
   "foreign-numbers": { id: "smspool", name: "SMSPool", envKey: "SMSPOOL_API_KEY", adapter: SMSPoolAdapter },
   "uk-premium": { id: "smspool", name: "SMSPool", envKey: "SMSPOOL_API_KEY", adapter: SMSPoolAdapter },
@@ -53,6 +53,9 @@ export interface LiveService {
   serviceId?: string;
   availability?: string;
   friendlyLabel?: string;
+  categoryName?: string;
+  groupName?: string;
+  stock?: number;
 }
 
 export interface LiveServicesResult {
@@ -146,7 +149,10 @@ export async function fetchLiveServices(kind: LiveServiceKind, options: FetchLiv
       countryName: service.countryName,
       serviceId: service.serviceId,
       availability: service.availability,
-      friendlyLabel: service.friendlyLabel
+      friendlyLabel: service.friendlyLabel,
+      categoryName: service.categoryName,
+      groupName: service.groupName,
+      stock: service.stock
     })),
     fetchedAt: new Date().toISOString(),
     profitMarginPercent: PROFIT_MARGIN_PERCENT

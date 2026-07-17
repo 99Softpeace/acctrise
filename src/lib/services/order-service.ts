@@ -14,6 +14,7 @@ import { Transaction } from "@/models/transaction";
 import { User } from "@/models/user";
 import { amountFromCents, deductForOrder, getWallet, mongoId, refundOrder } from "./mongo-wallet-service";
 import { ProviderManager } from "../providers/provider-manager";
+import { ProviderService } from "@/models/provider-service";
 
 export interface CreateOrderRequest {
   userId: string;
@@ -159,8 +160,10 @@ export class OrderService {
 
       for (const provider of providers) {
         try {
+          const mapping = await ProviderService.findOne({ providerId: mongoId(provider.getProviderId(), "provider id"), serviceId });
+          if (!mapping) throw new Error("Provider service mapping is missing");
           const response = await provider.placeOrder({
-            serviceId: request.serviceId,
+            serviceId: mapping.externalId,
             quantity: request.quantity,
             targetUrl: request.targetUrl,
             targetUsername: request.targetUsername,
@@ -173,12 +176,14 @@ export class OrderService {
             providerId: mongoId(provider.getProviderId(), "provider id"),
             externalOrderId: response.externalOrderId,
             status: response.status || "pending",
-            statusMessage: response.message || null
+            statusMessage: response.message || null,
+            logs: response.data || null
           });
 
-          order.status = "PROCESSING";
+          order.status = response.status === "completed" ? "COMPLETED" : "PROCESSING";
           order.startDate = new Date();
           order.statusMessage = response.message || "Order is being processed";
+          if (order.status === "COMPLETED") order.completedAt = new Date();
           await order.save();
 
           orderPlaced = true;
@@ -197,7 +202,16 @@ export class OrderService {
         throw lastError;
       }
     } catch (error) {
-      this.log("error", `Failed to place order with provider: ${order.orderNumber}`, error);
+      this.log("error", "Failed to place order with provider: " + order.orderNumber, error);
+      try {
+        await refundOrder(order._id.toString());
+        order.status = "REFUNDED";
+        order.statusMessage = "Provider purchase failed; wallet payment was returned.";
+        await order.save();
+      } catch (refundError) {
+        this.log("error", "Automatic wallet refund failed: " + order.orderNumber, refundError);
+      }
+      throw error;
     }
 
     return serializeOrder(order);
@@ -272,15 +286,18 @@ export class OrderService {
 
       for (const provider of providers) {
         try {
-          await provider.placeOrder({
-            serviceId: order.serviceId.toString(),
+          const mapping = await ProviderService.findOne({ providerId: mongoId(provider.getProviderId(), "provider id"), serviceId: order.serviceId });
+          if (!mapping) continue;
+          const response = await provider.placeOrder({
+            serviceId: mapping.externalId,
             quantity: order.quantity,
             targetUrl: order.targetUrl || undefined,
             targetUsername: order.targetUsername || undefined,
-            targetPhone: order.targetPhone || undefined
+            targetPhone: order.targetPhone || undefined,
+            additionalInfo: order.additionalInfo || {}
           });
 
-          order.status = "PROCESSING";
+          order.status = response.status === "completed" ? "COMPLETED" : "PROCESSING";
           order.statusMessage = "Retry successful";
           await order.save();
           return serializeOrder(order);

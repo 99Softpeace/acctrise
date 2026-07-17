@@ -6,15 +6,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getRequestUserId } from "@/lib/auth/request";
 import { getServices } from "@/lib/services";
+import { isLiveServiceKind } from "@/lib/providers/live-services";
+import { resolveLiveService } from "@/lib/providers/resolve-live-service";
+import { ProviderOrder } from "@/models/provider-order";
 import { z } from "zod";
 
 const FRIENDLY_PROVIDER_MESSAGE = "This service is available, but fulfillment is temporarily unavailable. Please contact support.";
 const USER_SAFE_ERRORS = [/insufficient wallet balance/i, /minimum order quantity/i, /maximum order quantity/i, /service is currently unavailable/i, /unauthorized/i];
 
 const createOrderSchema = z.object({
-  serviceId: z.string(),
-  quantity: z.number().int().positive(),
-  targetUrl: z.string().url().optional(),
+  serviceId: z.string().optional(),
+  kind: z.string().optional(),
+  externalServiceId: z.string().optional(),
+  countryId: z.string().optional(),
+  countryName: z.string().optional(),
+  serviceName: z.string().optional(),
+  quantity: z.number().int("Quantity must be a whole number.").positive("Quantity must be greater than zero."),
+  targetUrl: z.string().url("Enter a complete profile or post link.").optional(),
   targetUsername: z.string().optional(),
   targetPhone: z.string().optional(),
   additionalInfo: z.record(z.string(), z.unknown()).optional()
@@ -32,13 +40,30 @@ export async function POST(request: NextRequest) {
     // Validate request
     const validatedData = createOrderSchema.parse(body);
 
+    let serviceId = validatedData.serviceId;
+    let providerInfo: Record<string, unknown> = {};
+    const kind = validatedData.kind || null;
+    if (validatedData.externalServiceId && isLiveServiceKind(kind)) {
+      const resolved = await resolveLiveService(kind, validatedData.externalServiceId, validatedData.countryId, validatedData.countryName, validatedData.serviceName);
+      serviceId = resolved.serviceId;
+      providerInfo = resolved.additionalInfo;
+    }
+    if (!serviceId) return NextResponse.json({ error: "A valid service is required." }, { status: 400 });
+
     const { order: orderService } = getServices();
 
     // Create order
     const newOrder = await orderService.createOrder({
       userId,
-      ...validatedData
+      serviceId,
+      quantity: validatedData.quantity,
+      targetUrl: validatedData.targetUrl,
+      targetUsername: validatedData.targetUsername,
+      targetPhone: validatedData.targetPhone,
+      additionalInfo: { ...providerInfo, ...(validatedData.additionalInfo || {}) }
     });
+
+    const providerOrder = await ProviderOrder.findOne({ orderId: newOrder.id }).lean();
 
     return NextResponse.json(
       {
@@ -49,6 +74,8 @@ export async function POST(request: NextRequest) {
           status: newOrder.status,
           quantity: newOrder.quantity,
           totalPrice: newOrder.totalPrice.toString(),
+          statusMessage: newOrder.statusMessage,
+          fulfillment: providerOrder?.logs || null,
           createdAt: newOrder.createdAt
         }
       },
@@ -89,9 +116,34 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "50");
     const offset = parseInt(searchParams.get("offset") || "0");
 
-    const { order: orderService } = getServices();
-
-    const { orders, total } = await orderService.getUserOrders(userId, limit, offset);
+    const services = getServices();
+    const orderService = services.order;
+    let result = await orderService.getUserOrders(userId, limit, offset);
+    let orders = result.orders;
+    const total = result.total;
+    let providerOrders = await ProviderOrder.find({ orderId: { $in: orders.map((order) => order.id) } }).lean();
+    let refreshed = false;
+    for (const providerOrder of providerOrders) {
+      const order = orders.find((item) => item.id === providerOrder.orderId.toString());
+      if (!order || !["PENDING", "PROCESSING"].includes(order.status)) continue;
+      if (providerOrder.lastCheckedAt && Date.now() - new Date(providerOrder.lastCheckedAt).getTime() < 8000) continue;
+      try {
+        const adapter = await services.providers.getProvider(providerOrder.providerId.toString());
+        if (!adapter) continue;
+        const status = await adapter.checkOrderStatus(providerOrder.externalOrderId);
+        await orderService.updateOrderStatus({ orderId: order.id, externalOrderId: providerOrder.externalOrderId, status: status.status, progress: status.progress, message: status.message });
+        await ProviderOrder.updateOne({ _id: providerOrder._id }, { $set: { status: status.status, statusMessage: status.message || null, lastCheckedAt: new Date() } });
+        refreshed = true;
+      } catch (error) {
+        console.error("[orders/status]", { providerOrderId: providerOrder._id.toString(), error });
+      }
+    }
+    if (refreshed) {
+      result = await orderService.getUserOrders(userId, limit, offset);
+      orders = result.orders;
+      providerOrders = await ProviderOrder.find({ orderId: { $in: orders.map((order) => order.id) } }).lean();
+    }
+    const fulfillmentByOrder = new Map(providerOrders.map((item) => [item.orderId.toString(), item.logs]));
 
     return NextResponse.json({
       success: true,
@@ -99,6 +151,11 @@ export async function GET(request: NextRequest) {
         id: order.id,
         orderNumber: order.orderNumber,
         status: order.status,
+        serviceName: order.service?.name || "Service order",
+        kind: order.additionalInfo?.kind || null,
+        targetUrl: order.targetUrl || null,
+        statusMessage: order.statusMessage || null,
+        fulfillment: fulfillmentByOrder.get(order.id) || null,
         quantity: order.quantity,
         totalPrice: order.totalPrice.toString(),
         progress: order.delivered,

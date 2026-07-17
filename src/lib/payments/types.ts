@@ -7,6 +7,9 @@ export interface CreatePaymentIntentRequest {
   amount: number;
   currency: string;
   email?: string;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
   callbackUrl?: string;
   metadata?: Record<string, unknown>;
 }
@@ -27,6 +30,7 @@ export interface PaymentWebhookResult {
   providerReference?: string;
   transactionHash?: string;
   failureReason?: string;
+  amount?: number;
 }
 
 export interface PaymentGateway {

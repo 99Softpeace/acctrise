@@ -1,8 +1,8 @@
 import type { CreatePaymentIntentRequest, PaymentGateway, PaymentGatewayId, PaymentIntent, PaymentWebhookResult } from "./types";
-import { HeldGateway } from "./gateways/held-gateway";
+import { PocketFiGateway } from "./gateways/pocketfi-gateway";
 
 const gateways: Record<PaymentGatewayId, PaymentGateway> = {
-  pocketfi: new HeldGateway("pocketfi")
+  pocketfi: new PocketFiGateway()
 };
 
 export function getPaymentGateway(id: PaymentGatewayId): PaymentGateway {

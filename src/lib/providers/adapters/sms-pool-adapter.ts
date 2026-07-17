@@ -171,11 +171,23 @@ export class SMSPoolAdapter extends BaseProviderAdapter {
 
   async placeOrder(request: OrderRequest): Promise<OrderResponse> {
     try {
-      const country = request.serviceId;
       const additionalInfo = request.additionalInfo && typeof request.additionalInfo === "object" && !Array.isArray(request.additionalInfo)
         ? request.additionalInfo
         : {};
-      const serviceId = typeof additionalInfo.serviceId === "string" ? additionalInfo.serviceId : "telegram";
+      if (additionalInfo.kind === "esim") {
+        const response = await this.client.post("/esim/purchase", this.form({ key: this.config.apiKey, plan: request.serviceId }));
+        const id = response.data?.transactionId || response.data?.transaction_id || response.data?.order_id || response.data?.id;
+        if (response.data?.success && id) {
+          const profile = await this.client.post("/esim/profile", this.form({ key: this.config.apiKey, transactionId: String(id) }));
+          const fulfillment = profile.data?.success ? { ...response.data, ...profile.data } : response.data;
+          return { externalOrderId: String(id), status: "completed", message: response.data.message || "eSIM purchased successfully", data: fulfillment };
+        }
+        throw new Error(response.data?.message || response.data?.error || "Failed to purchase eSIM");
+      }
+
+      const [mappedCountry, mappedService] = request.serviceId.includes(":") ? request.serviceId.split(":", 2) : [undefined, request.serviceId];
+      const country = String(additionalInfo.countryId || mappedCountry || "1");
+      const serviceId = String(additionalInfo.providerServiceId || mappedService);
 
       const response = await this.client.post("/purchase/sms", this.form({
         key: this.config.apiKey,
@@ -188,7 +200,8 @@ export class SMSPoolAdapter extends BaseProviderAdapter {
         return {
           externalOrderId: String(response.data.order_id || response.data.id),
           status: "pending",
-          message: `Numbers received: ${response.data.numbers?.length || 0}`
+          message: response.data.number || response.data.phonenumber ? `Number: ${response.data.number || response.data.phonenumber}` : response.data.message || `Numbers received: ${response.data.numbers?.length || 0}`,
+          data: response.data
         };
       }
 

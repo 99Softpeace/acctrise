@@ -9,12 +9,12 @@ type AdapterClass = new (id: string, config: ProviderConfig, logger?: any) => Ba
 const providerDefinitions: Array<{
   id: string;
   name: string;
-  envKey: "BULKACC_API_KEY" | "SMSPOOL_API_KEY" | "RESELLER_SMM_API_KEY";
+  envKey: "BULKACC_API_KEY" | "SMSPOOL_API_KEY" | "JUSTANOTHERPANEL_API_KEY";
   adapter: AdapterClass;
 }> = [
   { id: "bulkacc", name: "Bulkacc", envKey: "BULKACC_API_KEY", adapter: BulkAccAdapter },
   { id: "smspool", name: "SMSPool", envKey: "SMSPOOL_API_KEY", adapter: SMSPoolAdapter },
-  { id: "reseller-smm", name: "Reseller SMM", envKey: "RESELLER_SMM_API_KEY", adapter: ResellingSMMAdapter }
+  { id: "justanotherpanel", name: "JustAnotherPanel", envKey: "JUSTANOTHERPANEL_API_KEY", adapter: ResellingSMMAdapter }
 ];
 
 export interface ProviderEnvStatus {

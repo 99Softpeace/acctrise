@@ -22,7 +22,7 @@ const orderSchema = new Schema(
     statusMessage: { type: String, default: null },
     retryCount: { type: Number, default: 0 },
     lastRetryAt: { type: Date, default: null },
-    transactionId: { type: Schema.Types.ObjectId, ref: "Transaction", default: null, unique: true, sparse: true }
+    transactionId: { type: Schema.Types.ObjectId, ref: "Transaction", default: undefined }
   },
   { timestamps: true }
 );

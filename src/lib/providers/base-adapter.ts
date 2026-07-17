@@ -37,6 +37,7 @@ export interface OrderResponse {
   externalOrderId: string;
   status: string;
   message?: string;
+  data?: Record<string, unknown>;
   startDate?: Date;
   estimatedCompletionDate?: Date;
 }
@@ -61,6 +62,9 @@ export interface ServiceMapping {
   serviceId?: string;
   availability?: string;
   friendlyLabel?: string;
+  categoryName?: string;
+  groupName?: string;
+  stock?: number;
 }
 
 export interface ProviderHealth {

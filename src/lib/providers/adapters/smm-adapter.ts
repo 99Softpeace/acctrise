@@ -55,7 +55,7 @@ export class ResellingSMMAdapter extends BaseProviderAdapter {
       const response = await this.request({ action: "services" });
 
       if (!Array.isArray(response.data)) {
-        throw new Error(response.data?.error || "Reseller SMM services response was not an array.");
+        throw new Error(response.data?.error || "JustAnotherPanel services response was not an array.");
       }
 
       return response.data.map((service: SMMServiceResponse) => ({
@@ -78,7 +78,7 @@ export class ResellingSMMAdapter extends BaseProviderAdapter {
         ? request.additionalInfo
         : {};
       if (!request.targetUrl) {
-        throw new Error("A target link is required for Reseller SMM orders.");
+        throw new Error("A target link is required for JustAnotherPanel orders.");
       }
 
       const response = await this.request({
@@ -170,7 +170,7 @@ export class ResellingSMMAdapter extends BaseProviderAdapter {
   }
 
   private getDefaultBaseUrl() {
-    return "https://resellersmm.com";
+    return "https://justanotherpanel.com";
   }
 
   private mapStatus(providerStatus: string): string {

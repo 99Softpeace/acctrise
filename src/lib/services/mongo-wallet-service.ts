@@ -138,12 +138,14 @@ export async function completeTransactionByReference(input: {
   reference: string;
   transactionHash?: string;
   gatewayReference?: string;
+  paidAmount?: number;
 }): Promise<TransactionResponse> {
   await connectMongo();
   const transaction = await Transaction.findOne({ reference: input.reference });
   if (!transaction) throw new Error("Transaction not found");
 
   if (transaction.status === "COMPLETED") return serializeTransaction(transaction);
+  if (input.paidAmount !== undefined && centsFromAmount(input.paidAmount) !== transaction.amountCents) throw new Error("PocketFi payment amount does not match the funding transaction.");
   if (transaction.status !== "PENDING") throw new Error(`Cannot complete a ${transaction.status} transaction`);
 
   await Wallet.updateOne(

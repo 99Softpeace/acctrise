@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ComponentType } from "react";
+import Image from "next/image";
+import QRCode from "qrcode";
 import {
   AlertCircle,
   BriefcaseBusiness,
@@ -37,6 +39,9 @@ type ServiceItem = {
   serviceId?: string;
   availability?: string;
   friendlyLabel?: string;
+  categoryName?: string;
+  groupName?: string;
+  stock?: number;
   exchangeRate?: number;
   rateSource?: string;
   rateFetchedAt?: string;
@@ -118,7 +123,7 @@ function inferPlatform(service: ServiceItem) {
 
 function inferCountry(service: ServiceItem) {
   if (service.countryName) return service.countryName;
-  const text = `${service.name} ${service.description || ""}`.toLowerCase();
+  const text = `${service.groupName || ""} ${service.categoryName || ""} ${service.name} ${service.description || ""}`.toLowerCase();
   if (/united states|\busa\b|\bus\b/.test(text)) return "United States";
   if (/united kingdom|\buk\b|\bgb\b/.test(text)) return "United Kingdom";
   const found = countryOptions.find((country) => country !== "Any country" && text.includes(country.toLowerCase()));
@@ -126,7 +131,7 @@ function inferCountry(service: ServiceItem) {
 }
 
 function inferDelivery(service: ServiceItem) {
-  const text = `${service.name} ${service.description || ""}`.toLowerCase();
+  const text = `${service.groupName || ""} ${service.categoryName || ""} ${service.name} ${service.description || ""}`.toLowerCase();
   if (/instant|fast/.test(text)) return "Fast delivery when available";
   if (/aged|month|year/.test(text)) return "Aged inventory";
   if (/refill/.test(text)) return "Refill details included when available";
@@ -139,7 +144,7 @@ function dataSummary(service: ServiceItem) {
 }
 
 function boostCategoryFor(service: ServiceItem) {
-  const text = `${service.name} ${service.description || ""}`.toLowerCase();
+  const text = `${service.groupName || ""} ${service.categoryName || ""} ${service.name} ${service.description || ""}`.toLowerCase();
   if (/followers?|fans|subscribers?/.test(text)) return "Followers & subscribers";
   if (/likes?|reactions?|favorites?/.test(text)) return "Likes & reactions";
   if (/views?|watch time|impressions?/.test(text)) return "Views & watch time";
@@ -180,6 +185,50 @@ function linkPlaceholder(service: ServiceItem) {
 }
 function userSafeError() {
   return "Checkout is ready, but automatic fulfillment is not enabled yet. Please contact support to complete this purchase.";
+}
+
+type FulfillmentPayload = Record<string, unknown>;
+
+function EsimQrCode({ activationString }: { activationString: string }) {
+  const [dataUrl, setDataUrl] = useState("");
+  useEffect(() => {
+    let active = true;
+    QRCode.toDataURL(activationString, { width: 256, margin: 2, errorCorrectionLevel: "M" })
+      .then((url) => { if (active) setDataUrl(url); })
+      .catch(() => { if (active) setDataUrl(""); });
+    return () => { active = false; };
+  }, [activationString]);
+  if (!dataUrl) return <div className="grid h-28 w-28 sm:h-32 sm:w-32 place-items-center rounded-lg bg-white text-xs font-bold text-slate-400 ring-1 ring-emerald-200"><Loader2 className="h-5 w-5 animate-spin" /> Generating QR code...</div>;
+  return <div className="mt-3 grid justify-items-center rounded-lg bg-white p-3 ring-1 ring-emerald-200"><Image src={dataUrl} alt="Scannable eSIM activation QR code" width={256} height={256} unoptimized className="h-28 w-28 sm:h-32 sm:w-32" /><p className="mt-2 text-center text-xs font-semibold text-slate-500">Scan this QR code in your phone's eSIM settings.</p></div>;
+}
+
+function FulfillmentDetails({ fulfillment }: { fulfillment: FulfillmentPayload | null }) {
+  if (!fulfillment) return null;
+  const fields: Array<[string, unknown]> = [
+    ["Phone number", fulfillment.number || fulfillment.phonenumber],
+    ["Activation string", fulfillment.ac],
+    ["SM-DP+ address", fulfillment.smdp],
+    ["Activation code", fulfillment.activationCode],
+    ["APN", fulfillment.apn],
+    ["PIN", fulfillment.pin],
+    ["PUK", fulfillment.puk],
+    ["Remaining data", fulfillment.remainingData],
+    ["Total data", fulfillment.totalData],
+    ["Country", fulfillment.countryCode],
+    ["Transaction ID", fulfillment.transactionId]
+  ].filter((entry) => entry[1] !== undefined && entry[1] !== null && entry[1] !== "") as Array<[string, unknown]>;
+  const accounts = Array.isArray(fulfillment.accounts) ? fulfillment.accounts : [];
+  if (!fields.length && !accounts.length) return null;
+  return (
+    <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-950">
+      <h4 className="font-black">Purchase details</h4>
+      {typeof fulfillment.ac === "string" && fulfillment.ac ? <EsimQrCode activationString={fulfillment.ac} /> : null}
+      <dl className="mt-3 grid gap-3 sm:grid-cols-2">
+        {fields.map(([label, value]) => <div key={label} className="rounded-md bg-white p-3 ring-1 ring-emerald-100"><dt className="text-xs font-bold text-emerald-700">{label}</dt><dd className="mt-1 break-all font-semibold text-slate-900">{String(value)}</dd></div>)}
+      </dl>
+      {accounts.length ? <div className="mt-3 grid gap-2">{accounts.map((account, index) => <pre key={index} className="whitespace-pre-wrap break-all rounded-md bg-white p-3 text-xs text-slate-900">{String(account)}</pre>)}</div> : null}
+    </div>
+  );
 }
 
 function PriceSourceNote({ service, compact = false }: { service?: ServiceItem | null; compact?: boolean }) {
@@ -239,6 +288,9 @@ function ServiceCard({ service, selected, onSelect, variant }: { service: Servic
 function CheckoutPanel({ service, variant }: { service: ServiceItem | null; variant: ServiceExplorerKind }) {
   const [notice, setNotice] = useState<{ serviceId: string; message: string } | null>(null);
   const [quantity, setQuantity] = useState(() => service?.minOrder || 0);
+  const [targetUrl, setTargetUrl] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [fulfillment, setFulfillment] = useState<FulfillmentPayload | null>(null);
 
 
   if (!service) {
@@ -255,6 +307,36 @@ function CheckoutPanel({ service, variant }: { service: ServiceItem | null; vari
   const isNumber = variant === "foreign-numbers" || variant === "uk-premium";
   const isEsim = variant === "esim";
   const actionLabel = isBoost ? "Create boost order" : isEsim ? "Buy eSIM" : isNumber ? "Buy Number" : "Continue to purchase";
+  async function purchase() {
+    if (isBoost && !targetUrl.trim()) {
+      setNotice({ serviceId: service!.externalId, message: "Enter the profile or post link first." });
+      return;
+    }
+    if ((isBoost || variant === "logs") && (quantity < service!.minOrder || (service!.maxOrder && quantity > service!.maxOrder))) {
+      setNotice({ serviceId: service!.externalId, message: "Quantity must be between " + service!.minOrder + " and " + (service!.maxOrder || "the available maximum") + "." });
+      return;
+    }
+    const normalizedTargetUrl = isBoost && !/^https?:\/\//i.test(targetUrl.trim()) ? "https://" + targetUrl.trim() : targetUrl.trim();
+    setSubmitting(true);
+    setNotice(null);
+    setFulfillment(null);
+    try {
+      const response = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind: variant, externalServiceId: service!.externalId, serviceName: service!.name, countryId: service!.countryId, countryName: service!.countryName, quantity: isBoost || variant === "logs" ? quantity : 1, targetUrl: isBoost ? normalizedTargetUrl : undefined })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Purchase failed.");
+      setNotice({ serviceId: service!.externalId, message: "Order " + data.order.orderNumber + " created successfully." + (data.order.statusMessage ? " " + data.order.statusMessage : "") });
+      setFulfillment(data.order.fulfillment && typeof data.order.fulfillment === "object" ? data.order.fulfillment : null);
+      window.dispatchEvent(new Event("acctrise:order-created"));
+    } catch (error) {
+      setNotice({ serviceId: service!.externalId, message: error instanceof Error ? error.message : "Purchase failed." });
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   if (isNumber) {
     return (
@@ -269,10 +351,11 @@ function CheckoutPanel({ service, variant }: { service: ServiceItem | null; vari
           <div className="rounded-lg bg-slate-50 p-3 ring-1 ring-slate-200"><dt className="text-xs font-bold text-slate-400">Availability</dt><dd className="mt-1 font-bold text-slate-800">{service.availability || "Live stock"}</dd></div>
           <div className="rounded-lg bg-slate-50 p-3 ring-1 ring-slate-200"><dt className="text-xs font-bold text-slate-400">Window</dt><dd className="mt-1 font-bold text-slate-800">15 minutes</dd></div>
         </dl>
-        <button type="button" onClick={() => setNotice({ serviceId: service.externalId, message: userSafeError() })} className="mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-bold text-blue-50 shadow-sm shadow-blue-600/20 transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-100">
-          <Zap className="h-4 w-4" /> Buy Number
+        <button type="button" onClick={purchase} disabled={submitting} className="mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-bold text-blue-50 shadow-sm shadow-blue-600/20 transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-100">
+          {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />} Buy Number
         </button>
         {notice?.serviceId === service.externalId ? <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm font-semibold leading-6 text-amber-900">{notice.message}</div> : null}
+        <FulfillmentDetails fulfillment={fulfillment} />
       </aside>
     );
   }
@@ -300,10 +383,11 @@ function CheckoutPanel({ service, variant }: { service: ServiceItem | null; vari
             <p className="mt-2 text-sm leading-6 text-slate-600">After a successful purchase, the activation QR code or manual eSIM details will appear here for the customer to scan from their phone settings.</p>
           </div>
         </div>
-        <button type="button" onClick={() => setNotice({ serviceId: service.externalId, message: userSafeError() })} className="mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-bold text-blue-50 shadow-sm shadow-blue-600/20 transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-100">
-          <Zap className="h-4 w-4" /> Buy eSIM
+        <button type="button" onClick={purchase} disabled={submitting} className="mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-bold text-blue-50 shadow-sm shadow-blue-600/20 transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-100">
+          {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />} Buy eSIM
         </button>
         {notice?.serviceId === service.externalId ? <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm font-semibold leading-6 text-amber-900">{notice.message}</div> : null}
+        <FulfillmentDetails fulfillment={fulfillment} />
       </aside>
     );
   }
@@ -320,7 +404,7 @@ function CheckoutPanel({ service, variant }: { service: ServiceItem | null; vari
         <div className="rounded-lg bg-white p-3 ring-1 ring-slate-200"><dt className="text-xs font-bold text-slate-400">Region</dt><dd className="mt-1 font-bold text-slate-700">{inferCountry(service)}</dd></div>
       </dl>
       <div className="mt-5 grid gap-3">
-        {isBoost ? <Field label="Profile or post link"><input className="h-12 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100" placeholder={linkPlaceholder(service)} /></Field> : null}
+        {isBoost ? <Field label="Profile or post link"><input value={targetUrl} onChange={(event) => setTargetUrl(event.target.value)} className="h-12 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100" placeholder={linkPlaceholder(service)} /></Field> : null}
         {(variant === "logs" || isBoost) ? <Field label="Quantity"><input className="h-12 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100" type="number" min={isBoost ? 0 : service.minOrder} max={service.maxOrder} value={quantity} onChange={(event) => setQuantity(event.target.value === "" ? 0 : Number(event.target.value))} /></Field> : null}
         {isBoost ? (
           <div className="grid gap-3 rounded-2xl border border-blue-100 bg-blue-50/80 p-4 sm:grid-cols-3">
@@ -329,10 +413,11 @@ function CheckoutPanel({ service, variant }: { service: ServiceItem | null; vari
             <div><span className="text-xs font-black uppercase tracking-[0.14em] text-blue-500">Estimated total</span><strong className="mt-1 block text-lg font-black text-blue-700">{orderEstimate(service, quantity)}</strong></div>
           </div>
         ) : null}
-        <button type="button" onClick={() => setNotice({ serviceId: service.externalId, message: userSafeError() })} className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-black text-blue-50 shadow-lg shadow-blue-600/20 transition hover:-translate-y-0.5 hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-100">
-          <Zap className="h-4 w-4" /> {actionLabel}
+        <button type="button" onClick={purchase} disabled={submitting} className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-black text-blue-50 shadow-lg shadow-blue-600/20 transition hover:-translate-y-0.5 hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-100">
+          {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />} {actionLabel}
         </button>
         {notice?.serviceId === service.externalId ? <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-semibold leading-6 text-amber-900">{notice.message}</div> : null}
+        <FulfillmentDetails fulfillment={fulfillment} />
       </div>
     </aside>
   );
@@ -573,12 +658,13 @@ function NumberServicePicker({ kind }: { kind: Extract<ServiceExplorerKind, "for
 }
 
 function stockLabel(service: ServiceItem) {
+  if (service.stock !== undefined) return `${service.stock.toLocaleString()} in stock`;
   if (service.maxOrder && service.maxOrder > 1) return `${service.maxOrder} left`;
   return service.availability || "Live stock";
 }
 
 function logCategoryFor(service: ServiceItem) {
-  const text = `${service.name} ${service.description || ""}`.toLowerCase();
+  const text = `${service.groupName || ""} ${service.categoryName || ""} ${service.name} ${service.description || ""}`.toLowerCase();
   if (/instagram|tiktok|facebook|twitter|linkedin|youtube|telegram|social/.test(text)) return "Social Media";
   if (/whatsapp|telegram|snapchat|discord|message/.test(text)) return "Messaging";
   if (/gmail|email|outlook|yahoo|mail/.test(text)) return "Email Services";
@@ -602,9 +688,13 @@ function LogsMarketplace() {
   const [state, setState] = useState<"loading" | "ready" | "empty" | "error">("loading");
   const [activeCategory, setActiveCategory] = useState("Social Media");
   const [query, setQuery] = useState("");
-  const [showOos, setShowOos] = useState(true);
+  const [showOos, setShowOos] = useState(false);
   const [sortLowFirst, setSortLowFirst] = useState(true);
   const [selectedService, setSelectedService] = useState<ServiceItem | null>(null);
+  const [purchaseNotice, setPurchaseNotice] = useState("");
+  const [purchasing, setPurchasing] = useState(false);
+  const [selectedQuantity, setSelectedQuantity] = useState(1);
+  const [deliveredAccounts, setDeliveredAccounts] = useState<string[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -641,8 +731,60 @@ function LogsMarketplace() {
       .sort((a, b) => sortLowFirst ? a.price - b.price : b.price - a.price);
   }, [activeCategory, query, services, showOos, sortLowFirst]);
 
-  const selectedQuantity = selectedService?.minOrder || 1;
+  function selectLog(service: ServiceItem) {
+    setSelectedService(service);
+    setSelectedQuantity(service.minOrder || 1);
+    setPurchaseNotice("");
+  }
 
+  async function purchaseSelectedLog() {
+    if (!selectedService) return;
+    setPurchasing(true);
+    setPurchaseNotice("");
+    try {
+      const response = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind: "logs", externalServiceId: selectedService.externalId, quantity: selectedQuantity })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Purchase failed.");
+      setPurchaseNotice("Order " + data.order.orderNumber + " created successfully.");
+      setDeliveredAccounts(Array.isArray(data.order.fulfillment?.accounts) ? data.order.fulfillment.accounts : []);
+      window.dispatchEvent(new Event("acctrise:order-created"));
+    } catch (error) {
+      setPurchaseNotice(error instanceof Error ? error.message : "Purchase failed.");
+    } finally {
+      setPurchasing(false);
+    }
+  }
+
+  if (selectedService) {
+    const soldOut = selectedService.stock === 0;
+    const maxQuantity = selectedService.stock || selectedService.maxOrder;
+    const total = selectedService.price * selectedQuantity;
+    return (
+      <section className="grid gap-5">
+        <button type="button" onClick={() => setSelectedService(null)} className="inline-flex w-fit items-center gap-2 text-sm font-bold text-blue-700 hover:text-blue-800">← Back to Catalog</button>
+        <div className="grid overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm lg:grid-cols-[minmax(0,1.15fr)_minmax(340px,0.85fr)]">
+          <article className="p-5 sm:p-7 lg:border-r lg:border-slate-200">
+            <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-600">{selectedService.groupName || logCategoryFor(selectedService)}</span>
+            <h3 className="mt-5 text-2xl font-black leading-tight text-slate-900 sm:text-3xl">{selectedService.name}</h3>
+            <div className="mt-3 flex flex-wrap items-center gap-3 text-sm font-semibold"><span className={soldOut ? "rounded-md bg-rose-100 px-2.5 py-1 text-rose-700" : "rounded-md bg-emerald-100 px-2.5 py-1 text-emerald-700"}>{soldOut ? "OUT OF STOCK" : "IN STOCK"}</span><span className="text-slate-500">{selectedService.stock?.toLocaleString() || 0} units available</span><span className="text-slate-400">Code {selectedService.externalId}</span></div>
+            <div className="mt-6 border-t border-slate-200 pt-6"><h4 className="text-lg font-black text-slate-900">Product details</h4><p className="mt-3 whitespace-pre-wrap text-sm font-medium leading-7 text-slate-600">{selectedService.description || "No additional product description was supplied."}</p></div>
+          </article>
+          <aside className="bg-slate-50 p-5 sm:p-7">
+            <h3 className="text-xl font-black text-slate-900">Purchase Configuration</h3><p className="mt-5 text-sm font-bold text-slate-500">Select Quantity</p>
+            <div className="mt-3 grid grid-cols-[56px_1fr_56px] gap-3"><button type="button" onClick={() => setSelectedQuantity((value) => Math.max(selectedService.minOrder, value - 1))} className="h-14 rounded-xl border border-slate-200 bg-white text-xl font-black text-slate-700">−</button><input type="number" min={selectedService.minOrder} max={maxQuantity} value={selectedQuantity} onChange={(event) => setSelectedQuantity(Math.max(selectedService.minOrder, Number(event.target.value) || selectedService.minOrder))} className="h-14 rounded-xl border border-slate-200 bg-white text-center text-lg font-black text-slate-900 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100" /><button type="button" onClick={() => setSelectedQuantity((value) => maxQuantity ? Math.min(maxQuantity, value + 1) : value + 1)} className="h-14 rounded-xl border border-slate-200 bg-white text-xl font-black text-slate-700">+</button></div>
+            <div className="mt-6 rounded-xl border border-slate-200 bg-white p-5"><div className="flex items-center justify-between text-sm font-semibold text-slate-500"><span>Unit price</span><span>{formatPrice(selectedService.price, displayExchangeRate(selectedService))}</span></div><div className="mt-3 flex items-center justify-between text-sm font-semibold text-slate-500"><span>Quantity</span><span>{selectedQuantity}</span></div><div className="mt-4 flex items-center justify-between border-t border-slate-200 pt-4"><strong className="text-lg text-slate-900">Total</strong><strong className="text-2xl text-blue-700">{formatPrice(total, displayExchangeRate(selectedService))}</strong></div></div>
+            <button type="button" onClick={purchaseSelectedLog} disabled={purchasing || soldOut} className="mt-6 inline-flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-base font-black text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none">{purchasing ? <Loader2 className="h-5 w-5 animate-spin" /> : <ShoppingBag className="h-5 w-5" />} {soldOut ? "Out of stock" : "Confirm Purchase"}</button>
+            {purchaseNotice ? <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold leading-6 text-amber-900">{purchaseNotice}</div> : null}
+            {deliveredAccounts.length ? <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4"><h4 className="text-sm font-black text-emerald-900">Delivered account details</h4><div className="mt-3 grid gap-3">{deliveredAccounts.map((account, index) => <pre key={index} className="overflow-x-auto whitespace-pre-wrap break-all rounded-lg bg-white p-3 text-xs font-semibold leading-6 text-slate-800 ring-1 ring-emerald-100">{account}</pre>)}</div></div> : null}
+          </aside>
+        </div>
+      </section>
+    );
+  }
   return (
     <section className="overflow-hidden rounded-xl border border-slate-200 bg-white text-slate-800 shadow-sm shadow-slate-200/70">
       <div className="grid gap-4 border-b border-slate-200 p-4 lg:grid-cols-[1fr_400px] lg:items-center lg:p-6">
@@ -687,43 +829,19 @@ function LogsMarketplace() {
               </div>
             </div>
 
-            {selectedService ? (
-              <div className="m-4 rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-950 lg:m-6">
-                <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_280px] xl:items-start">
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-blue-600">Selected product</p>
-                    <h5 className="mt-1 text-lg font-black text-slate-900">{selectedService.name}</h5>
-                    <p className="mt-2 text-sm leading-6 text-slate-700">{selectedService.description || logCategoryFor(selectedService)}</p>
-                    <dl className="mt-4 grid gap-3 sm:grid-cols-3">
-                      <div className="rounded-lg bg-white p-3 ring-1 ring-blue-100"><dt className="text-xs font-bold text-slate-400">Category</dt><dd className="mt-1 font-black text-slate-900">{logCategoryFor(selectedService)}</dd></div>
-                      <div className="rounded-lg bg-white p-3 ring-1 ring-blue-100"><dt className="text-xs font-bold text-slate-400">Stock</dt><dd className="mt-1 font-black text-slate-900">{stockLabel(selectedService)}</dd></div>
-                      <div className="rounded-lg bg-white p-3 ring-1 ring-blue-100"><dt className="text-xs font-bold text-slate-400">Minimum</dt><dd className="mt-1 font-black text-slate-900">{selectedService.minOrder}</dd></div>
-                    </dl>
-                  </div>
-                  <div className="rounded-xl border border-blue-100 bg-white p-4 shadow-sm">
-                    <span className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">Checkout</span>
-                    <strong className="mt-2 block text-2xl text-blue-700">{formatPrice(selectedService.price, displayExchangeRate(selectedService))}</strong>
-                    <PriceSourceNote service={selectedService} compact />
-                    <div className="mt-4 rounded-lg bg-slate-50 p-3 text-xs font-semibold leading-5 text-slate-600">Quantity: {selectedQuantity}. Product details are delivered inside the order after payment is confirmed.</div>
-                    <button type="button" onClick={() => alert(userSafeError())} className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-black text-white shadow-sm shadow-blue-600/20 transition hover:bg-blue-700">
-                      <ShoppingBag className="h-4 w-4" /> Purchase product
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ) : null}
+
 
             <div className="hidden overflow-x-auto md:block">
               <table className="w-full min-w-[760px] border-collapse text-left">
                 <thead className="bg-slate-50 text-xs font-black uppercase tracking-[0.12em] text-slate-500"><tr><th className="px-6 py-4">Product Name</th><th className="px-6 py-4">Price</th><th className="px-6 py-4">Stock</th><th className="px-6 py-4 text-right">Action</th></tr></thead>
                 <tbody className="divide-y divide-slate-100 text-sm">
-                  {filtered.map((service) => <tr key={service.externalId} className="transition hover:bg-slate-50"><td className="px-6 py-5"><div className="font-bold text-slate-900">{service.name}</div><div className="mt-1 text-xs font-semibold text-slate-500">{logCategoryFor(service).toLowerCase()}</div></td><td className="px-6 py-5 text-base font-black text-blue-700">{formatPrice(service.price, displayExchangeRate(service))}</td><td className="px-6 py-5"><span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-100">{stockLabel(service)}</span></td><td className="px-6 py-5 text-right"><button type="button" onClick={() => setSelectedService(service)} className="font-bold text-blue-700 hover:text-blue-800">View Details</button></td></tr>)}
+                  {filtered.map((service) => <tr key={service.externalId} className="transition hover:bg-slate-50"><td className="px-6 py-5"><div className="font-bold text-slate-900">{service.name}</div><div className="mt-1 text-xs font-semibold text-slate-500">{logCategoryFor(service).toLowerCase()}</div></td><td className="px-6 py-5 text-base font-black text-blue-700">{formatPrice(service.price, displayExchangeRate(service))}</td><td className="px-6 py-5"><span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-100">{stockLabel(service)}</span></td><td className="px-6 py-5 text-right"><button type="button" onClick={() => selectLog(service)} className="font-bold text-blue-700 hover:text-blue-800">View Details</button></td></tr>)}
                 </tbody>
               </table>
             </div>
 
             <div className="grid gap-3 p-4 md:hidden">
-              {filtered.map((service) => <article key={service.externalId} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><h5 className="text-sm font-black text-slate-900">{service.name}</h5><p className="mt-1 text-xs font-semibold text-slate-500">{logCategoryFor(service)}</p></div><strong className="shrink-0 text-blue-700">{formatPrice(service.price, displayExchangeRate(service))}</strong></div><div className="mt-3 flex items-center justify-between gap-3"><span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-100">{stockLabel(service)}</span><button type="button" onClick={() => setSelectedService(service)} className="text-sm font-bold text-blue-700">View Details</button></div></article>)}
+              {filtered.map((service) => <article key={service.externalId} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><h5 className="text-sm font-black text-slate-900">{service.name}</h5><p className="mt-1 text-xs font-semibold text-slate-500">{logCategoryFor(service)}</p></div><strong className="shrink-0 text-blue-700">{formatPrice(service.price, displayExchangeRate(service))}</strong></div><div className="mt-3 flex items-center justify-between gap-3"><span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-100">{stockLabel(service)}</span><button type="button" onClick={() => selectLog(service)} className="text-sm font-bold text-blue-700">View Details</button></div></article>)}
             </div>
           </div>
         </div>
@@ -737,6 +855,7 @@ function EsimPlanBrowser() {
   const [state, setState] = useState<"loading" | "ready" | "empty" | "error">("loading");
   const [query, setQuery] = useState("");
   const [selectedService, setSelectedService] = useState<ServiceItem | null>(null);
+  const [visiblePlans, setVisiblePlans] = useState(6);
 
   useEffect(() => {
     let cancelled = false;
@@ -765,12 +884,14 @@ function EsimPlanBrowser() {
     return services.filter((service) => !search || `${service.name} ${service.description || ""}`.toLowerCase().includes(search));
   }, [query, services]);
 
+
+
   return (
     <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
       <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm shadow-slate-200/70 sm:p-5">
         <div className="grid gap-4 lg:grid-cols-[1fr_320px] lg:items-end">
           <div><p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-600">Travel data</p><h3 className="mt-2 text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">Available eSIM plans</h3><p className="mt-2 text-sm leading-6 text-slate-600">Browse live regional data plans and select one to view the final checkout details.</p></div>
-          <label className="relative block"><Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" /><input value={query} onChange={(event) => setQuery(event.target.value)} className="h-12 w-full rounded-lg border border-slate-200 bg-slate-50 pl-11 pr-3 text-sm font-semibold text-slate-800 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100" placeholder="Search country or data plan..." /></label>
+          <label className="relative block"><Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" /><input value={query} onChange={(event) => { setQuery(event.target.value); setVisiblePlans(6); }} className="h-12 w-full rounded-lg border border-slate-200 bg-slate-50 pl-11 pr-3 text-sm font-semibold text-slate-800 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100" placeholder="Search country or data plan..." /></label>
         </div>
 
         {state === "loading" ? <div className="mt-5 grid min-h-52 place-items-center rounded-lg border border-slate-200 bg-slate-50 p-8 text-sm font-semibold text-slate-600"><span className="inline-flex items-center gap-3"><Loader2 className="h-5 w-5 animate-spin text-blue-600" /> Loading eSIM plans...</span></div> : null}
@@ -779,7 +900,7 @@ function EsimPlanBrowser() {
 
         {state === "ready" ? (
           <div className="mt-5 grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">
-            {filtered.map((service) => {
+            {filtered.slice(0, visiblePlans).map((service) => {
               const selected = selectedService?.externalId === service.externalId;
               return (
                 <article key={service.externalId} className={`flex min-h-48 flex-col rounded-lg border bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md ${selected ? "border-blue-500 ring-4 ring-blue-100" : "border-slate-200"}`}>
@@ -797,7 +918,10 @@ function EsimPlanBrowser() {
             })}
           </div>
         ) : null}
+        {state === "ready" && filtered.length > visiblePlans ? <div className="mt-5 flex justify-center"><button type="button" onClick={() => setVisiblePlans((count) => count + 6)} className="h-11 rounded-lg border border-blue-200 bg-blue-50 px-5 text-sm font-bold text-blue-700 transition hover:bg-blue-100">See more plans ({filtered.length - visiblePlans} remaining)</button></div> : null}
       </div>
+
+
 
       <CheckoutPanel service={selectedService} variant="esim" />
     </section>
@@ -851,7 +975,7 @@ function BoostAccountBrowser() {
   const filtered = useMemo(() => {
     const search = query.trim().toLowerCase();
     return platformServices.filter((service) => {
-      const text = `${service.name} ${service.description || ""}`.toLowerCase();
+      const text = `${service.groupName || ""} ${service.categoryName || ""} ${service.name} ${service.description || ""}`.toLowerCase();
       if (category !== "All categories" && boostCategoryFor(service) !== category) return false;
       if (search && !text.includes(search)) return false;
       return true;
@@ -992,7 +1116,7 @@ function ServiceCatalogExplorer({ kind, mode }: { kind: ServiceExplorerKind; mod
   const filtered = useMemo(() => {
     const search = query.trim().toLowerCase();
     return services.filter((service) => {
-      const text = `${service.name} ${service.description || ""}`.toLowerCase();
+      const text = `${service.groupName || ""} ${service.categoryName || ""} ${service.name} ${service.description || ""}`.toLowerCase();
       if (mode === "boosting" && selectedPlatform && !matchesKeywords(service, selectedPlatform.keywords)) return false;
       if (search && !text.includes(search)) return false;
       if (mode === "logs") {
@@ -1129,22 +1253,53 @@ function ServiceCatalogExplorer({ kind, mode }: { kind: ServiceExplorerKind; mod
     </section>
   );
 }
+type InlineOrder = {
+  id: string;
+  orderNumber: string;
+  serviceName: string;
+  kind?: string | null;
+  status: string;
+  statusMessage?: string | null;
+  createdAt: string;
+  fulfillment?: FulfillmentPayload | null;
+};
+
+function InlinePurchases({ kind }: { kind: ServiceExplorerKind }) {
+  const [orders, setOrders] = useState<InlineOrder[]>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    let active = true;
+    const load = () => fetch("/api/orders?limit=50", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((body) => {
+        if (!active) return;
+        const rows = Array.isArray(body?.data) ? body.data : [];
+        setOrders(rows.filter((order: InlineOrder) => order.kind === kind).slice(0, 5));
+      })
+      .finally(() => { if (active) setLoading(false); });
+    load();
+    window.addEventListener("acctrise:order-created", load);
+    return () => { active = false; window.removeEventListener("acctrise:order-created", load); };
+  }, [kind]);
+  return (
+    <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div><p className="text-xs font-black uppercase tracking-[0.16em] text-blue-600">Your purchases</p><h3 className="mt-2 text-xl font-bold text-slate-900">Available immediately on this page</h3><p className="mt-1 text-sm text-slate-500">New purchase details appear here automatically. My Orders remains your full archive.</p></div>
+      {loading ? <div className="mt-4 flex items-center gap-2 text-sm font-semibold text-slate-500"><Loader2 className="h-4 w-4 animate-spin" /> Loading purchases...</div> : null}
+      {!loading && !orders.length ? <div className="mt-4 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-5 text-sm font-semibold text-slate-500">Your first purchase on this page will appear here.</div> : null}
+      <div className="mt-4 grid gap-4">
+        {orders.map((order) => <article key={order.id} className="rounded-lg border border-slate-200 bg-slate-50 p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-bold text-slate-400">{order.orderNumber}</p><h4 className="mt-1 font-bold text-slate-900">{order.serviceName}</h4><p className="mt-1 text-xs font-semibold text-slate-500">{new Date(order.createdAt).toLocaleString("en-NG")}</p></div><span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-800">{order.status}</span></div>{order.statusMessage ? <p className="mt-3 text-sm font-semibold text-slate-600">{order.statusMessage}</p> : null}<FulfillmentDetails fulfillment={order.fulfillment || null} /></article>)}
+      </div>
+    </section>
+  );
+}
+
 export function ServiceExplorer({ kind, mode }: { kind: ServiceExplorerKind; mode: "boosting" | "logs" | "numbers" | "esim" }) {
-  if (mode === "boosting" && kind === "boosting") {
-    return <BoostAccountBrowser />;
-  }
+  let marketplace: React.ReactNode;
+  if (mode === "boosting" && kind === "boosting") marketplace = <BoostAccountBrowser />;
+  else if (mode === "numbers" && (kind === "foreign-numbers" || kind === "uk-premium")) marketplace = <NumberServicePicker kind={kind} />;
+  else if (mode === "logs") marketplace = <LogsMarketplace />;
+  else if (mode === "esim") marketplace = <EsimPlanBrowser />;
+  else marketplace = <ServiceCatalogExplorer kind={kind} mode={mode} />;
 
-  if (mode === "numbers" && (kind === "foreign-numbers" || kind === "uk-premium")) {
-    return <NumberServicePicker kind={kind} />;
-  }
-
-  if (mode === "logs") {
-    return <LogsMarketplace />;
-  }
-
-  if (mode === "esim") {
-    return <EsimPlanBrowser />;
-  }
-
-  return <ServiceCatalogExplorer kind={kind} mode={mode} />;
+  return <div className="grid gap-6">{marketplace}<InlinePurchases kind={kind} /></div>;
 }

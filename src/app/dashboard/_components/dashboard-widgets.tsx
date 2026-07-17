@@ -21,7 +21,7 @@ import {
   Wifi,
   Zap
 } from "lucide-react";
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
 import { ServiceExplorer } from "./service-explorer";
 
 type StatusTone = "success" | "warning" | "neutral" | "danger" | "info";
@@ -58,14 +58,18 @@ function firstName(value: string) {
 function userInitial(value: string) {
   return (value.trim()[0] || "A").toUpperCase();
 }
-const recentOrders = [
-  { id: "#560431", service: "Rental: 2RedBeans", link: "-", quantity: "1", status: "Cancelled", date: "Jul 2, 2026", time: "10:24 AM" },
-  { id: "#546411", service: "Rental: Snapchat", link: "-", quantity: "1", status: "Cancelled", date: "Jul 2, 2026", time: "9:18 AM" },
-  { id: "#545167", service: "Instagram Likes", link: "instagram.com/post", quantity: "500", status: "Completed", date: "Jul 1, 2026", time: "8:42 PM" },
-  { id: "#544373", service: "Telegram Members", link: "t.me/channel", quantity: "250", status: "Processing", date: "Jun 30, 2026", time: "4:06 PM" }
-];
-
-
+function useWalletBalance() {
+  const [balance, setBalance] = useState("0.00");
+  useEffect(() => {
+    let active = true;
+    fetch("/api/wallet/balance", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((data) => { if (active && data?.wallet?.balance) setBalance(data.wallet.balance); })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, []);
+  return "NGN " + Number(balance).toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
 const mobileToneClasses: Record<string, string> = {
   blue: "bg-blue-50 text-blue-700 ring-blue-100",
   orange: "bg-orange-50 text-orange-700 ring-orange-100",
@@ -127,7 +131,7 @@ function Surface({ children, className = "" }: { children: React.ReactNode; clas
   return <article className={`rounded-lg border border-slate-200 bg-white shadow-sm shadow-slate-200/60 ${className}`}>{children}</article>;
 }
 
-function MobileOverviewHeader({ displayName }: { displayName: string }) {
+function MobileOverviewHeader({ displayName, balance }: { displayName: string; balance: string }) {
   return (
     <section className="mobile-overview md:hidden" aria-label="Mobile dashboard summary">
       <div className="mobile-overview-top">
@@ -142,7 +146,7 @@ function MobileOverviewHeader({ displayName }: { displayName: string }) {
       <div className="mobile-balance-card">
         <div>
           <span>Total Balance</span>
-          <strong>NGN 0.00</strong>
+          <strong>{balance}</strong>
         </div>
         <Wallet className="mobile-wallet-mark" aria-hidden="true" />
         <div className="mobile-balance-actions">
@@ -172,7 +176,7 @@ function MobileOverviewHeader({ displayName }: { displayName: string }) {
   );
 }
 
-function DesktopOverviewHero({ displayName }: { displayName: string }) {
+function DesktopOverviewHero({ displayName, balance }: { displayName: string; balance: string }) {
   return (
     <section className="hidden md:block">
       <Surface className="desktop-overview-hero overflow-hidden p-6">
@@ -184,7 +188,7 @@ function DesktopOverviewHero({ displayName }: { displayName: string }) {
           </div>
         </div>
         <div className="desktop-overview-metrics mt-6 grid gap-3 sm:grid-cols-3">
-          <Link href="/dashboard/wallet" className="desktop-balance-tile rounded-lg p-4"><span className="text-xs font-bold uppercase tracking-[0.12em]">Balance</span><strong className="mt-2 block text-2xl tracking-tight">NGN 0.00</strong></Link>
+          <Link href="/dashboard/wallet" className="desktop-balance-tile rounded-lg p-4"><span className="text-xs font-bold uppercase tracking-[0.12em]">Balance</span><strong className="mt-2 block text-2xl tracking-tight">{balance}</strong></Link>
           <Link href="/dashboard/orders" className="desktop-orders-tile rounded-lg p-4"><span className="text-xs font-bold uppercase tracking-[0.12em]">Orders</span><strong className="mt-2 block text-2xl tracking-tight">20</strong></Link>
           <Link href="#services" className="desktop-services-tile rounded-lg p-4"><span className="text-xs font-bold uppercase tracking-[0.12em]">Services</span><strong className="mt-2 block text-2xl tracking-tight">620+</strong><small className="mt-1 block text-xs font-bold">Available now</small></Link>
         </div>
@@ -219,8 +223,37 @@ function ServiceCards() {
   );
 }
 
+function EsimOrderDetails({ fulfillment }: { fulfillment?: Record<string, unknown> | null }) {
+  if (!fulfillment?.ac && !fulfillment?.activationCode) return null;
+  const fields = [
+    ["Activation string", fulfillment.ac],
+    ["SM-DP+ address", fulfillment.smdp],
+    ["Activation code", fulfillment.activationCode],
+    ["APN", fulfillment.apn],
+    ["PIN", fulfillment.pin],
+    ["PUK", fulfillment.puk],
+    ["Remaining data", fulfillment.remainingData],
+    ["Total data", fulfillment.totalData]
+  ].filter((entry) => entry[1] !== undefined && entry[1] !== null && entry[1] !== "");
+  return <details className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3"><summary className="cursor-pointer text-xs font-black text-emerald-800">View eSIM activation details</summary><dl className="mt-3 grid gap-2">{fields.map(([label, value]) => <div key={String(label)} className="rounded-md bg-white p-2"><dt className="text-xs font-bold text-emerald-700">{String(label)}</dt><dd className="mt-1 break-all text-xs font-semibold text-slate-900">{String(value)}</dd></div>)}</dl></details>;
+}
+
 function RecentOrdersTable({ compact = false }: { compact?: boolean }) {
-  const rows = compact ? recentOrders.slice(0, 3) : recentOrders;
+  const [orders, setOrders] = useState<Array<{ id: string; orderNumber: string; serviceName: string; targetUrl?: string | null; quantity: number; status: string; statusMessage?: string | null; createdAt: string; fulfillment?: ({ accounts?: string[]; number?: string | number; phonenumber?: string | number } & Record<string, unknown>) | null }>>([]);
+  useEffect(() => {
+    let active = true;
+    const load = () => fetch("/api/orders?limit=" + (compact ? "3" : "50"), { cache: "no-store" })
+      .then((response) => response.json())
+      .then((data) => { if (active && Array.isArray(data?.data)) setOrders(data.data); })
+      .catch(() => undefined);
+    load();
+    const timer = window.setInterval(load, 10000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [compact]);
+  const rows = orders.map((order) => {
+    const created = new Date(order.createdAt);
+    return { id: order.orderNumber, service: order.serviceName, link: order.targetUrl || "-", quantity: String(order.quantity), status: order.status, statusMessage: order.statusMessage || (order.status === "PROCESSING" ? "Waiting for SMS..." : ""), number: order.fulfillment?.number || order.fulfillment?.phonenumber || null, date: created.toLocaleDateString("en-NG", { month: "short", day: "numeric", year: "numeric" }), time: created.toLocaleTimeString("en-NG", { hour: "numeric", minute: "2-digit" }), accounts: order.fulfillment?.accounts || [], fulfillment: order.fulfillment || null };
+  });
   return (
     <Surface className="overflow-hidden recent-orders-surface">
       <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-4 sm:px-5">
@@ -247,6 +280,9 @@ function RecentOrdersTable({ compact = false }: { compact?: boolean }) {
                 <span>Qty {order.quantity}</span>
                 <span>{order.date} - {order.time}</span>
               </div>
+              {order.number ? <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 p-3"><span className="text-xs font-bold text-blue-600">Phone number</span><strong className="mt-1 block text-base text-blue-950">{order.number}</strong><p className="mt-1 text-xs font-semibold text-blue-700">{order.statusMessage || "Waiting for SMS..."}</p></div> : null}
+              {order.accounts.length ? <details className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3"><summary className="cursor-pointer text-xs font-black text-emerald-800">View delivered account</summary><div className="mt-2 grid gap-2">{order.accounts.map((account, index) => <pre key={index} className="whitespace-pre-wrap break-all rounded-md bg-white p-2 text-xs text-slate-800">{account}</pre>)}</div></details> : null}
+              <EsimOrderDetails fulfillment={order.fulfillment} />
             </article>
           );
         })}
@@ -264,7 +300,7 @@ function RecentOrdersTable({ compact = false }: { compact?: boolean }) {
               return (
                 <tr key={order.id} className="transition hover:bg-slate-50">
                   <td className="px-5 py-4 font-bold text-slate-800">{order.id}</td>
-                  <td className="px-5 py-4 font-semibold text-slate-700"><span className="inline-flex items-center gap-3"><span className="order-service-icon"><OrderIcon className="h-4 w-4" /></span>{order.service}</span></td>
+                  <td className="px-5 py-4 font-semibold text-slate-700"><span className="inline-flex items-center gap-3"><span className="order-service-icon"><OrderIcon className="h-4 w-4" /></span>{order.service}</span>{order.number ? <div className="mt-2 rounded-md bg-blue-50 p-2 text-xs"><span className="font-bold text-blue-600">Number</span><strong className="ml-2 text-blue-950">{order.number}</strong><p className="mt-1 font-semibold text-blue-700">{order.statusMessage || "Waiting for SMS..."}</p></div> : null}{order.accounts.length ? <details className="mt-2"><summary className="cursor-pointer text-xs font-black text-emerald-700">View delivered account</summary><div className="mt-2 grid gap-2">{order.accounts.map((account, index) => <pre key={index} className="max-w-md whitespace-pre-wrap break-all rounded-md bg-emerald-50 p-2 text-xs text-slate-800">{account}</pre>)}</div></details> : null}<EsimOrderDetails fulfillment={order.fulfillment} /></td>
                   <td className="px-5 py-4 text-slate-500">{order.link}</td>
                   <td className="px-5 py-4 text-slate-500">{order.quantity}</td>
                   <td className="px-5 py-4"><StatusPill status={order.status} /></td>
@@ -281,11 +317,12 @@ function RecentOrdersTable({ compact = false }: { compact?: boolean }) {
 export function OverviewPage() {
   const sessionResult = useSession();
   const displayName = userDisplayName(sessionResult?.data?.user);
+  const balance = useWalletBalance();
 
   return (
     <div className="dashboard-overview mx-auto grid max-w-7xl gap-5 sm:gap-6">
-      <MobileOverviewHeader displayName={displayName} />
-      <DesktopOverviewHero displayName={displayName} />
+      <MobileOverviewHeader displayName={displayName} balance={balance} />
+      <DesktopOverviewHero displayName={displayName} balance={balance} />
       <section className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr] xl:gap-6">
         <RecentOrdersTable compact />
         <Surface className="hidden p-5 md:block">
@@ -346,23 +383,58 @@ export function OrdersPage() {
   return <div className="mx-auto grid max-w-7xl gap-6"><PageHeader eyebrow="Orders" title="My orders" description="Track all boosting, number, log, and wallet activity from one table." action={<PrimaryButton href="/dashboard/boosting"><Package className="h-4 w-4" /> New order</PrimaryButton>} /><RecentOrdersTable /></div>;
 }
 
+type DedicatedAccount = { accountName: string; accountNumber: string; bankName: string; bankCode?: string | null };
+function DedicatedAccountCard() {
+  const [account, setAccount] = useState<DedicatedAccount | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [notice, setNotice] = useState("");
+  const [details, setDetails] = useState({ firstName: "", lastName: "", phone: "", bank: "saveheaven" });
+  useEffect(() => { fetch("/api/wallet/virtual-account", { cache: "no-store" }).then((r) => r.json()).then((body) => { if (body?.account) setAccount(body.account); }).finally(() => setLoading(false)); }, []);
+  async function createAccount() {
+    setCreating(true); setNotice("");
+    try { const response = await fetch("/api/wallet/virtual-account", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(details) }); const body = await response.json(); if (!response.ok) throw new Error(body.error || "Unable to create account."); setAccount(body.account); }
+    catch (error) { setNotice(error instanceof Error ? error.message : "Unable to create account."); }
+    finally { setCreating(false); }
+  }
+  return <Surface className="p-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-600">Dedicated funding account</p><h3 className="mt-2 text-xl font-bold text-slate-900">Transfer directly to your wallet</h3><p className="mt-1 text-sm leading-6 text-slate-500">This bank account is unique to you and remains available for future wallet deposits.</p></div><StatusPill status={account ? "Active" : "PocketFi"} /></div>{loading ? <div className="mt-5 text-sm font-semibold text-slate-500">Loading account...</div> : account ? <div className="mt-5 grid gap-3 rounded-xl border border-blue-200 bg-blue-50 p-5 sm:grid-cols-3"><div><span className="text-xs font-bold text-blue-600">Bank</span><strong className="mt-1 block text-slate-900">{account.bankName}</strong></div><div><span className="text-xs font-bold text-blue-600">Account number</span><strong className="mt-1 block text-xl tracking-wider text-slate-900">{account.accountNumber}</strong></div><div><span className="text-xs font-bold text-blue-600">Account name</span><strong className="mt-1 block text-slate-900">{account.accountName}</strong></div></div> : <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><input value={details.firstName} onChange={(e) => setDetails((v) => ({ ...v, firstName: e.target.value }))} className="h-11 rounded-lg border border-slate-200 px-3" placeholder="First name" /><input value={details.lastName} onChange={(e) => setDetails((v) => ({ ...v, lastName: e.target.value }))} className="h-11 rounded-lg border border-slate-200 px-3" placeholder="Last name" /><input value={details.phone} onChange={(e) => setDetails((v) => ({ ...v, phone: e.target.value }))} className="h-11 rounded-lg border border-slate-200 px-3" placeholder="Phone number" /><select value={details.bank} onChange={(e) => setDetails((v) => ({ ...v, bank: e.target.value }))} className="h-11 rounded-lg border border-slate-200 px-3"><option value="saveheaven">Safe Haven</option><option value="kuda">Kuda</option></select><button type="button" onClick={createAccount} disabled={creating} className="h-11 rounded-lg bg-blue-600 px-4 text-sm font-bold text-white disabled:bg-slate-300 sm:col-span-2 lg:col-span-4">{creating ? "Creating account..." : "Create dedicated account"}</button></div>}{notice ? <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-900">{notice}</div> : null}</Surface>;
+}
+
 export function WalletPage() {
-  const walletRows = useMemo(() => [
-    { item: "Wallet top-up", method: "PocketFi", amount: "+NGN 3,000", status: "Pending" },
-    { item: "Instagram order", method: "Wallet", amount: "-NGN 900", status: "Paid" },
-    { item: "OTP rental", method: "Wallet", amount: "-NGN 350", status: "Paid" }
-  ], []);
+  const balance = useWalletBalance();
+  const session = useSession();
+  const [amount, setAmount] = useState("");
+  const [phone, setPhone] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [notice, setNotice] = useState("");
+  const [walletRows, setWalletRows] = useState<Array<{ id: string; description?: string | null; paymentMethod?: string | null; amount: string; status: string; type: string; createdAt: string }>>([]);
+  useEffect(() => {
+    fetch("/api/wallet/transactions?limit=20", { cache: "no-store" }).then((response) => response.json()).then((body) => { if (Array.isArray(body?.transactions)) setWalletRows(body.transactions); }).catch(() => undefined);
+  }, []);
+  async function fundWallet() {
+    const value = Number(amount);
+    if (!Number.isFinite(value) || value < 100) { setNotice("Enter an amount of at least NGN 100."); return; }
+    if (phone.trim().length < 7) { setNotice("Enter a valid phone number."); return; }
+    setSubmitting(true); setNotice("");
+    try {
+      const response = await fetch("/api/wallet/fund", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ amount: value, phone: phone.trim(), email: session.data?.user?.email, paymentMethod: "checkout", paymentGateway: "pocketfi", callbackUrl: `${window.location.origin}/dashboard/wallet?payment=processing` }) });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error || "Unable to initialize payment.");
+      if (!body.payment?.authorizationUrl) throw new Error(body.payment?.message || "PocketFi checkout URL was not returned.");
+      window.location.assign(body.payment.authorizationUrl);
+    } catch (error) { setNotice(error instanceof Error ? error.message : "Unable to initialize payment."); setSubmitting(false); }
+  }
   return (
     <div className="mx-auto grid max-w-7xl gap-6">
-      <PageHeader eyebrow="Wallet" title="Wallet funding" description="Funding remains on hold while PocketFi activation is pending. The interface is ready, but payment capture is intentionally paused." action={<StatusPill status="PocketFi on hold" />} />
+      <PageHeader eyebrow="Wallet" title="Wallet funding" description="Fund your wallet securely through PocketFi. Your balance updates automatically after a verified payment webhook." action={<StatusPill status="PocketFi secure checkout" />} />
+      <DedicatedAccountCard />
       <section className="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
-        <Surface className="p-5"><div className="rounded-lg bg-blue-700 p-5 text-blue-50"><p className="text-sm font-semibold text-slate-300">Available balance</p><strong className="mt-2 block text-3xl font-bold tracking-tight">NGN 0.00</strong><p className="mt-3 text-sm leading-6 text-slate-300">Payment collection is paused. PocketFi is the planned funding gateway.</p></div><div className="mt-5 grid gap-4"><label className="grid gap-2 text-sm font-bold text-slate-700">Amount<input className="h-12 rounded-lg border border-slate-200 bg-slate-50 px-4" value="Funding paused" readOnly /></label><button className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-slate-200 px-4 text-sm font-bold text-slate-500" type="button" disabled><Wallet className="h-4 w-4" /> Funding Paused</button></div></Surface>
-        <Surface className="overflow-hidden"><div className="border-b border-slate-200 px-5 py-4"><h3 className="text-lg font-bold tracking-tight text-slate-800">Wallet history</h3></div><div className="grid gap-3 p-4 md:hidden">{walletRows.map((row) => <article key={row.item} className="rounded-lg border border-slate-200 bg-slate-50 p-4"><div className="flex items-start justify-between gap-3"><div><h4 className="font-bold text-slate-800">{row.item}</h4><p className="mt-1 text-xs font-semibold text-slate-500">{row.method}</p></div><StatusPill status={row.status} /></div><p className="mt-3 text-lg font-bold text-slate-800">{row.amount}</p></article>)}</div><div className="hidden overflow-x-auto md:block"><table className="w-full min-w-[560px] border-collapse text-left"><thead className="bg-slate-50 text-xs font-bold uppercase tracking-[0.12em] text-slate-500"><tr><th className="px-5 py-4">Item</th><th className="px-5 py-4">Method</th><th className="px-5 py-4">Amount</th><th className="px-5 py-4">Status</th></tr></thead><tbody className="divide-y divide-slate-100 text-sm">{walletRows.map((row) => <tr key={row.item} className="transition hover:bg-slate-50"><td className="px-5 py-4 font-semibold text-slate-700">{row.item}</td><td className="px-5 py-4 text-slate-500">{row.method}</td><td className="px-5 py-4 font-bold text-slate-800">{row.amount}</td><td className="px-5 py-4"><StatusPill status={row.status} /></td></tr>)}</tbody></table></div></Surface>
+        <Surface className="p-5"><div className="rounded-lg bg-blue-700 p-5 text-blue-50"><p className="text-sm font-semibold text-blue-100">Available balance</p><strong className="mt-2 block text-3xl font-bold tracking-tight">{balance}</strong><p className="mt-3 text-sm leading-6 text-blue-100">Payments are completed on PocketFi's hosted checkout. Never share your card or banking credentials with support.</p></div><div className="mt-5 grid gap-4"><label className="grid gap-2 text-sm font-bold text-slate-700">Amount (NGN)<input type="number" min="100" step="100" value={amount} onChange={(event) => setAmount(event.target.value)} className="h-12 rounded-lg border border-slate-200 bg-slate-50 px-4 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100" placeholder="5,000" /></label><label className="grid gap-2 text-sm font-bold text-slate-700">Phone number<input value={phone} onChange={(event) => setPhone(event.target.value)} className="h-12 rounded-lg border border-slate-200 bg-slate-50 px-4 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100" placeholder="08012345678" /></label><button onClick={fundWallet} className="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-bold text-white transition hover:bg-blue-700 disabled:bg-slate-300" type="button" disabled={submitting}><Wallet className="h-4 w-4" /> {submitting ? "Opening PocketFi..." : "Fund with PocketFi"}</button>{notice ? <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-900">{notice}</div> : null}</div></Surface>
+        <Surface className="overflow-hidden"><div className="border-b border-slate-200 px-5 py-4"><h3 className="text-lg font-bold tracking-tight text-slate-800">Wallet history</h3></div>{!walletRows.length ? <div className="p-6 text-sm font-semibold text-slate-500">No wallet transactions yet.</div> : <div className="grid gap-3 p-4">{walletRows.map((row) => <article key={row.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4"><div><h4 className="font-bold text-slate-800">{row.description || row.type.replaceAll("_", " ")}</h4><p className="mt-1 text-xs font-semibold text-slate-500">{row.paymentMethod || "Wallet"} · {new Date(row.createdAt).toLocaleString("en-NG")}</p></div><div className="text-right"><p className={`font-black ${row.type === "DEPOSIT" ? "text-emerald-700" : "text-slate-800"}`}>{row.type === "DEPOSIT" ? "+" : "-"}NGN {Number(row.amount).toLocaleString("en-NG", { minimumFractionDigits: 2 })}</p><div className="mt-1"><StatusPill status={row.status} /></div></div></article>)}</div>}</Surface>
       </section>
     </div>
   );
 }
-
 export function DashboardLoading() {
   return <div className="mx-auto grid max-w-7xl gap-4"><div className="h-8 w-48 animate-pulse rounded-lg bg-slate-200" /><div className="h-20 animate-pulse rounded-lg bg-slate-200" /><div className="grid gap-4 md:grid-cols-3"><div className="h-36 animate-pulse rounded-lg bg-slate-200" /><div className="h-36 animate-pulse rounded-lg bg-slate-200" /><div className="h-36 animate-pulse rounded-lg bg-slate-200" /></div></div>;
 }

@@ -32,7 +32,7 @@ const transactionSchema = new Schema(
     description: { type: String, default: null },
     metadata: { type: Schema.Types.Mixed, default: {} },
     failureReason: { type: String, default: null },
-    reversalOfId: { type: Schema.Types.ObjectId, ref: "Transaction", default: null, unique: true, sparse: true }
+    reversalOfId: { type: Schema.Types.ObjectId, ref: "Transaction", default: undefined }
   },
   { timestamps: true }
 );

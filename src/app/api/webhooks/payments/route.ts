@@ -20,7 +20,8 @@ export async function POST(request: NextRequest) {
       const transaction = await completeTransactionByReference({
         reference: webhook.reference,
         transactionHash: webhook.transactionHash,
-        gatewayReference: webhook.providerReference
+        gatewayReference: webhook.providerReference,
+        paidAmount: webhook.amount
       });
 
       return NextResponse.json({ success: true, transactionId: transaction.id });

@@ -16,7 +16,7 @@ const envProviders: Array<{
   name: string;
   slug: string;
   type: "logs" | "virtual-numbers" | "smm";
-  envKey: "BULKACC_API_KEY" | "SMSPOOL_API_KEY" | "RESELLER_SMM_API_KEY";
+  envKey: "BULKACC_API_KEY" | "SMSPOOL_API_KEY" | "JUSTANOTHERPANEL_API_KEY";
   description: string;
   adapter: AdapterClass;
 }> = [
@@ -37,10 +37,10 @@ const envProviders: Array<{
     adapter: SMSPoolAdapter
   },
   {
-    name: "Reseller SMM",
-    slug: "reseller-smm",
+    name: "JustAnotherPanel",
+    slug: "justanotherpanel",
     type: "smm",
-    envKey: "RESELLER_SMM_API_KEY",
+    envKey: "JUSTANOTHERPANEL_API_KEY",
     description: "Social media boosting provider",
     adapter: ResellingSMMAdapter
   }
