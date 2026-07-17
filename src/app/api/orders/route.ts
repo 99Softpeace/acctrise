@@ -10,6 +10,7 @@ import { isLiveServiceKind } from "@/lib/providers/live-services";
 import { resolveLiveService } from "@/lib/providers/resolve-live-service";
 import { ProviderOrder } from "@/models/provider-order";
 import { z } from "zod";
+import { clientIp, enforceRateLimit, RateLimitError } from "@/lib/security/rate-limit";
 
 const FRIENDLY_PROVIDER_MESSAGE = "This service is available, but fulfillment is temporarily unavailable. Please contact support.";
 const USER_SAFE_ERRORS = [/insufficient wallet balance/i, /minimum order quantity/i, /maximum order quantity/i, /service is currently unavailable/i, /unauthorized/i];
@@ -35,6 +36,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    await enforceRateLimit("create-order", `${userId}:${clientIp(request.headers)}`, 30, 60 * 1000);
     const body = await request.json();
 
     // Validate request
@@ -82,6 +84,7 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
+    if (error instanceof RateLimitError) return NextResponse.json({ error: error.message }, { status: 429, headers: { "Retry-After": String(error.retryAfterSeconds) } });
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: "Validation error", details: error.issues },

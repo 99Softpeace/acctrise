@@ -13,6 +13,9 @@ const loginHistorySchema = new Schema(
   { timestamps: true }
 );
 
+loginHistorySchema.index({ userId: 1, createdAt: -1 });
+loginHistorySchema.index({ ipAddress: 1, isSuccessful: 1, createdAt: -1 });
+
 export type LoginHistoryDocument = InferSchemaType<typeof loginHistorySchema> & { _id: Types.ObjectId };
 export const LoginHistory = (
   models.LoginHistory || model("LoginHistory", loginHistorySchema)

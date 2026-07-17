@@ -1,16 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { appUrl, sendAuthEmail } from "@/lib/auth/email";
-import { addMinutes, createSecureToken, normalizeEmail } from "@/lib/auth/security";
+import { addMinutes, createSecureToken, hashSecureToken, normalizeEmail } from "@/lib/auth/security";
 import { connectMongo } from "@/lib/mongodb";
 import { PasswordResetToken } from "@/models/auth-token";
 import { User } from "@/models/user";
+import { clientIp, enforceRateLimit, RateLimitError } from "@/lib/security/rate-limit";
 
 const forgotPasswordSchema = z.object({ email: z.string().email() });
 
 export async function POST(request: NextRequest) {
   try {
     const { email: rawEmail } = forgotPasswordSchema.parse(await request.json());
+    await enforceRateLimit("forgot-password", clientIp(request.headers), 5, 60 * 60 * 1000);
     const email = normalizeEmail(rawEmail);
     await connectMongo();
     const user = await User.findOne({ email });
@@ -19,7 +21,7 @@ export async function POST(request: NextRequest) {
       const token = createSecureToken();
       await PasswordResetToken.create({
         userId: user._id,
-        token,
+        token: hashSecureToken(token),
         expiresAt: addMinutes(new Date(), 30)
       });
 
@@ -33,6 +35,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
+    if (error instanceof RateLimitError) return NextResponse.json({ error: error.message }, { status: 429, headers: { "Retry-After": String(error.retryAfterSeconds) } });
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: "Validation error", details: error.issues }, { status: 400 });
     }

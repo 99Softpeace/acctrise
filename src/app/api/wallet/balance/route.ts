@@ -5,7 +5,6 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getRequestUserId } from "@/lib/auth/request";
-import { reconcilePocketFiVirtualAccounts } from "@/lib/payments/virtual-account-reconciliation";
 import { getOrCreateWallet } from "@/lib/services/mongo-wallet-service";
 
 export async function GET(request: NextRequest) {
@@ -15,7 +14,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    await reconcilePocketFiVirtualAccounts(userId);
     const wallet = await getOrCreateWallet(userId);
 
     return NextResponse.json({

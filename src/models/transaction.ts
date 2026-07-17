@@ -37,6 +37,9 @@ const transactionSchema = new Schema(
   { timestamps: true }
 );
 
+transactionSchema.index({ userId: 1, createdAt: -1 });
+transactionSchema.index({ walletId: 1, createdAt: -1 });
+
 export type TransactionDocument = InferSchemaType<typeof transactionSchema> & { _id: Types.ObjectId };
 export type TransactionType = (typeof transactionTypes)[number];
 export type TransactionStatus = (typeof transactionStatuses)[number];

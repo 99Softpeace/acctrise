@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { appUrl, sendAuthEmail } from "@/lib/auth/email";
-import { addMinutes, createSecureToken, hashPassword, normalizeEmail, usernameFromEmail } from "@/lib/auth/security";
+import { addMinutes, createSecureToken, hashPassword, hashSecureToken, normalizeEmail, usernameFromEmail } from "@/lib/auth/security";
 import { connectMongo } from "@/lib/mongodb";
 import { provisionVirtualAccount } from "@/lib/payments/virtual-account-service";
 import { EmailVerificationToken } from "@/models/auth-token";
 import { User } from "@/models/user";
 import { Wallet } from "@/models/wallet";
+import { clientIp, enforceRateLimit, RateLimitError } from "@/lib/security/rate-limit";
 
 const registerSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(8),
+  password: z.string().min(8).max(128),
   firstName: z.string().trim().min(1).max(80).optional(),
   lastName: z.string().trim().min(1).max(80).optional()
 });
@@ -31,6 +32,7 @@ async function uniqueUsername(email: string): Promise<string> {
 export async function POST(request: NextRequest) {
   try {
     const input = registerSchema.parse(await request.json());
+    await enforceRateLimit("register", clientIp(request.headers), 5, 60 * 60 * 1000);
     await connectMongo();
     const email = normalizeEmail(input.email);
     const existing = await User.findOne({ email });
@@ -53,7 +55,7 @@ export async function POST(request: NextRequest) {
       Wallet.create({ userId: user._id }),
       EmailVerificationToken.create({
         userId: user._id,
-        token,
+        token: hashSecureToken(token),
         expiresAt: addMinutes(new Date(), 60 * 24)
       })
     ]);
@@ -82,6 +84,7 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
+    if (error instanceof RateLimitError) return NextResponse.json({ error: error.message }, { status: 429, headers: { "Retry-After": String(error.retryAfterSeconds) } });
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: "Validation error", details: error.issues }, { status: 400 });
     }

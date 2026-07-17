@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { parsePaymentWebhook } from "@/lib/payments";
+import { reconcilePocketFiVirtualAccounts } from "@/lib/payments/virtual-account-reconciliation";
 import { completeTransactionByReference, failTransactionByReference } from "@/lib/services/mongo-wallet-service";
 
 export async function POST(request: NextRequest) {
@@ -17,14 +18,19 @@ export async function POST(request: NextRequest) {
     }
 
     if (webhook.status === "COMPLETED") {
-      const transaction = await completeTransactionByReference({
-        reference: webhook.reference,
-        transactionHash: webhook.transactionHash,
-        gatewayReference: webhook.providerReference,
-        paidAmount: webhook.amount
-      });
-
-      return NextResponse.json({ success: true, transactionId: transaction.id });
+      try {
+        const transaction = await completeTransactionByReference({
+          reference: webhook.reference,
+          transactionHash: webhook.transactionHash,
+          gatewayReference: webhook.providerReference,
+          paidAmount: webhook.amount
+        });
+        return NextResponse.json({ success: true, transactionId: transaction.id });
+      } catch (error) {
+        if (!(error instanceof Error) || error.message !== "Transaction not found") throw error;
+        const reconciliation = await reconcilePocketFiVirtualAccounts();
+        return NextResponse.json({ success: true, reconciled: true, creditedCents: reconciliation.creditedCents });
+      }
     }
 
     if (webhook.status === "FAILED") {

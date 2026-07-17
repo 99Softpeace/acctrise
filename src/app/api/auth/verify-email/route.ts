@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { hashSecureToken } from "@/lib/auth/security";
 import { connectMongo } from "@/lib/mongodb";
 import { EmailVerificationToken } from "@/models/auth-token";
 import { User } from "@/models/user";
@@ -11,7 +12,7 @@ export async function GET(request: NextRequest) {
     }
 
     await connectMongo();
-    const record = await EmailVerificationToken.findOne({ token });
+    const record = await EmailVerificationToken.findOne({ token: { $in: [hashSecureToken(token), token] } });
 
     if (!record || record.usedAt || record.expiresAt < new Date()) {
       return NextResponse.redirect(new URL("/auth/login?verified=invalid", request.url));

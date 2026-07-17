@@ -27,5 +27,8 @@ const orderSchema = new Schema(
   { timestamps: true }
 );
 
+orderSchema.index({ userId: 1, createdAt: -1 });
+orderSchema.index({ status: 1, updatedAt: -1 });
+
 export type OrderDocument = InferSchemaType<typeof orderSchema> & { _id: Types.ObjectId };
 export const Order = (models.Order || model("Order", orderSchema)) as Model<OrderDocument>;

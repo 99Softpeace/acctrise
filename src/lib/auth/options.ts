@@ -4,6 +4,7 @@ import { normalizeEmail, verifyPassword } from "@/lib/auth/security";
 import { connectMongo } from "@/lib/mongodb";
 import { LoginHistory } from "@/models/login-history";
 import { User } from "@/models/user";
+import { clientIp, enforceRateLimit } from "@/lib/security/rate-limit";
 
 export const authOptions: NextAuthOptions = {
   session: {
@@ -25,7 +26,8 @@ export const authOptions: NextAuthOptions = {
         await connectMongo();
         const email = normalizeEmail(credentials?.email || "");
         const password = credentials?.password || "";
-        const ipAddress = request?.headers?.["x-forwarded-for"]?.toString().split(",")[0] || "unknown";
+        const ipAddress = clientIp(request?.headers || {});
+        await enforceRateLimit("login", ipAddress, 10, 15 * 60 * 1000);
         const userAgent = request?.headers?.["user-agent"]?.toString() || "unknown";
 
         const user = await User.findOne({ email }).select("_id email username passwordHash role status emailVerified").lean();

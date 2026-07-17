@@ -1,6 +1,8 @@
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import type { UserRole } from "@/types/auth";
+import { connectMongo } from "@/lib/mongodb";
+import { User } from "@/models/user";
 
 export interface RequestUser {
   id: string;
@@ -9,27 +11,13 @@ export interface RequestUser {
 }
 
 export async function getRequestUser(request: NextRequest): Promise<RequestUser | null> {
-  const headerUserId = request.headers.get("x-user-id");
-  const headerRole = request.headers.get("x-user-role") as UserRole | null;
-
-  if (headerUserId && process.env.NODE_ENV === "development") {
-    return { id: headerUserId, role: headerRole || "CUSTOMER" };
-  }
-
   const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
-  if (token?.id) {
-    return {
-      id: token.id as string,
-      role: (token.role as UserRole) || "CUSTOMER",
-      email: token.email
-    };
-  }
+  if (!token?.id) return null;
 
-  if (process.env.NODE_ENV === "development" && process.env.DEVELOPMENT_USER_ID) {
-    return { id: process.env.DEVELOPMENT_USER_ID, role: "CUSTOMER" };
-  }
-
-  return null;
+  await connectMongo();
+  const user = await User.findById(token.id).select("_id email role status").lean();
+  if (!user || user.status !== "active") return null;
+  return { id: user._id.toString(), role: user.role as UserRole, email: user.email };
 }
 
 export async function getRequestUserId(request: NextRequest): Promise<string | null> {
