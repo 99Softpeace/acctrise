@@ -41,7 +41,7 @@ const quickActions = [
   { label: "Rent Number", href: "/dashboard/rent-number", icon: MessageSquare, tone: "orange" },
   { label: "USA Premium", href: "/dashboard/uk-premium", icon: Clock3, tone: "teal" },
   { label: "Buy Logs", href: "/dashboard/logs", icon: FileText, tone: "yellow" },
-  { label: "Tutorials", href: "/dashboard/orders", icon: PlayCircle, tone: "indigo" },
+  { label: "Tutorials", href: "/dashboard/tutorials", icon: PlayCircle, tone: "indigo" },
   { label: "eSIM", href: "/dashboard/esim", icon: Smartphone, tone: "pink" }
 ];
 
@@ -433,4 +433,3 @@ export function WalletPage() {
 export function DashboardLoading() {
   return <div className="mx-auto grid max-w-7xl gap-4"><div className="h-8 w-48 animate-pulse rounded-lg bg-slate-200" /><div className="h-20 animate-pulse rounded-lg bg-slate-200" /><div className="grid gap-4 md:grid-cols-3"><div className="h-36 animate-pulse rounded-lg bg-slate-200" /><div className="h-36 animate-pulse rounded-lg bg-slate-200" /><div className="h-36 animate-pulse rounded-lg bg-slate-200" /></div></div>;
 }
-
