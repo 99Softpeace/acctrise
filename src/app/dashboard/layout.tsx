@@ -30,7 +30,7 @@ const navItems: NavItem[] = [
   { icon: Rocket, label: "Boost Account", href: "/dashboard/boosting" },
   { icon: ReceiptText, label: "Buy Logs", href: "/dashboard/logs" },
   { icon: Smartphone, label: "Rent Number", href: "/dashboard/rent-number" },
-  { icon: Phone, label: "USA Premium", href: "/dashboard/uk-premium" },
+  { icon: Phone, label: "Foreign Numbers", href: "/dashboard/foreign-numbers" },
   { icon: Wifi, label: "Buy eSIM", href: "/dashboard/esim" },
   { icon: Box, label: "My Orders", href: "/dashboard/orders" },
   { icon: Wallet, label: "Fund Wallet", href: "/dashboard/wallet" },

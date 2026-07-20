@@ -8,6 +8,7 @@ import {
   Bell,
   Clock3,
   FileText,
+  Globe2,
   History,
   Layers3,
   MessageSquare,
@@ -31,7 +32,7 @@ const serviceCards = [
   { title: "Boost Account", href: "/dashboard/boosting", detail: "Social growth services organized by platform.", icon: Rocket, meta: "Fast campaigns" },
   { title: "Buy Logs", href: "/dashboard/logs", detail: "Premium accounts and social log inventory.", icon: FileText, meta: "Secure inventory" },
   { title: "Rent Number", href: "/dashboard/rent-number", detail: "Temporary SMS numbers for app verification.", icon: Smartphone, meta: "SMSPool live" },
-  { title: "USA Premium", href: "/dashboard/uk-premium", detail: "Premium USA numbers for higher-trust verification.", icon: Phone, meta: "Live numbers" },
+  { title: "Foreign Numbers", href: "/dashboard/foreign-numbers", detail: "USA Premium and international verification numbers.", icon: Phone, meta: "Live numbers" },
   { title: "Buy eSIM", href: "/dashboard/esim", detail: "Travel data plans and regional eSIM options.", icon: Wifi, meta: "Travel ready" },
   { title: "Wallet", href: "/dashboard/wallet", detail: "Funding is paused while PocketFi activation is pending.", icon: Wallet, meta: "PocketFi planned" }
 ];
@@ -39,7 +40,7 @@ const serviceCards = [
 const quickActions = [
   { label: "Boost Account", href: "/dashboard/boosting", icon: Rocket, tone: "blue" },
   { label: "Rent Number", href: "/dashboard/rent-number", icon: MessageSquare, tone: "orange" },
-  { label: "USA Premium", href: "/dashboard/uk-premium", icon: Clock3, tone: "teal" },
+  { label: "Foreign Numbers", href: "/dashboard/foreign-numbers", icon: Clock3, tone: "teal" },
   { label: "Buy Logs", href: "/dashboard/logs", icon: FileText, tone: "yellow" },
   { label: "Tutorials", href: "/dashboard/tutorials", icon: PlayCircle, tone: "indigo" },
   { label: "eSIM", href: "/dashboard/esim", icon: Smartphone, tone: "pink" }
@@ -367,7 +368,27 @@ function NumberPurchasePage({ premium = false, rent = false }: { premium?: boole
   );
 }
 
-export function ForeignNumbersPage() { return <NumberPurchasePage rent />; }
+export function ForeignNumbersPage() {
+  const [tab, setTab] = useState<"usa" | "international">("usa");
+
+  return (
+    <div className="mx-auto grid max-w-7xl gap-6">
+      <PageHeader eyebrow="Numbers" title="Foreign Numbers" description="Get temporary phone numbers for SMS verification in the USA and other supported countries." action={<StatusPill status="Live pricing" />} />
+      <div className="grid grid-cols-2 rounded-xl border border-slate-200 bg-white p-1.5 shadow-sm" role="tablist" aria-label="Foreign number type">
+        <button type="button" role="tab" aria-selected={tab === "usa"} onClick={() => setTab("usa")} className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-lg px-3 text-sm font-bold transition sm:text-base ${tab === "usa" ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" : "text-slate-600 hover:bg-slate-50 hover:text-blue-700"}`}>
+          <Phone className="h-4 w-4" /> USA Premium
+        </button>
+        <button type="button" role="tab" aria-selected={tab === "international"} onClick={() => setTab("international")} className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-lg px-3 text-sm font-bold transition sm:text-base ${tab === "international" ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" : "text-slate-600 hover:bg-slate-50 hover:text-blue-700"}`}>
+          <Globe2 className="h-4 w-4" /> Other Countries
+        </button>
+      </div>
+      <div role="tabpanel" key={tab}>
+        <ServiceExplorer kind={tab === "usa" ? "uk-premium" : "foreign-numbers"} mode="numbers" />
+      </div>
+      <Surface className="border-amber-200 bg-amber-50 p-5 text-amber-950"><div className="flex items-start gap-3"><AlertCircle className="mt-0.5 h-5 w-5" /><p className="text-sm font-semibold leading-6">Numbers are time-sensitive. Request the SMS code immediately after generating your number.</p></div></Surface>
+    </div>
+  );
+}
 export function RentNumberPage() { return <NumberPurchasePage rent />; }
 export function UkPremiumPage() { return <NumberPurchasePage premium />; }
 
