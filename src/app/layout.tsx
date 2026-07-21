@@ -1,5 +1,8 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import "../styles.css";
+
+const GOOGLE_ANALYTICS_ID = "G-J5YPTDE29G";
 
 export const metadata: Metadata = {
   title: "Acctrise | All your digital services in one wallet",
@@ -34,7 +37,21 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="min-h-screen bg-slate-50 text-slate-800 antialiased">{children}</body>
+      <body className="min-h-screen bg-slate-50 text-slate-800 antialiased">
+        {children}
+        <Script
+          src={`https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ANALYTICS_ID}`}
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', '${GOOGLE_ANALYTICS_ID}');
+          `}
+        </Script>
+      </body>
     </html>
   );
 }
