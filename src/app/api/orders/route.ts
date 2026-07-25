@@ -135,14 +135,14 @@ export async function GET(request: NextRequest) {
         if (!adapter) continue;
         let status = await adapter.checkOrderStatus(providerOrder.externalOrderId);
         const numberOrder = ["uk-premium", "foreign-numbers"].includes(String(order.additionalInfo?.kind || ""));
-        const waitedOneMinute = Date.now() - new Date(order.startDate || order.createdAt).getTime() >= 60_000;
-        if (numberOrder && waitedOneMinute && ["pending", "processing"].includes(status.status) && !status.data?.code && !status.data?.sms) {
+        const waitedTwoMinutes = Date.now() - new Date(order.startDate || order.createdAt).getTime() >= 120_000;
+        if (numberOrder && waitedTwoMinutes && ["pending", "processing"].includes(status.status) && !status.data?.code && !status.data?.sms) {
           const cancelled = await adapter.refundOrder(providerOrder.externalOrderId);
           if (cancelled) {
             status = {
               ...status,
               status: "refunded",
-              message: "No SMS code arrived within one minute. Your wallet payment has been refunded."
+              message: "No SMS code arrived within two minutes. Your wallet payment has been refunded."
             };
           }
         }

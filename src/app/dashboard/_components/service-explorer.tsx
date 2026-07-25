@@ -375,7 +375,7 @@ function CheckoutPanel({ service, variant }: { service: ServiceItem | null; vari
           <div className="rounded-lg bg-slate-50 p-3 ring-1 ring-slate-200"><dt className="text-xs font-bold text-slate-400">Price</dt><dd className="mt-1 font-black text-blue-700">{formatPrice(service.price, displayExchangeRate(service))}</dd></div>
           <div className="rounded-lg bg-slate-50 p-3 ring-1 ring-slate-200"><dt className="text-xs font-bold text-slate-400">Region</dt><dd className="mt-1 font-bold text-slate-800">{service.countryName || inferCountry(service)}</dd></div>
           <div className="rounded-lg bg-slate-50 p-3 ring-1 ring-slate-200"><dt className="text-xs font-bold text-slate-400">Availability</dt><dd className="mt-1 font-bold text-slate-800">{service.availability || "Live stock"}</dd></div>
-          <div className="rounded-lg bg-slate-50 p-3 ring-1 ring-slate-200"><dt className="text-xs font-bold text-slate-400">Window</dt><dd className="mt-1 font-bold text-slate-800">1 minute</dd></div>
+          <div className="rounded-lg bg-slate-50 p-3 ring-1 ring-slate-200"><dt className="text-xs font-bold text-slate-400">Window</dt><dd className="mt-1 font-bold text-slate-800">2 minutes</dd></div>
         </dl>
         <button type="button" onClick={purchase} disabled={submitting} className="mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-bold text-blue-50 shadow-sm shadow-blue-600/20 transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-100">
           {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />} Buy Number

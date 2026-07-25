@@ -193,7 +193,8 @@ export class SMSPoolAdapter extends BaseProviderAdapter {
         key: this.config.apiKey,
         country,
         service: serviceId,
-        quantity: request.quantity.toString()
+        quantity: request.quantity.toString(),
+        pricing_option: "1"
       }));
 
       if (response.data.order_id || response.data.id) {
@@ -294,7 +295,7 @@ export class SMSPoolAdapter extends BaseProviderAdapter {
     try {
       const response = await this.client.post("/request/price", this.form({ key: this.config.apiKey, country: countryId, service: serviceId }));
       return {
-        price: Number(response.data?.price || response.data?.high_price || 0),
+        price: Number(response.data?.high_price || response.data?.price || 0),
         successRate: response.data?.success_rate !== undefined ? Number(response.data.success_rate) : undefined
       };
     } catch (error) {

@@ -163,15 +163,15 @@ export const checkOrderStatusWorker = new Worker(
 
       if (!status) continue;
       const numberOrder = ["uk-premium", "foreign-numbers"].includes(String(order.additionalInfo?.kind || ""));
-      const waitedOneMinute = Date.now() - new Date(order.startDate || order.createdAt).getTime() >= 60_000;
-      if (numberOrder && waitedOneMinute && ["pending", "processing"].includes(status.status) && !status.data?.code && !status.data?.sms) {
+      const waitedTwoMinutes = Date.now() - new Date(order.startDate || order.createdAt).getTime() >= 120_000;
+      if (numberOrder && waitedTwoMinutes && ["pending", "processing"].includes(status.status) && !status.data?.code && !status.data?.sms) {
         const provider = await providers.getProvider(providerOrder.providerId.toString());
         const cancelled = provider ? await provider.refundOrder(providerOrder.externalOrderId) : false;
         if (cancelled) {
           status = {
             ...status,
             status: "refunded",
-            message: "No SMS code arrived within one minute. Your wallet payment has been refunded."
+            message: "No SMS code arrived within two minutes. Your wallet payment has been refunded."
           };
         }
       }
