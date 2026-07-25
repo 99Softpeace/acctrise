@@ -260,8 +260,17 @@ export class SMSPoolAdapter extends BaseProviderAdapter {
     }
   }
 
-  async refundOrder(): Promise<boolean> {
-    return false;
+  async refundOrder(externalOrderId: string): Promise<boolean> {
+    try {
+      const response = await this.client.post("/sms/cancel", this.form({
+        key: this.config.apiKey,
+        orderid: externalOrderId
+      }));
+      return response.data?.success === 1 || response.data?.success === true;
+    } catch (error) {
+      this.log("warn", "Failed to cancel SMS Pool order", { externalOrderId, error });
+      return false;
+    }
   }
 
   async getSupportedPaymentMethods(): Promise<string[]> {

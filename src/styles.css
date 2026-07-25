@@ -24,15 +24,47 @@
 
 html {
   scroll-behavior: smooth;
+  max-width: 100%;
+  overflow-x: clip;
 }
 
 body {
   margin: 0;
-  min-width: 320px;
+  min-width: 0;
+  max-width: 100%;
   background: #f8f9ff;
   color: var(--ink);
   font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   overflow-x: hidden;
+}
+
+@media (max-width: 767px) {
+  html,
+  body,
+  .dashboard-shell-app,
+  .dashboard-redesign {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    overscroll-behavior-x: none;
+  }
+
+  .dashboard-redesign main,
+  .dashboard-redesign main > *,
+  .dashboard-redesign section,
+  .dashboard-redesign article {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .dashboard-redesign h1,
+  .dashboard-redesign h2,
+  .dashboard-redesign h3,
+  .dashboard-redesign h4,
+  .dashboard-redesign p,
+  .dashboard-redesign dd {
+    overflow-wrap: anywhere;
+  }
 }
 
 button,

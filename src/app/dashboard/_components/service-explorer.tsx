@@ -375,7 +375,7 @@ function CheckoutPanel({ service, variant }: { service: ServiceItem | null; vari
           <div className="rounded-lg bg-slate-50 p-3 ring-1 ring-slate-200"><dt className="text-xs font-bold text-slate-400">Price</dt><dd className="mt-1 font-black text-blue-700">{formatPrice(service.price, displayExchangeRate(service))}</dd></div>
           <div className="rounded-lg bg-slate-50 p-3 ring-1 ring-slate-200"><dt className="text-xs font-bold text-slate-400">Region</dt><dd className="mt-1 font-bold text-slate-800">{service.countryName || inferCountry(service)}</dd></div>
           <div className="rounded-lg bg-slate-50 p-3 ring-1 ring-slate-200"><dt className="text-xs font-bold text-slate-400">Availability</dt><dd className="mt-1 font-bold text-slate-800">{service.availability || "Live stock"}</dd></div>
-          <div className="rounded-lg bg-slate-50 p-3 ring-1 ring-slate-200"><dt className="text-xs font-bold text-slate-400">Window</dt><dd className="mt-1 font-bold text-slate-800">15 minutes</dd></div>
+          <div className="rounded-lg bg-slate-50 p-3 ring-1 ring-slate-200"><dt className="text-xs font-bold text-slate-400">Window</dt><dd className="mt-1 font-bold text-slate-800">1 minute</dd></div>
         </dl>
         <button type="button" onClick={purchase} disabled={submitting} className="mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-bold text-blue-50 shadow-sm shadow-blue-600/20 transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-100">
           {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />} Buy Number
@@ -587,8 +587,8 @@ function NumberServicePicker({ kind }: { kind: Extract<ServiceExplorerKind, "for
   const inputDisabled = !selectedCountry || countryDisabled;
 
   return (
-    <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
-      <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm shadow-slate-200/70 sm:p-5">
+    <section className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="min-w-0 rounded-lg border border-slate-200 bg-white p-4 shadow-sm shadow-slate-200/70 sm:p-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-600">Number checkout</p>

@@ -107,7 +107,7 @@ function DashboardChrome({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <div className="lg:pl-72">
+      <div className="min-w-0 max-w-full lg:pl-72">
         <header className="dashboard-mobile-header dashboard-topbar sticky top-0 z-30 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur sm:px-6">
           <div className="flex items-center justify-between gap-3">
             <Link href="/dashboard" className="dashboard-mobile-brand flex min-w-0 items-center gap-3 lg:hidden" onClick={() => setMobileMenuOpen(false)}>
@@ -172,7 +172,7 @@ function DashboardChrome({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <main className="px-4 py-6 pb-8 sm:px-6 lg:px-8">{children}</main>
+        <main className="min-w-0 max-w-full overflow-x-hidden px-4 py-6 pb-8 sm:px-6 lg:px-8">{children}</main>
       </div>
       </div>
   );

@@ -133,7 +133,19 @@ export async function GET(request: NextRequest) {
       try {
         const adapter = await services.providers.getProvider(providerOrder.providerId.toString());
         if (!adapter) continue;
-        const status = await adapter.checkOrderStatus(providerOrder.externalOrderId);
+        let status = await adapter.checkOrderStatus(providerOrder.externalOrderId);
+        const numberOrder = ["uk-premium", "foreign-numbers"].includes(String(order.additionalInfo?.kind || ""));
+        const waitedOneMinute = Date.now() - new Date(order.startDate || order.createdAt).getTime() >= 60_000;
+        if (numberOrder && waitedOneMinute && ["pending", "processing"].includes(status.status) && !status.data?.code && !status.data?.sms) {
+          const cancelled = await adapter.refundOrder(providerOrder.externalOrderId);
+          if (cancelled) {
+            status = {
+              ...status,
+              status: "refunded",
+              message: "No SMS code arrived within one minute. Your wallet payment has been refunded."
+            };
+          }
+        }
         const fulfillment = {
           ...((providerOrder.logs && typeof providerOrder.logs === "object") ? providerOrder.logs : {}),
           ...(status.data || {})
