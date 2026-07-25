@@ -162,12 +162,17 @@ export const checkOrderStatusWorker = new Worker(
           })();
 
       if (!status) continue;
+      const fulfillment = {
+        ...((providerOrder.logs && typeof providerOrder.logs === "object") ? providerOrder.logs : {}),
+        ...(status.data || {})
+      };
       await orderService.updateOrderStatus({
         orderId: order._id.toString(),
         externalOrderId: providerOrder.externalOrderId,
         status: status.status,
         progress: status.progress,
-        message: status.message
+        message: status.message,
+        data: fulfillment
       });
       updated++;
     }

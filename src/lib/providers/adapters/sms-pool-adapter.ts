@@ -218,11 +218,18 @@ export class SMSPoolAdapter extends BaseProviderAdapter {
 
       if (response.data) {
         const data = response.data;
+        const code = data.sms ?? data.code ?? data.full_code;
+        const fullSms = data.full_sms ?? data.fullSms;
         return {
           externalOrderId,
           status: this.mapStatus(String(data.status ?? data.status_code ?? "")),
-          progress: data.sms || data.code ? 100 : 0,
-          message: data.sms || data.code ? `Code received: ${data.sms || data.code}` : "Waiting for SMS...",
+          progress: code ? 100 : 0,
+          message: code ? `Code received: ${String(code)}` : data.message || "Waiting for SMS...",
+          data: {
+            ...data,
+            ...(code !== undefined && code !== null && code !== "" ? { code: String(code) } : {}),
+            ...(fullSms !== undefined && fullSms !== null && fullSms !== "" ? { full_sms: String(fullSms) } : {})
+          },
           lastUpdated: new Date()
         };
       }
@@ -311,17 +318,17 @@ export class SMSPoolAdapter extends BaseProviderAdapter {
   private mapStatus(providerStatus: string): string {
     const STATUS_MAP: { [key: string]: string } = {
       "1": "pending",
-      "2": "cancelled",
+      "2": "refunded",
       "3": "completed",
       "4": "processing",
-      "5": "cancelled",
+      "5": "refunded",
       "6": "refunded",
       "7": "processing",
       "8": "processing",
       "pending": "pending",
       "received": "completed",
       "completed": "completed",
-      "expired": "cancelled",
+      "expired": "refunded",
       "released": "refunded"
     };
     return STATUS_MAP[providerStatus?.toLowerCase() || ""] || "unknown";

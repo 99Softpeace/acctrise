@@ -1,4 +1,4 @@
-import { Types } from "mongoose";
+import { startSession, Types } from "mongoose";
 import { connectMongo } from "@/lib/mongodb";
 import { Transaction, type TransactionStatus, type TransactionType } from "@/models/transaction";
 import { Wallet } from "@/models/wallet";
@@ -212,34 +212,53 @@ export async function deductForOrder(userId: string, orderId: string, amount: nu
 export async function refundOrder(orderId: string): Promise<TransactionResponse> {
   await connectMongo();
   const orderObjectId = mongoId(orderId, "order id");
-  const existingTransaction = await Transaction.findOne({
-    orderId: orderObjectId,
-    type: "ORDER_PAYMENT",
-    status: "COMPLETED"
-  });
+  const refundReference = `REFUND-${orderId}`;
+  const existingRefund = await Transaction.findOne({ reference: refundReference, status: "COMPLETED" });
+  if (existingRefund) return serializeTransaction(existingRefund);
 
-  if (!existingTransaction) throw new Error("Order payment not found");
+  const session = await startSession();
+  try {
+    await session.withTransaction(async () => {
+      const refund = await Transaction.findOne({ reference: refundReference, status: "COMPLETED" }).session(session);
+      if (refund) return;
 
-  await Wallet.updateOne(
-    { _id: existingTransaction.walletId },
-    { $inc: { balanceCents: existingTransaction.netAmountCents } }
-  );
+      const payment = await Transaction.findOne({
+        orderId: orderObjectId,
+        type: "ORDER_PAYMENT",
+        status: "COMPLETED"
+      }).session(session);
+      if (!payment) throw new Error("Order payment not found");
 
-  const refundTx = await Transaction.create({
-    userId: existingTransaction.userId,
-    walletId: existingTransaction.walletId,
-    orderId: orderObjectId,
-    type: "REFUND",
-    status: "COMPLETED",
-    amountCents: existingTransaction.netAmountCents,
-    feeCents: 0,
-    netAmountCents: existingTransaction.netAmountCents,
-    reference: reference(`refund_${orderId}`),
-    description: `Refund for order ${orderId}`,
-    reversalOfId: existingTransaction._id
-  });
+      await Transaction.create([{
+        userId: payment.userId,
+        walletId: payment.walletId,
+        orderId: orderObjectId,
+        type: "REFUND",
+        status: "COMPLETED",
+        amountCents: payment.netAmountCents,
+        feeCents: 0,
+        netAmountCents: payment.netAmountCents,
+        reference: refundReference,
+        description: `Automatic refund for order ${orderId}`,
+        reversalOfId: payment._id
+      }], { session });
 
-  return serializeTransaction(refundTx);
+      const walletResult = await Wallet.updateOne(
+        { _id: payment.walletId },
+        { $inc: { balanceCents: payment.netAmountCents } },
+        { session }
+      );
+      if (walletResult.matchedCount !== 1) throw new Error("Wallet not found");
+    });
+  } catch (error: any) {
+    if (error?.code !== 11000) throw error;
+  } finally {
+    await session.endSession();
+  }
+
+  const refund = await Transaction.findOne({ reference: refundReference, status: "COMPLETED" });
+  if (!refund) throw new Error("Refund transaction was not completed");
+  return serializeTransaction(refund);
 }
 
 export async function getTransactionHistory(filter: {

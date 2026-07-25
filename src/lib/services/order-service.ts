@@ -32,6 +32,7 @@ export interface UpdateOrderStatusRequest {
   status: string;
   progress?: number;
   message?: string;
+  data?: Record<string, unknown>;
 }
 
 export type OrderWithDetails = {
@@ -236,13 +237,26 @@ export class OrderService {
     const newStatus = statusMap[request.status?.toLowerCase()] || "PROCESSING";
     const previousStatus = order.status;
 
+    if (newStatus === "REFUNDED" && previousStatus !== "REFUNDED") {
+      await refundOrder(order._id.toString());
+    }
+
     order.status = newStatus;
     order.delivered = request.progress || order.delivered;
-    order.statusMessage = request.message || order.statusMessage;
+    order.statusMessage = newStatus === "REFUNDED"
+      ? "No SMS code was received. Your wallet payment has been refunded."
+      : request.message || order.statusMessage;
     if (newStatus === "COMPLETED" && !order.completedAt) {
       order.completedAt = new Date();
     }
     await order.save();
+
+    if (request.data) {
+      await ProviderOrder.updateOne(
+        { orderId: order._id, externalOrderId: request.externalOrderId },
+        { $set: { logs: request.data } }
+      );
+    }
 
     await OrderLog.create({
       orderId: order._id,
@@ -252,7 +266,8 @@ export class OrderService {
         to: newStatus,
         externalOrderId: request.externalOrderId,
         progress: request.progress,
-        message: request.message
+        message: request.message,
+        data: request.data
       }
     });
 

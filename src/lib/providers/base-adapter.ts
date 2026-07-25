@@ -47,6 +47,7 @@ export interface OrderStatus {
   status: string;
   progress?: number;
   message?: string;
+  data?: Record<string, unknown>;
   lastUpdated?: Date;
 }
 

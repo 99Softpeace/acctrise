@@ -134,7 +134,11 @@ export async function GET(request: NextRequest) {
         const adapter = await services.providers.getProvider(providerOrder.providerId.toString());
         if (!adapter) continue;
         const status = await adapter.checkOrderStatus(providerOrder.externalOrderId);
-        await orderService.updateOrderStatus({ orderId: order.id, externalOrderId: providerOrder.externalOrderId, status: status.status, progress: status.progress, message: status.message });
+        const fulfillment = {
+          ...((providerOrder.logs && typeof providerOrder.logs === "object") ? providerOrder.logs : {}),
+          ...(status.data || {})
+        };
+        await orderService.updateOrderStatus({ orderId: order.id, externalOrderId: providerOrder.externalOrderId, status: status.status, progress: status.progress, message: status.message, data: fulfillment });
         await ProviderOrder.updateOne({ _id: providerOrder._id }, { $set: { status: status.status, statusMessage: status.message || null, lastCheckedAt: new Date() } });
         refreshed = true;
       } catch (error) {

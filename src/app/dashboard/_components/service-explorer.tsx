@@ -206,6 +206,8 @@ function FulfillmentDetails({ fulfillment }: { fulfillment: FulfillmentPayload |
   if (!fulfillment) return null;
   const fields: Array<[string, unknown]> = [
     ["Phone number", fulfillment.number || fulfillment.phonenumber],
+    ["Verification code", fulfillment.code || fulfillment.sms],
+    ["Full SMS", fulfillment.full_sms || fulfillment.fullSms || fulfillment.full_code],
     ["Activation string", fulfillment.ac],
     ["SM-DP+ address", fulfillment.smdp],
     ["Activation code", fulfillment.activationCode],
@@ -291,6 +293,28 @@ function CheckoutPanel({ service, variant }: { service: ServiceItem | null; vari
   const [targetUrl, setTargetUrl] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [fulfillment, setFulfillment] = useState<FulfillmentPayload | null>(null);
+  const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!activeOrderId || (variant !== "foreign-numbers" && variant !== "uk-premium")) return;
+    let active = true;
+    const load = async () => {
+      try {
+        const response = await fetch("/api/orders?limit=50", { cache: "no-store" });
+        const body = await response.json();
+        const order = Array.isArray(body?.data) ? body.data.find((item: { id?: string }) => item.id === activeOrderId) : null;
+        if (!active || !order) return;
+        if (order.fulfillment && typeof order.fulfillment === "object") setFulfillment(order.fulfillment);
+        if (order.statusMessage) setNotice((current) => current ? { ...current, message: order.statusMessage } : current);
+        if (["COMPLETED", "FAILED", "CANCELLED", "REFUNDED"].includes(order.status)) setActiveOrderId(null);
+      } catch {
+        // Keep the purchased number visible and retry on the next polling interval.
+      }
+    };
+    void load();
+    const timer = window.setInterval(load, 5000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [activeOrderId, variant]);
 
 
   if (!service) {
@@ -320,6 +344,7 @@ function CheckoutPanel({ service, variant }: { service: ServiceItem | null; vari
     setSubmitting(true);
     setNotice(null);
     setFulfillment(null);
+    setActiveOrderId(null);
     try {
       const response = await fetch("/api/orders", {
         method: "POST",
@@ -330,6 +355,7 @@ function CheckoutPanel({ service, variant }: { service: ServiceItem | null; vari
       if (!response.ok) throw new Error(data.error || "Purchase failed.");
       setNotice({ serviceId: service!.externalId, message: "Order " + data.order.orderNumber + " created successfully." + (data.order.statusMessage ? " " + data.order.statusMessage : "") });
       setFulfillment(data.order.fulfillment && typeof data.order.fulfillment === "object" ? data.order.fulfillment : null);
+      if (isNumber) setActiveOrderId(data.order.id);
       window.dispatchEvent(new Event("acctrise:order-created"));
     } catch (error) {
       setNotice({ serviceId: service!.externalId, message: error instanceof Error ? error.message : "Purchase failed." });
