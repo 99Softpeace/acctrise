@@ -3,6 +3,8 @@
  * Handles provider instantiation, failover, and switching
  */
 
+import { ProviderOrder } from '@/models/provider-order';
+
 import { connectMongo } from "@/lib/mongodb";
 import { Provider } from "@/models/provider";
 import { ProviderService } from "@/models/provider-service";
@@ -40,7 +42,8 @@ export class ProviderManager {
         return null;
       }
 
-      const AdapterClass = this.registry[provider.type];
+      const adapterKey = String((provider.config as any)?.adapter || provider.type);
+      const AdapterClass = this.registry[adapterKey];
       if (!AdapterClass) {
         this.log("error", `No adapter registered for type: ${provider.type}`);
         return null;
@@ -74,9 +77,33 @@ export class ProviderManager {
         .sort({ priority: -1 })
         .populate("providerId");
 
+      if (providerServices.length === 0) return [];
+      const providerIds = providerServices.map((mapping: any) => mapping.providerId?._id || mapping.providerId);
+      const recent = await ProviderOrder.aggregate([
+        { $match: { providerId: { $in: providerIds }, createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } } },
+        { $lookup: { from: 'orders', localField: 'orderId', foreignField: '_id', as: 'order' } },
+        { $match: { 'order.serviceId': providerServices[0]?.serviceId } },
+        { $group: {
+          _id: '$providerId',
+          attempts: { $sum: 1 },
+          successes: { $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] } }
+        } }
+      ]);
+      const performance = new Map(recent.map((row) => [String(row._id), row]));
+      providerServices.sort((left: any, right: any) => {
+        const leftStats = performance.get(String(left.providerId?._id || left.providerId));
+        const rightStats = performance.get(String(right.providerId?._id || right.providerId));
+        const leftSuccess = (Number(leftStats?.successes || 0) + 3) / (Number(leftStats?.attempts || 0) + 5);
+        const rightSuccess = (Number(rightStats?.successes || 0) + 3) / (Number(rightStats?.attempts || 0) + 5);
+        const leftScore = leftSuccess * 100 + Number(left.priority || 0) - Number(left.providerPriceCents || 0) / 10000;
+        const rightScore = rightSuccess * 100 + Number(right.priority || 0) - Number(right.providerPriceCents || 0) / 10000;
+        return rightScore - leftScore;
+      });
+
       const adapters: BaseProviderAdapter[] = [];
       for (const providerService of providerServices) {
         const provider = providerService.providerId as any;
+        if (providerService.stock === 0 || provider?.isHealthy === false) continue;
         if (!provider || provider.status !== "ACTIVE") continue;
 
         const adapter = await this.getProvider(provider._id.toString());

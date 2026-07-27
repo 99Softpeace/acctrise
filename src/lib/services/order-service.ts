@@ -191,6 +191,7 @@ export class OrderService {
           this.log("info", `Order sent to provider: ${order.orderNumber}`);
           break;
         } catch (error) {
+          if ((error as Error & { failoverSafe?: boolean })?.failoverSafe === false) throw error;
           lastError = error as Error;
           this.log("warn", "Failed with provider, trying next...", { error: lastError.message });
         }

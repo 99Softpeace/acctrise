@@ -3,6 +3,9 @@
  * Registers all available providers
  */
 
+import { GrizzlySMSAdapter } from './adapters/grizzly-sms-adapter';
+import { SMSBowerAdapter } from './adapters/sms-bower-adapter';
+
 import pino from "pino";
 import { ProviderManager } from "./provider-manager";
 import { ResellingSMMAdapter } from "./adapters/smm-adapter";
@@ -18,6 +21,8 @@ export function initializeProviders(logger?: any): ProviderManager {
 
   const log = logger || pino();
   providerManager = new ProviderManager(log);
+  providerManager.registerAdapter('grizzly-sms', GrizzlySMSAdapter);
+  providerManager.registerAdapter('smsbower', SMSBowerAdapter);
 
   providerManager.registerAdapter("smm", ResellingSMMAdapter);
   providerManager.registerAdapter("virtual-numbers", SMSPoolAdapter);
