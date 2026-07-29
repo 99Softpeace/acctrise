@@ -1,12 +1,16 @@
 import mongoose from "mongoose";
 import { connectMongo } from "@/lib/mongodb";
-import { centsFromAmount } from "@/lib/services/mongo-wallet-service";
 import { Transaction } from "@/models/transaction";
 import { VirtualAccount } from "@/models/virtual-account";
 import { Wallet } from "@/models/wallet";
 
 function record(value: unknown): Record<string, any> {
   return value && typeof value === "object" ? value as Record<string, any> : {};
+}
+
+function providerTotalCents(value: unknown): number {
+  const amount = Number(value);
+  return Number.isFinite(amount) && amount > 0 ? Math.round(amount * 100) : 0;
 }
 
 export async function reconcilePocketFiVirtualAccounts(userId?: string) {
@@ -19,16 +23,26 @@ export async function reconcilePocketFiVirtualAccounts(userId?: string) {
   const response = await fetch(url, { headers: { Authorization: `Bearer ${token}`, Accept: "application/json" }, cache: "no-store" });
   const body = record(await response.json().catch(() => ({})));
   if (!response.ok || body.status === false) throw new Error(body.message || "Unable to reconcile virtual-account funding.");
+
+  const providerRows = (Array.isArray(body.accounts) ? body.accounts : [])
+    .map(record)
+    .map((row) => ({
+      row,
+      accountNumber: String(row.account || row.accountNumber || row.account_number || ""),
+      totalCents: providerTotalCents(row.total_fund)
+    }))
+    .filter(({ accountNumber, totalCents }) => accountNumber && totalCents > 0);
+  if (!providerRows.length) return { creditedCents: 0 };
+
   await connectMongo();
+  const accountQuery: Record<string, any> = { accountNumber: { $in: providerRows.map(({ accountNumber }) => accountNumber) } };
+  if (userId && mongoose.Types.ObjectId.isValid(userId)) accountQuery.userId = new mongoose.Types.ObjectId(userId);
+  const virtualAccounts = await VirtualAccount.find(accountQuery);
+  const virtualAccountByNumber = new Map(virtualAccounts.map((account) => [account.accountNumber, account]));
+
   let creditedCents = 0;
-  for (const providerRowValue of Array.isArray(body.accounts) ? body.accounts : []) {
-    const providerRow = record(providerRowValue);
-    const accountNumber = String(providerRow.account || providerRow.accountNumber || providerRow.account_number || "");
-    const totalCents = providerRow.total_fund === undefined ? 0 : centsFromAmount(providerRow.total_fund);
-    if (!accountNumber || totalCents <= 0) continue;
-    const query: Record<string, any> = { accountNumber };
-    if (userId && mongoose.Types.ObjectId.isValid(userId)) query.userId = new mongoose.Types.ObjectId(userId);
-    const virtualAccount = await VirtualAccount.findOne(query);
+  for (const { row: providerRow, accountNumber, totalCents } of providerRows) {
+    const virtualAccount = virtualAccountByNumber.get(accountNumber);
     if (!virtualAccount || totalCents <= (virtualAccount.creditedCents || 0)) continue;
     const session = await mongoose.startSession();
     try {
