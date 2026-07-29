@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getRequestUser } from "@/lib/auth/request";
 import { fetchLiveCountries, fetchLiveServices, isLiveServiceKind } from "@/lib/providers/live-services";
 import { getUsdToNgnRate } from "@/lib/pricing/exchange-rate";
-import { applyTikTokLikesNgnPriceRange } from "@/lib/pricing/profit-margin";
+import { applyFixedSocialNumberPrice, applyNumberMinimumPrice, applyTikTokLikesNgnPriceRange } from "@/lib/pricing/profit-margin";
 import { getCachedLiveValue } from "@/lib/cache/live-service-cache";
 
 const FRIENDLY_PROVIDER_MESSAGE = "This service is available, but fulfillment is temporarily unavailable. Please contact support.";
@@ -70,11 +70,13 @@ export async function GET(request: NextRequest) {
         serviceId: service.serviceId,
         name: service.name,
         description: service.description,
-        price: applyTikTokLikesNgnPriceRange(
-          service.price,
-          exchangeRate.rate,
-          `${service.name} ${service.description || ""}`
-        ),
+        price: kind === "foreign-numbers" || kind === "uk-premium"
+          ? applyNumberMinimumPrice(
+              applyFixedSocialNumberPrice(service.price, exchangeRate.rate, `${service.name} ${service.description || ""}`),
+              exchangeRate.rate,
+              `${service.name} ${service.description || ""}`
+            )
+          : applyTikTokLikesNgnPriceRange(service.price, exchangeRate.rate, `${service.name} ${service.description || ""}`),
         minOrder: service.minOrder,
         maxOrder: service.maxOrder,
         countryId: service.countryId,

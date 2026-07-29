@@ -6,7 +6,7 @@ import { SMSBowerAdapter } from "@/lib/providers/adapters/sms-bower-adapter";
 import type { SmsActivateAdapter } from "@/lib/providers/adapters/sms-activate-adapter";
 import { ResellingSMMAdapter } from "@/lib/providers/adapters/smm-adapter";
 import type { BaseProviderAdapter, ProviderConfig, ServiceMapping } from "@/lib/providers/base-adapter";
-import { applyProfitMargin, PROFIT_MARGIN_PERCENT } from "@/lib/pricing/profit-margin";
+import { applyNumberServiceProfitMargin, applyProfitMargin, NUMBER_PROFIT_MARGIN_PERCENT, PROFIT_MARGIN_PERCENT } from "@/lib/pricing/profit-margin";
 
 export type LiveServiceKind = "boosting" | "logs" | "foreign-numbers" | "uk-premium" | "esim";
 
@@ -193,7 +193,7 @@ async function fetchNumberServices(kind: Extract<LiveServiceKind, "foreign-numbe
     externalId: `${normalizeName(countryName)}:${key}`,
     name: entry.service.name,
     description: entry.service.description,
-    price: applyProfitMargin(entry.service.price),
+    price: applyNumberServiceProfitMargin(entry.service.price, `${entry.service.name} ${entry.service.description || ""}`),
     minOrder: 1,
     maxOrder: 1,
     provider: entry.providers.join(" + "),
@@ -204,7 +204,7 @@ async function fetchNumberServices(kind: Extract<LiveServiceKind, "foreign-numbe
     friendlyLabel: entry.service.friendlyLabel,
     stock: entry.service.stock
   }));
-  return { kind, provider: "GrizzlySMS + SMSBower", services, fetchedAt: new Date().toISOString(), profitMarginPercent: PROFIT_MARGIN_PERCENT };
+  return { kind, provider: "GrizzlySMS + SMSBower", services, fetchedAt: new Date().toISOString(), profitMarginPercent: NUMBER_PROFIT_MARGIN_PERCENT };
 }
 
 export function isLiveServiceKind(value: string | null): value is LiveServiceKind {

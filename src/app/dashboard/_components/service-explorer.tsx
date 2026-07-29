@@ -233,16 +233,6 @@ function FulfillmentDetails({ fulfillment }: { fulfillment: FulfillmentPayload |
   );
 }
 
-function PriceSourceNote({ service, compact = false }: { service?: ServiceItem | null; compact?: boolean }) {
-  const rate = displayExchangeRate(service);
-  const source = service?.rateSource || "live exchange provider";
-  const fallback = service?.rateFallback ? " Fallback rate shown because live rate lookup is unavailable." : "";
-  return (
-    <p className={`text-xs font-semibold leading-5 text-slate-500 ${compact ? "mt-1" : "mt-3"}`}>
-      Provider price converted with USD/NGN {rate.toLocaleString()} from {source}.{fallback}
-    </p>
-  );
-}
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return <label className="grid gap-2 text-sm font-semibold text-slate-600">{label}{children}</label>;
 }
@@ -370,7 +360,6 @@ function CheckoutPanel({ service, variant }: { service: ServiceItem | null; vari
         <p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-600">Ready to buy</p>
         <h3 className="mt-2 text-lg font-bold tracking-tight text-slate-900">{service.name}</h3>
         <p className="mt-2 text-sm leading-6 text-slate-600">{service.countryName || inferCountry(service)} SMS verification service.</p>
-        <PriceSourceNote service={service} compact />
         <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
           <div className="rounded-lg bg-slate-50 p-3 ring-1 ring-slate-200"><dt className="text-xs font-bold text-slate-400">Price</dt><dd className="mt-1 font-black text-blue-700">{formatPrice(service.price, displayExchangeRate(service))}</dd></div>
           <div className="rounded-lg bg-slate-50 p-3 ring-1 ring-slate-200"><dt className="text-xs font-bold text-slate-400">Region</dt><dd className="mt-1 font-bold text-slate-800">{service.countryName || inferCountry(service)}</dd></div>
@@ -422,7 +411,6 @@ function CheckoutPanel({ service, variant }: { service: ServiceItem | null; vari
       <span className="rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700 ring-1 ring-emerald-100">{service.availability || "Available"}</span>
       <h3 className="mt-4 text-lg font-bold tracking-tight text-slate-800">{service.name}</h3>
       <p className="mt-2 text-sm leading-6 text-slate-600">{service.description || inferDelivery(service)}</p>
-      <PriceSourceNote service={service} compact />
       <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
         <div className="rounded-lg bg-white p-3 ring-1 ring-slate-200"><dt className="text-xs font-bold text-slate-400">{isBoost ? "Rate / 1k" : "Price"}</dt><dd className="mt-1 font-bold text-slate-700">{isBoost ? formatBoostRate(service.price, displayExchangeRate(service)) : formatPrice(service.price, displayExchangeRate(service))}</dd></div>
         <div className="rounded-lg bg-white p-3 ring-1 ring-slate-200"><dt className="text-xs font-bold text-slate-400">Quantity</dt><dd className="mt-1 font-bold text-slate-700">{service.minOrder} - {service.maxOrder || "available"}</dd></div>

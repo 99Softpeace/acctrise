@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Ban, CheckCircle2, RefreshCcw, ShieldCheck, Users, WalletCards } from "lucide-react";
+import { Activity, Ban, CheckCircle2, RefreshCcw, Search, ShieldCheck, ShoppingBag, Users, WalletCards } from "lucide-react";
 import { StatusPill } from "./dashboard-widgets";
 
 type AdminUser = {
@@ -24,6 +24,22 @@ type AdminPayload = {
     bannedUsers: number;
   };
   users: AdminUser[];
+  activities: AdminActivity[];
+};
+
+type AdminActivity = {
+  id: string;
+  orderNumber: string;
+  user: { id: string; name: string; email: string };
+  serviceName: string;
+  kind: string;
+  quantity: number;
+  amount: string;
+  amountCents: number;
+  status: string;
+  provider: string;
+  createdAt: string;
+  completedAt?: string | null;
 };
 
 const roleOptions = ["CUSTOMER", "RESELLER", "SUPPORT_AGENT", "ADMIN"];
@@ -33,11 +49,17 @@ function formatDate(value?: string | null) {
   return new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value));
 }
 
+function formatDateTime(value: string) {
+  return new Intl.DateTimeFormat("en-NG", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+}
+
 export function AdminPanel() {
   const [data, setData] = useState<AdminPayload | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [message, setMessage] = useState("");
   const [busyUserId, setBusyUserId] = useState<string | null>(null);
+  const [activityQuery, setActivityQuery] = useState("");
+  const [activityStatus, setActivityStatus] = useState("ALL");
 
   async function load() {
     setState("loading");
@@ -96,6 +118,15 @@ export function AdminPanel() {
     { label: "Active users", value: data.stats.activeUsers.toLocaleString(), icon: CheckCircle2 },
     { label: "Banned users", value: data.stats.bannedUsers.toLocaleString(), icon: Ban }
   ] : [], [data]);
+  const filteredActivities = useMemo(() => {
+    const query = activityQuery.trim().toLowerCase();
+    return (data?.activities || []).filter((activity) => {
+      if (activityStatus !== "ALL" && activity.status !== activityStatus) return false;
+      if (!query) return true;
+      return [activity.orderNumber, activity.user.name, activity.user.email, activity.serviceName, activity.kind, activity.provider]
+        .some((value) => value.toLowerCase().includes(query));
+    });
+  }, [activityQuery, activityStatus, data]);
 
   return (
     <div className="admin-panel-page mx-auto grid max-w-7xl gap-6">
@@ -127,6 +158,53 @@ export function AdminPanel() {
                 <strong className="mt-2 block text-3xl font-black tracking-tight text-slate-950">{card.value}</strong>
               </article>
             ))}
+          </section>
+
+          <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm shadow-slate-200/70">
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 px-5 py-4">
+              <div>
+                <div className="flex items-center gap-2"><Activity className="h-5 w-5 text-blue-600" /><h3 className="text-lg font-black tracking-tight text-slate-900">Purchase activity</h3></div>
+                <p className="mt-1 text-xs font-semibold text-slate-500">Latest 150 orders across all users.</p>
+              </div>
+              <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+                <label className="relative min-w-0 flex-1 sm:w-72 sm:flex-none">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <input value={activityQuery} onChange={(event) => setActivityQuery(event.target.value)} placeholder="Search user, order or service" className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-3 text-sm font-semibold outline-none focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100" />
+                </label>
+                <select value={activityStatus} onChange={(event) => setActivityStatus(event.target.value)} className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-700 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100">
+                  {["ALL", "PENDING", "PROCESSING", "COMPLETED", "FAILED", "REFUNDED", "CANCELLED"].map((status) => <option key={status} value={status}>{status === "ALL" ? "All statuses" : status}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="hidden overflow-x-auto lg:block">
+              <table className="w-full min-w-[1080px] border-collapse text-left text-sm">
+                <thead className="bg-slate-50 text-xs font-black uppercase tracking-[0.12em] text-slate-500">
+                  <tr><th className="px-5 py-4">Customer</th><th className="px-5 py-4">Purchase</th><th className="px-5 py-4">Provider</th><th className="px-5 py-4">Amount</th><th className="px-5 py-4">Status</th><th className="px-5 py-4">Date</th></tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredActivities.map((activity) => (
+                    <tr key={activity.id} className="transition hover:bg-slate-50/70">
+                      <td className="px-5 py-4"><div className="font-black text-slate-900">{activity.user.name}</div><div className="mt-1 text-xs font-semibold text-slate-500">{activity.user.email}</div></td>
+                      <td className="px-5 py-4"><div className="font-black text-slate-900">{activity.serviceName}</div><div className="mt-1 text-xs font-semibold capitalize text-slate-500">{activity.orderNumber} · {activity.kind} · Qty {activity.quantity}</div></td>
+                      <td className="px-5 py-4 font-bold text-slate-700">{activity.provider}</td>
+                      <td className="px-5 py-4 font-black text-slate-900">{activity.amount}</td>
+                      <td className="px-5 py-4"><StatusPill status={activity.status} /></td>
+                      <td className="px-5 py-4 text-xs font-semibold text-slate-500">{formatDateTime(activity.createdAt)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="grid gap-3 p-4 lg:hidden">
+              {filteredActivities.map((activity) => (
+                <article key={activity.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-xs font-black text-blue-600">{activity.orderNumber}</p><h4 className="mt-1 truncate font-black text-slate-900">{activity.serviceName}</h4></div><StatusPill status={activity.status} /></div>
+                  <div className="mt-4 flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-white text-blue-600 ring-1 ring-slate-200"><ShoppingBag className="h-4 w-4" /></span><div><p className="font-black text-slate-900">{activity.user.name}</p><p className="text-xs font-semibold text-slate-500">{activity.user.email}</p></div></div>
+                  <div className="mt-4 grid grid-cols-2 gap-3 text-sm"><span><b>Amount</b><br />{activity.amount}</span><span><b>Provider</b><br />{activity.provider}</span><span><b>Quantity</b><br />{activity.quantity}</span><span><b>Date</b><br />{formatDateTime(activity.createdAt)}</span></div>
+                </article>
+              ))}
+            </div>
+            {!filteredActivities.length ? <div className="border-t border-slate-100 p-8 text-center text-sm font-bold text-slate-500">No purchase activity matches these filters.</div> : null}
           </section>
 
           <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm shadow-slate-200/70">

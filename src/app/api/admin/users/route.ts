@@ -6,6 +6,8 @@ import { connectMongo } from "@/lib/mongodb";
 import { Transaction } from "@/models/transaction";
 import { User } from "@/models/user";
 import { Wallet } from "@/models/wallet";
+import { Order } from "@/models/order";
+import { ProviderOrder } from "@/models/provider-order";
 
 const assignableRoles = ["CUSTOMER", "RESELLER", "SUPPORT_AGENT", "ADMIN"] as const;
 type AssignableRole = (typeof assignableRoles)[number];
@@ -49,7 +51,7 @@ export async function GET(request: NextRequest) {
 
   await connectMongo();
 
-  const [totalUsers, activeUsers, bannedUsers, orderPayments, refunds, users] = await Promise.all([
+  const [totalUsers, activeUsers, bannedUsers, orderPayments, refunds, users, orders] = await Promise.all([
     User.countDocuments({}),
     User.countDocuments({ status: "active" }),
     User.countDocuments({ status: "banned" }),
@@ -61,12 +63,43 @@ export async function GET(request: NextRequest) {
       { $match: { type: "REFUND", status: "COMPLETED" } },
       { $group: { _id: null, total: { $sum: "$netAmountCents" } } }
     ]),
-    User.find({}).sort({ createdAt: -1 }).limit(100).lean()
+    User.find({}).sort({ createdAt: -1 }).limit(100).lean(),
+    Order.find({}).sort({ createdAt: -1 }).limit(150)
+      .populate("userId", "email username firstName lastName")
+      .populate("serviceId", "name")
+      .lean()
   ]);
 
   const walletRows = await Wallet.find({ userId: { $in: users.map((user) => user._id) } }).lean();
   const walletByUser = new Map(walletRows.map((wallet) => [wallet.userId.toString(), wallet]));
   const revenueCents = Number(orderPayments[0]?.total || 0) - Number(refunds[0]?.total || 0);
+  const providerOrders = await ProviderOrder.find({ orderId: { $in: orders.map((order) => order._id) } })
+    .populate("providerId", "name slug")
+    .lean();
+  const providerByOrder = new Map(providerOrders.map((row) => [row.orderId.toString(), row.providerId as any]));
+  const activities = orders.map((order: any) => {
+    const user = order.userId && typeof order.userId === "object" ? order.userId : null;
+    const service = order.serviceId && typeof order.serviceId === "object" ? order.serviceId : null;
+    const provider = providerByOrder.get(order._id.toString());
+    return {
+      id: order._id.toString(),
+      orderNumber: order.orderNumber,
+      user: {
+        id: user?._id?.toString() || "",
+        name: [user?.firstName, user?.lastName].filter(Boolean).join(" ") || user?.username || "Deleted user",
+        email: user?.email || "Unavailable"
+      },
+      serviceName: service?.name || "Unavailable service",
+      kind: String(order.additionalInfo?.kind || "service").replaceAll("-", " "),
+      quantity: order.quantity,
+      amount: moneyFromCents(order.totalPriceCents),
+      amountCents: order.totalPriceCents,
+      status: order.status,
+      provider: provider?.name || provider?.slug || "Not assigned",
+      createdAt: order.createdAt,
+      completedAt: order.completedAt
+    };
+  });
 
   return NextResponse.json({
     success: true,
@@ -77,7 +110,8 @@ export async function GET(request: NextRequest) {
       activeUsers,
       bannedUsers
     },
-    users: users.map((user) => serializeUser(user, walletByUser.get(user._id.toString())))
+    users: users.map((user) => serializeUser(user, walletByUser.get(user._id.toString()))),
+    activities
   });
 }
 
