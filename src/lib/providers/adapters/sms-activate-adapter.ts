@@ -10,7 +10,9 @@ import {
 } from '../base-adapter';
 
 type AdapterOptions = { name: string; baseUrl: string };
-type NamedCode = { id: string; name: string };
+export type SmsActivateCountry = { id: string; name: string };
+type NamedCode = SmsActivateCountry;
+type CountryServiceOptions = { query?: string; limit?: number };
 
 export type ResolvedSmsActivateService = {
   externalId: string;
@@ -59,8 +61,26 @@ export abstract class SmsActivateAdapter extends BaseProviderAdapter {
     }));
   }
 
+  async fetchCountries(): Promise<SmsActivateCountry[]> {
+    return this.fetchCountryList();
+  }
+
+  async fetchServicesForCountry(countryName: string, options: CountryServiceOptions = {}): Promise<ServiceMapping[]> {
+    const [countries, services] = await Promise.all([this.fetchCountryList(), this.fetchServiceList()]);
+    const country = bestNameMatch(countries, countryName);
+    if (!country) return [];
+    const prices = await this.request('getPrices', { country: country.id });
+    const query = normalized(options.query || '');
+    return services.flatMap((service) => {
+      if (query && !normalized(service.name).includes(query)) return [];
+      const offer = readOffer(prices, country.id, service.id);
+      if (!offer || offer.stock < 1 || offer.price <= 0) return [];
+      return [{ externalId: `${country.id}:${service.id}`, serviceId: service.id, name: service.name, price: offer.price, minOrder: 1, maxOrder: 1, stock: offer.stock, countryId: country.id, countryName: country.name, availability: `${offer.stock} available`, friendlyLabel: 'Verification service', description: 'SMS verification service' } satisfies ServiceMapping];
+    }).sort((a, b) => a.price - b.price).slice(0, options.limit || 30);
+  }
+
   async resolveService(countryName: string, serviceName: string): Promise<ResolvedSmsActivateService | null> {
-    const [countries, services] = await Promise.all([this.fetchCountries(), this.fetchServiceList()]);
+    const [countries, services] = await Promise.all([this.fetchCountryList(), this.fetchServiceList()]);
     const country = bestNameMatch(countries, countryName);
     const service = bestNameMatch(services, serviceName);
     if (!country || !service) return null;
@@ -147,7 +167,7 @@ export abstract class SmsActivateAdapter extends BaseProviderAdapter {
 
   async getSupportedPaymentMethods(): Promise<string[]> { return ['wallet']; }
 
-  private async fetchCountries(): Promise<NamedCode[]> {
+  private async fetchCountryList(): Promise<NamedCode[]> {
     const value = await this.request('getCountries');
     const rows = Array.isArray(value) ? value : Object.values(value || {});
     return rows.map((item: any) => ({

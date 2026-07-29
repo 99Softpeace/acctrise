@@ -31,7 +31,7 @@ type StatusTone = "success" | "warning" | "neutral" | "danger" | "info";
 const serviceCards = [
   { title: "Boost Account", href: "/dashboard/boosting", detail: "Social growth services organized by platform.", icon: Rocket, meta: "Fast campaigns" },
   { title: "Buy Logs", href: "/dashboard/logs", detail: "Premium accounts and social log inventory.", icon: FileText, meta: "Secure inventory" },
-  { title: "Rent Number", href: "/dashboard/rent-number", detail: "Temporary SMS numbers for app verification.", icon: Smartphone, meta: "SMSPool live" },
+  { title: "Rent Number", href: "/dashboard/rent-number", detail: "Temporary SMS numbers for app verification.", icon: Smartphone, meta: "Multi-provider live" },
   { title: "Foreign Numbers", href: "/dashboard/foreign-numbers", detail: "USA Premium and international verification numbers.", icon: Phone, meta: "Live numbers" },
   { title: "Buy eSIM", href: "/dashboard/esim", detail: "Travel data plans and regional eSIM options.", icon: Wifi, meta: "Travel ready" },
   { title: "Wallet", href: "/dashboard/wallet", detail: "Funding is paused while PocketFi activation is pending.", icon: Wallet, meta: "PocketFi planned" }
@@ -376,7 +376,7 @@ export function BoostingPage() {
 
 function NumberPurchasePage({ premium = false, rent = false }: { premium?: boolean; rent?: boolean }) {
   const title = premium ? "USA Premium Numbers" : rent ? "Rent Number" : "Foreign Numbers";
-  const description = premium ? "Search premium USA verification services, select one, and continue with a clear checkout panel." : "Choose a country, search SMSPool services, and rent a temporary verification number with live pricing.";
+  const description = premium ? "Search premium USA verification services, select one, and continue with a clear checkout panel." : "Choose a country, search live verification services, and rent a temporary number with multi-provider pricing.";
   return (
     <div className="mx-auto grid max-w-7xl gap-6">
       <PageHeader eyebrow="Numbers" title={title} description={description} action={<StatusPill status="Live pricing" />} />
