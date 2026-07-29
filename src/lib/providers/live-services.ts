@@ -21,6 +21,7 @@ type FetchLiveServicesOptions = {
 
 const USA_COUNTRY_ID = "1";
 const USA_COUNTRY_NAME = "United States";
+export const BOOSTING_MIN_QUANTITY = 100;
 const numberDefinitions = [
   { id: "grizzly-sms", name: "GrizzlySMS", envKey: "GRIZZLY_SMS_API_KEY", Adapter: GrizzlySMSAdapter },
   { id: "smsbower", name: "SMSBower", envKey: "SMSBOWER_API_KEY", Adapter: SMSBowerAdapter }
@@ -91,6 +92,12 @@ function createAdapter(kind: Exclude<LiveServiceKind, "foreign-numbers" | "uk-pr
 }
 
 function filterServices(kind: LiveServiceKind, services: ServiceMapping[]): ServiceMapping[] {
+  if (kind === "boosting") {
+    return services.filter((service) =>
+      service.minOrder <= BOOSTING_MIN_QUANTITY &&
+      (!service.maxOrder || service.maxOrder >= BOOSTING_MIN_QUANTITY)
+    );
+  }
   if (kind === "foreign-numbers") {
     return services.filter((service) => !/esim|e-sim|data plan|data package/i.test(`${service.name} ${service.description || ""}`));
   }
@@ -139,7 +146,7 @@ export async function fetchLiveServices(kind: LiveServiceKind, options: FetchLiv
       name: service.name,
       description: service.description,
       price: applyProfitMargin(service.price),
-      minOrder: service.minOrder,
+      minOrder: kind === "boosting" ? BOOSTING_MIN_QUANTITY : service.minOrder,
       maxOrder: service.maxOrder,
       provider: definition.name,
       countryId: service.countryId,

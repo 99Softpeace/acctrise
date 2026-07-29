@@ -279,7 +279,7 @@ function ServiceCard({ service, selected, onSelect, variant }: { service: Servic
 
 function CheckoutPanel({ service, variant }: { service: ServiceItem | null; variant: ServiceExplorerKind }) {
   const [notice, setNotice] = useState<{ serviceId: string; message: string } | null>(null);
-  const [quantity, setQuantity] = useState(() => service?.minOrder || 0);
+  const [quantity, setQuantity] = useState<number | "">(() => service?.minOrder || "");
   const [targetUrl, setTargetUrl] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [fulfillment, setFulfillment] = useState<FulfillmentPayload | null>(null);
@@ -320,13 +320,14 @@ function CheckoutPanel({ service, variant }: { service: ServiceItem | null; vari
   const isBoost = variant === "boosting";
   const isNumber = variant === "foreign-numbers" || variant === "uk-premium";
   const isEsim = variant === "esim";
+  const quantityValue = quantity === "" ? 0 : quantity;
   const actionLabel = isBoost ? "Create boost order" : isEsim ? "Buy eSIM" : isNumber ? "Buy Number" : "Continue to purchase";
   async function purchase() {
     if (isBoost && !targetUrl.trim()) {
       setNotice({ serviceId: service!.externalId, message: "Enter the profile or post link first." });
       return;
     }
-    if ((isBoost || variant === "logs") && (quantity < service!.minOrder || (service!.maxOrder && quantity > service!.maxOrder))) {
+    if ((isBoost || variant === "logs") && (quantityValue < service!.minOrder || (service!.maxOrder && quantityValue > service!.maxOrder))) {
       setNotice({ serviceId: service!.externalId, message: "Quantity must be between " + service!.minOrder + " and " + (service!.maxOrder || "the available maximum") + "." });
       return;
     }
@@ -339,7 +340,7 @@ function CheckoutPanel({ service, variant }: { service: ServiceItem | null; vari
       const response = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind: variant, externalServiceId: service!.externalId, serviceName: service!.name, countryId: service!.countryId, countryName: service!.countryName, quantity: isBoost || variant === "logs" ? quantity : 1, targetUrl: isBoost ? normalizedTargetUrl : undefined })
+        body: JSON.stringify({ kind: variant, externalServiceId: service!.externalId, serviceName: service!.name, countryId: service!.countryId, countryName: service!.countryName, quantity: isBoost || variant === "logs" ? quantityValue : 1, targetUrl: isBoost ? normalizedTargetUrl : undefined })
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Purchase failed.");
@@ -419,12 +420,12 @@ function CheckoutPanel({ service, variant }: { service: ServiceItem | null; vari
       </dl>
       <div className="mt-5 grid gap-3">
         {isBoost ? <Field label="Profile or post link"><input value={targetUrl} onChange={(event) => setTargetUrl(event.target.value)} className="h-12 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100" placeholder={linkPlaceholder(service)} /></Field> : null}
-        {(variant === "logs" || isBoost) ? <Field label="Quantity"><input className="h-12 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100" type="number" min={isBoost ? 0 : service.minOrder} max={service.maxOrder} value={quantity} onChange={(event) => setQuantity(event.target.value === "" ? 0 : Number(event.target.value))} /></Field> : null}
+        {(variant === "logs" || isBoost) ? <Field label="Quantity"><input className="h-12 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100" type="number" min={service.minOrder} max={service.maxOrder} value={quantity} onFocus={(event) => event.currentTarget.select()} onChange={(event) => setQuantity(event.target.value === "" ? "" : Number(event.target.value))} onBlur={() => setQuantity((value) => { const numeric = value === "" ? service.minOrder : value; return Math.min(service.maxOrder || numeric, Math.max(service.minOrder, numeric)); })} /></Field> : null}
         {isBoost ? (
           <div className="grid gap-3 rounded-2xl border border-blue-100 bg-blue-50/80 p-4 sm:grid-cols-3">
             <div><span className="text-xs font-black uppercase tracking-[0.14em] text-blue-500">Rate / 1k</span><strong className="mt-1 block text-sm font-black text-blue-950">{formatBoostRate(service.price, displayExchangeRate(service))}</strong></div>
-            <div><span className="text-xs font-black uppercase tracking-[0.14em] text-blue-500">Quantity</span><strong className="mt-1 block text-sm font-black text-blue-950">{quantity}</strong></div>
-            <div><span className="text-xs font-black uppercase tracking-[0.14em] text-blue-500">Estimated total</span><strong className="mt-1 block text-lg font-black text-blue-700">{orderEstimate(service, quantity)}</strong></div>
+            <div><span className="text-xs font-black uppercase tracking-[0.14em] text-blue-500">Quantity</span><strong className="mt-1 block text-sm font-black text-blue-950">{quantity === "" ? "—" : quantity}</strong></div>
+            <div><span className="text-xs font-black uppercase tracking-[0.14em] text-blue-500">Estimated total</span><strong className="mt-1 block text-lg font-black text-blue-700">{orderEstimate(service, quantityValue)}</strong></div>
           </div>
         ) : null}
         <button type="button" onClick={purchase} disabled={submitting} className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-black text-blue-50 shadow-lg shadow-blue-600/20 transition hover:-translate-y-0.5 hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-100">
@@ -666,7 +667,7 @@ function NumberServicePicker({ kind }: { kind: Extract<ServiceExplorerKind, "for
         </div>
       </div>
 
-      <CheckoutPanel service={selectedService} variant={kind} />
+      <CheckoutPanel key={selectedService?.externalId || "empty"} service={selectedService} variant={kind} />
     </section>
   );
 }
@@ -937,7 +938,7 @@ function EsimPlanBrowser() {
 
 
 
-      <CheckoutPanel service={selectedService} variant="esim" />
+      <CheckoutPanel key={selectedService?.externalId || "empty"} service={selectedService} variant="esim" />
     </section>
   );
 }
@@ -1247,7 +1248,7 @@ function ServiceCatalogExplorer({ kind, mode }: { kind: ServiceExplorerKind; mod
                 return (
                   <div key={service.externalId} className={selected && mode === "boosting" ? "sm:col-span-2 2xl:col-span-3" : ""}>
                     <ServiceCard service={service} selected={selected} onSelect={() => setSelectedService(service)} variant={kind} />
-                    {selected && mode === "boosting" ? <div className="mt-3 xl:hidden"><CheckoutPanel service={activeSelectedService} variant={kind} /></div> : null}
+                    {selected && mode === "boosting" ? <div className="mt-3 xl:hidden"><CheckoutPanel key={activeSelectedService?.externalId || "empty"} service={activeSelectedService} variant={kind} /></div> : null}
                   </div>
                 );
               })}
@@ -1260,7 +1261,7 @@ function ServiceCatalogExplorer({ kind, mode }: { kind: ServiceExplorerKind; mod
             ) : null}
           </div>
           <div className={mode === "boosting" ? "hidden xl:block" : ""}>
-            <CheckoutPanel service={activeSelectedService} variant={kind} />
+            <CheckoutPanel key={activeSelectedService?.externalId || "empty"} service={activeSelectedService} variant={kind} />
           </div>
         </section>
       ) : null}
