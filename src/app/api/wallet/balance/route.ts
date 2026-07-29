@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getRequestUserId } from "@/lib/auth/request";
+import { reconcilePocketFiVirtualAccounts } from "@/lib/payments/virtual-account-reconciliation";
 import { getOrCreateWallet } from "@/lib/services/mongo-wallet-service";
 
 export async function GET(request: NextRequest) {
@@ -12,6 +13,15 @@ export async function GET(request: NextRequest) {
     const userId = await getRequestUserId(request);
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    try {
+      await reconcilePocketFiVirtualAccounts(userId);
+    } catch (error) {
+      console.error("PocketFi wallet reconciliation failed", {
+        userId,
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
 
     const wallet = await getOrCreateWallet(userId);
