@@ -3,7 +3,7 @@
  * POST /api/webhooks/payments
  */
 
-import { NextRequest, NextResponse } from "next/server";
+import { after, NextRequest, NextResponse } from "next/server";
 import { parsePaymentWebhook } from "@/lib/payments";
 import { reconcilePocketFiVirtualAccounts } from "@/lib/payments/virtual-account-reconciliation";
 import { completeTransactionByReference, failTransactionByReference } from "@/lib/services/mongo-wallet-service";
@@ -18,28 +18,38 @@ export async function POST(request: NextRequest) {
     }
 
     if (webhook.status === "COMPLETED") {
-      try {
-        const transaction = await completeTransactionByReference({
-          reference: webhook.reference,
-          transactionHash: webhook.transactionHash,
-          gatewayReference: webhook.providerReference,
-          paidAmount: webhook.amount
-        });
-        return NextResponse.json({ success: true, transactionId: transaction.id });
-      } catch (error) {
-        if (!(error instanceof Error) || error.message !== "Transaction not found") throw error;
-        const reconciliation = await reconcilePocketFiVirtualAccounts();
-        return NextResponse.json({ success: true, reconciled: true, creditedCents: reconciliation.creditedCents });
-      }
+      after(async () => {
+        try {
+          await completeTransactionByReference({
+            reference: webhook.reference,
+            transactionHash: webhook.transactionHash,
+            gatewayReference: webhook.providerReference,
+            paidAmount: webhook.amount
+          });
+        } catch (error) {
+          if (!(error instanceof Error) || error.message !== "Transaction not found") {
+            console.error("PocketFi webhook processing failed", error);
+            return;
+          }
+          try {
+            await reconcilePocketFiVirtualAccounts();
+          } catch (reconciliationError) {
+            console.error("PocketFi virtual-account reconciliation failed", reconciliationError);
+          }
+        }
+      });
+      return NextResponse.json({ success: true, accepted: true });
     }
 
     if (webhook.status === "FAILED") {
-      const transaction = await failTransactionByReference(
-        webhook.reference,
-        webhook.failureReason
-      );
-
-      return NextResponse.json({ success: true, transactionId: transaction.id });
+      after(async () => {
+        try {
+          await failTransactionByReference(webhook.reference, webhook.failureReason);
+        } catch (error) {
+          console.error("PocketFi failed-payment webhook processing failed", error);
+        }
+      });
+      return NextResponse.json({ success: true, accepted: true });
     }
 
     return NextResponse.json({ success: true, pending: true });
