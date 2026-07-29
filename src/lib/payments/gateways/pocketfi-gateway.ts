@@ -51,8 +51,14 @@ export class PocketFiGateway implements PaymentGateway {
     const payload = record(JSON.parse(rawBody));
     const transaction = record(payload.transaction);
     const order = record(payload.order);
-    const reference = transaction.reference || payload.reference;
-    if (!reference) throw new Error("PocketFi webhook reference is missing.");
+    const reference =
+      transaction.reference ||
+      payload.reference ||
+      transaction.payment_id ||
+      payload.payment_id ||
+      payload.account ||
+      payload.account_number ||
+      "pocketfi-signed-event";
     const rawStatus = String(transaction.status || payload.status || payload.event || "completed").toLowerCase();
     const status = /fail|cancel|reverse|refund/.test(rawStatus) ? "FAILED" : /pending|process/.test(rawStatus) ? "PENDING" : "COMPLETED";
     return { gateway: this.id, reference: String(reference), status, providerReference: transaction.payment_id ? String(transaction.payment_id) : undefined, transactionHash: transaction.transaction_hash ? String(transaction.transaction_hash) : undefined, failureReason: status === "FAILED" ? String(payload.message || rawStatus) : undefined, amount: Number(order.amount) };
