@@ -63,11 +63,29 @@ function useWalletBalance() {
   const [balance, setBalance] = useState("0.00");
   useEffect(() => {
     let active = true;
-    fetch("/api/wallet/balance", { cache: "no-store" })
-      .then((response) => response.json())
-      .then((data) => { if (active && data?.wallet?.balance) setBalance(data.wallet.balance); })
-      .catch(() => undefined);
-    return () => { active = false; };
+    let refreshing = false;
+    const refreshBalance = () => {
+      if (!active || refreshing) return;
+      refreshing = true;
+      fetch("/api/wallet/balance", { cache: "no-store" })
+        .then((response) => response.json())
+        .then((data) => { if (active && data?.wallet?.balance) setBalance(data.wallet.balance); })
+        .catch(() => undefined)
+        .finally(() => { refreshing = false; });
+    };
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") refreshBalance();
+    };
+    refreshBalance();
+    const interval = window.setInterval(refreshBalance, 30_000);
+    window.addEventListener("focus", refreshBalance);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+      window.removeEventListener("focus", refreshBalance);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
   }, []);
   return "NGN " + Number(balance).toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
