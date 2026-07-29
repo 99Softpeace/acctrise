@@ -66,8 +66,11 @@ export async function resolveLiveService(kind: LiveServiceKind, externalId: stri
     `${live.name} ${live.description || ""}`
   );
   const customerNgnCents = Math.max(Math.round(customerPriceUsd * exchange.rate * 100), 0);
+  const existingMapping = await ProviderService.findOne({ providerId: provider._id, externalId });
   const service = await Service.findOneAndUpdate(
-    { slug: slugify(`${definition.slug}-${kind}-${externalId}`) },
+    existingMapping?.serviceId
+      ? { _id: existingMapping.serviceId }
+      : { slug: slugify(`${definition.slug}-${externalId}`) },
     { $set: { name: live.name, description: live.description, categoryId: category._id, priceCents: customerNgnCents, minOrder: live.minOrder, maxOrder: live.maxOrder, stock: live.maxOrder, isActive: true } },
     { upsert: true, returnDocument: "after" }
   );
@@ -100,7 +103,7 @@ export async function resolveLiveService(kind: LiveServiceKind, externalId: stri
         );
         const priceCents = Math.max(Math.round(mapping.price * 100), 0);
         await ProviderService.findOneAndUpdate(
-          { providerId: fallbackProvider._id, serviceId: service._id },
+          { providerId: fallbackProvider._id, externalId: mapping.externalId },
           { $set: {
             providerId: fallbackProvider._id,
             serviceId: service._id,
