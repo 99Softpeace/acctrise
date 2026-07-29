@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-      await reconcilePocketFiVirtualAccounts(userId);
+      await reconcilePocketFiVirtualAccounts();
     } catch (error) {
       console.error("PocketFi wallet reconciliation failed", {
         userId,
