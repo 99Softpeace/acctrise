@@ -1,6 +1,6 @@
 import pino from "pino";
 import { BulkAccAdapter } from "@/lib/providers/adapters/bulkacc-adapter";
-import { SMSPoolAdapter } from "@/lib/providers/adapters/sms-pool-adapter";
+import { SMSPoolEsimAdapter } from "@/lib/providers/adapters/sms-pool-esim-adapter";
 import { GrizzlySMSAdapter } from "@/lib/providers/adapters/grizzly-sms-adapter";
 import { SMSBowerAdapter } from "@/lib/providers/adapters/sms-bower-adapter";
 import type { SmsActivateAdapter } from "@/lib/providers/adapters/sms-activate-adapter";
@@ -34,7 +34,7 @@ const definitions: Record<Exclude<LiveServiceKind, "foreign-numbers" | "uk-premi
 }> = {
   boosting: { id: "justanotherpanel", name: "JustAnotherPanel", envKey: "JUSTANOTHERPANEL_API_KEY", adapter: ResellingSMMAdapter },
   logs: { id: "bulkacc", name: "Bulkacc", envKey: "BULKACC_API_KEY", adapter: BulkAccAdapter },
-  esim: { id: "smspool", name: "SMSPool", envKey: "SMSPOOL_API_KEY", adapter: SMSPoolAdapter }
+  esim: { id: "smspool", name: "SMSPool", envKey: "SMSPOOL_API_KEY", adapter: SMSPoolEsimAdapter }
 };
 
 export interface LiveCountry {
@@ -123,7 +123,7 @@ export async function fetchLiveServices(kind: LiveServiceKind, options: FetchLiv
   const { definition, adapter } = createAdapter(kind);
   let providerServices: ServiceMapping[];
 
-  if (kind === "esim" && adapter instanceof SMSPoolAdapter) {
+  if (kind === "esim" && adapter instanceof SMSPoolEsimAdapter) {
     providerServices = await adapter.fetchEsimServices();
   } else {
     providerServices = await adapter.fetchServices();

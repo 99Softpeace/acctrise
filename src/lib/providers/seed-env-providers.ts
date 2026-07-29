@@ -4,7 +4,7 @@ import { BulkAccAdapter } from "@/lib/providers/adapters/bulkacc-adapter";
 import { applyProfitMarginCents } from "@/lib/pricing/profit-margin";
 import type { BaseProviderAdapter, ProviderConfig, ServiceMapping } from "@/lib/providers/base-adapter";
 import { ResellingSMMAdapter } from "@/lib/providers/adapters/smm-adapter";
-import { SMSPoolAdapter } from "@/lib/providers/adapters/sms-pool-adapter";
+import { SMSPoolEsimAdapter } from "@/lib/providers/adapters/sms-pool-esim-adapter";
 import { Category } from "@/models/category";
 import { Provider } from "@/models/provider";
 import { ProviderService } from "@/models/provider-service";
@@ -15,7 +15,7 @@ type AdapterClass = new (id: string, config: ProviderConfig, logger?: any) => Ba
 const envProviders: Array<{
   name: string;
   slug: string;
-  type: "logs" | "virtual-numbers" | "smm";
+  type: "logs" | "esim" | "smm";
   envKey: "BULKACC_API_KEY" | "SMSPOOL_API_KEY" | "JUSTANOTHERPANEL_API_KEY";
   description: string;
   adapter: AdapterClass;
@@ -31,10 +31,10 @@ const envProviders: Array<{
   {
     name: "SMSPool",
     slug: "smspool",
-    type: "virtual-numbers",
+    type: "esim",
     envKey: "SMSPOOL_API_KEY",
-    description: "Virtual numbers, USA premium numbers, and SMS verification provider",
-    adapter: SMSPoolAdapter
+    description: "eSIM plans and activation profiles only",
+    adapter: SMSPoolEsimAdapter
   },
   {
     name: "JustAnotherPanel",
