@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
     ]),
     User.find({}).sort({ createdAt: -1 }).limit(100).lean(),
     Order.find({}).sort({ createdAt: -1 }).limit(150)
-      .populate("userId", "email username firstName lastName")
+      .populate("userId", "email username firstName lastName status")
       .populate({ path: "serviceId", model: Service, select: "name" })
       .lean()
   ]);
@@ -89,7 +89,8 @@ export async function GET(request: NextRequest) {
       user: {
         id: user?._id?.toString() || "",
         name: [user?.firstName, user?.lastName].filter(Boolean).join(" ") || user?.username || "Deleted user",
-        email: user?.email || "Unavailable"
+        email: user?.email || "Unavailable",
+        status: user?.status || "inactive"
       },
       serviceName: service?.name || "Unavailable service",
       kind: String(order.additionalInfo?.kind || "service").replaceAll("-", " "),

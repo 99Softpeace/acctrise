@@ -30,7 +30,7 @@ type AdminPayload = {
 type AdminActivity = {
   id: string;
   orderNumber: string;
-  user: { id: string; name: string; email: string };
+  user: { id: string; name: string; email: string; status: string };
   serviceName: string;
   kind: string;
   quantity: number;
@@ -95,6 +95,7 @@ export function AdminPanel() {
       setData((current) => {
         if (!current) return current;
         const users = current.users.map((user) => user.id === userId ? payload.user : user);
+        const activities = current.activities.map((activity) => activity.user.id === userId ? { ...activity, user: { ...activity.user, status: payload.user.status } } : activity);
         return {
           ...current,
           stats: {
@@ -160,57 +161,7 @@ export function AdminPanel() {
             ))}
           </section>
 
-          <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm shadow-slate-200/70">
-            <div className="border-b border-slate-100 px-5 py-4">
-              <h3 className="text-lg font-black tracking-tight text-slate-900">Users</h3>
-              <p className="mt-1 text-xs font-semibold text-slate-500">Manage roles and immediately ban or restore account access.</p>
-            </div>
-            <div className="hidden overflow-x-auto md:block">
-              <table className="w-full min-w-[760px] border-collapse text-left text-sm">
-                <thead className="bg-slate-50 text-xs font-black uppercase tracking-[0.12em] text-slate-500">
-                  <tr><th className="px-5 py-4">User</th><th className="px-5 py-4">Role</th><th className="px-5 py-4">Balance</th><th className="px-5 py-4">Joined</th><th className="px-5 py-4">Status & access</th></tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {data.users.map((user) => (
-                    <tr key={user.id} className="transition hover:bg-slate-50/70">
-                      <td className="px-5 py-4"><div className="font-black text-slate-900">{user.name}</div><div className="mt-1 text-xs font-semibold text-slate-500">{user.email}</div></td>
-                      <td className="px-5 py-4">
-                        <select value={user.role} disabled={busyUserId === user.id} onChange={(event) => void updateUser(user.id, { role: event.target.value })} className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-700 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100 disabled:opacity-60">
-                          {roleOptions.map((role) => <option key={role} value={role}>{role}</option>)}
-                        </select>
-                      </td>
-                      <td className="px-5 py-4 font-black text-slate-900">{user.balance}</td>
-                      <td className="px-5 py-4 text-slate-500">{formatDate(user.joinedAt)}</td>
-                      <td className="px-5 py-4">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <StatusPill status={user.status} />
-                          <button type="button" aria-label={`${user.status === "banned" ? "Unban" : "Ban"} ${user.name}`} disabled={busyUserId === user.id} onClick={() => void updateUser(user.id, { status: user.status === "banned" ? "active" : "banned" })} className={`inline-flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-xs font-black transition disabled:opacity-60 ${user.status === "banned" ? "bg-emerald-600 text-white" : "bg-rose-600 text-white shadow-sm shadow-rose-200 hover:bg-rose-700"}`}>
-                            <Ban className="h-3.5 w-3.5" />
-                            {busyUserId === user.id ? "Updating..." : user.status === "banned" ? "Unban user" : "Ban user"}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="grid gap-3 p-4 md:hidden">
-              {data.users.map((user) => (
-                <article key={user.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <div className="flex items-start justify-between gap-3"><div><h4 className="font-black text-slate-900">{user.name}</h4><p className="mt-1 text-xs font-semibold text-slate-500">{user.email}</p></div><StatusPill status={user.status} /></div>
-                  <div className="mt-4 grid grid-cols-2 gap-3 text-sm"><span><b>Balance</b><br />{user.balance}</span><span><b>Joined</b><br />{formatDate(user.joinedAt)}</span></div>
-                  <label className="mt-4 grid gap-2 text-sm font-black text-slate-700">Role
-                    <select value={user.role} disabled={busyUserId === user.id} onChange={(event) => void updateUser(user.id, { role: event.target.value })} className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 disabled:opacity-60">
-                      {roleOptions.map((role) => <option key={role} value={role}>{role}</option>)}
-                    </select>
-                  </label>
-                  <div className="mt-4 rounded-xl border border-rose-100 bg-rose-50 p-3"><p className="text-xs font-black uppercase tracking-[0.12em] text-rose-700">Account access</p><button type="button" aria-label={`${user.status === "banned" ? "Unban" : "Ban"} ${user.name}`} disabled={busyUserId === user.id} onClick={() => void updateUser(user.id, { status: user.status === "banned" ? "active" : "banned" })} className="mt-2 h-11 w-full rounded-xl bg-rose-600 text-sm font-black text-white shadow-sm shadow-rose-200 disabled:opacity-60">
-                    {busyUserId === user.id ? "Updating..." : user.status === "banned" ? "Unban user" : "Ban user"}
-                  </button></div></article>
-              ))}
-            </div>
-          </section>
+
 
           <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm shadow-slate-200/70">
             <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 px-5 py-4">
@@ -236,7 +187,7 @@ export function AdminPanel() {
                 <tbody className="divide-y divide-slate-100">
                   {filteredActivities.map((activity) => (
                     <tr key={activity.id} className="transition hover:bg-slate-50/70">
-                      <td className="px-5 py-4"><div className="font-black text-slate-900">{activity.user.name}</div><div className="mt-1 text-xs font-semibold text-slate-500">{activity.user.email}</div></td>
+                      <td className="px-5 py-4"><div className="flex flex-wrap items-center gap-2"><div><div className="font-black text-slate-900">{activity.user.name}</div><div className="mt-1 text-xs font-semibold text-slate-500">{activity.user.email}</div></div><button type="button" disabled={!activity.user.id || busyUserId === activity.user.id} onClick={() => void updateUser(activity.user.id, { status: activity.user.status === "banned" ? "active" : "banned" })} className={`inline-flex h-9 items-center justify-center gap-1.5 rounded-lg px-3 text-xs font-black disabled:opacity-60 ${activity.user.status === "banned" ? "bg-emerald-600 text-white" : "bg-rose-600 text-white hover:bg-rose-700"}`}><Ban className="h-3.5 w-3.5" />{busyUserId === activity.user.id ? "Updating..." : activity.user.status === "banned" ? "Unban" : "Ban user"}</button></div></td>
                       <td className="px-5 py-4"><div className="font-black text-slate-900">{activity.serviceName}</div><div className="mt-1 text-xs font-semibold capitalize text-slate-500">{activity.orderNumber} · {activity.kind} · Qty {activity.quantity}</div></td>
                       <td className="px-5 py-4 font-bold text-slate-700">{activity.provider}</td>
                       <td className="px-5 py-4 font-black text-slate-900">{activity.amount}</td>
@@ -251,7 +202,7 @@ export function AdminPanel() {
               {filteredActivities.map((activity) => (
                 <article key={activity.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                   <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-xs font-black text-blue-600">{activity.orderNumber}</p><h4 className="mt-1 truncate font-black text-slate-900">{activity.serviceName}</h4></div><StatusPill status={activity.status} /></div>
-                  <div className="mt-4 flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-white text-blue-600 ring-1 ring-slate-200"><ShoppingBag className="h-4 w-4" /></span><div><p className="font-black text-slate-900">{activity.user.name}</p><p className="text-xs font-semibold text-slate-500">{activity.user.email}</p></div></div>
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-white text-blue-600 ring-1 ring-slate-200"><ShoppingBag className="h-4 w-4" /></span><div><p className="font-black text-slate-900">{activity.user.name}</p><p className="text-xs font-semibold text-slate-500">{activity.user.email}</p></div></div><button type="button" disabled={!activity.user.id || busyUserId === activity.user.id} onClick={() => void updateUser(activity.user.id, { status: activity.user.status === "banned" ? "active" : "banned" })} className={`inline-flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-xs font-black disabled:opacity-60 ${activity.user.status === "banned" ? "bg-emerald-600 text-white" : "bg-rose-600 text-white"}`}><Ban className="h-4 w-4" />{busyUserId === activity.user.id ? "Updating..." : activity.user.status === "banned" ? "Unban" : "Ban user"}</button></div>
                   <div className="mt-4 grid grid-cols-2 gap-3 text-sm"><span><b>Amount</b><br />{activity.amount}</span><span><b>Provider</b><br />{activity.provider}</span><span><b>Quantity</b><br />{activity.quantity}</span><span><b>Date</b><br />{formatDateTime(activity.createdAt)}</span></div>
                 </article>
               ))}
