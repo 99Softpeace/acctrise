@@ -7,6 +7,8 @@ import { Transaction } from "@/models/transaction";
 import { User } from "@/models/user";
 import { Wallet } from "@/models/wallet";
 import { Order } from "@/models/order";
+import { Service } from "@/models/service";
+import { Provider } from "@/models/provider";
 import { ProviderOrder } from "@/models/provider-order";
 
 const assignableRoles = ["CUSTOMER", "RESELLER", "SUPPORT_AGENT", "ADMIN"] as const;
@@ -66,7 +68,7 @@ export async function GET(request: NextRequest) {
     User.find({}).sort({ createdAt: -1 }).limit(100).lean(),
     Order.find({}).sort({ createdAt: -1 }).limit(150)
       .populate("userId", "email username firstName lastName")
-      .populate("serviceId", "name")
+      .populate({ path: "serviceId", model: Service, select: "name" })
       .lean()
   ]);
 
@@ -74,7 +76,7 @@ export async function GET(request: NextRequest) {
   const walletByUser = new Map(walletRows.map((wallet) => [wallet.userId.toString(), wallet]));
   const revenueCents = Number(orderPayments[0]?.total || 0) - Number(refunds[0]?.total || 0);
   const providerOrders = await ProviderOrder.find({ orderId: { $in: orders.map((order) => order._id) } })
-    .populate("providerId", "name slug")
+    .populate({ path: "providerId", model: Provider, select: "name slug" })
     .lean();
   const providerByOrder = new Map(providerOrders.map((row) => [row.orderId.toString(), row.providerId as any]));
   const activities = orders.map((order: any) => {
