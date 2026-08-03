@@ -481,6 +481,7 @@ function NumberServicePicker({ kind }: { kind: Extract<ServiceExplorerKind, "for
   const [services, setServices] = useState<ServiceItem[]>([]);
   const [serviceState, setServiceState] = useState<"idle" | "loading" | "ready" | "empty" | "error">("idle");
   const [selectedService, setSelectedService] = useState<ServiceItem | null>(null);
+  const [showForeignNumberNote, setShowForeignNumberNote] = useState(!premium);
 
   const selectedCountry = useMemo(() => countries.find((country) => country.id === selectedCountryId) || (premium ? USA_COUNTRY : null), [countries, premium, selectedCountryId]);
 
@@ -578,6 +579,31 @@ function NumberServicePicker({ kind }: { kind: Extract<ServiceExplorerKind, "for
 
   return (
     <section className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
+      {!premium && showForeignNumberNote ? (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/60 px-4 py-6 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="foreign-number-note-title">
+          <div className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl shadow-slate-950/20">
+            <div className="flex items-start justify-between gap-4 border-b border-slate-200 p-5 sm:p-6">
+              <div className="flex items-center gap-3">
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-blue-50 text-blue-700 ring-1 ring-blue-100"><Phone className="h-5 w-5" /></span>
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-600">Foreign numbers</p>
+                  <h3 id="foreign-number-note-title" className="text-xl font-black text-slate-900">Important Note</h3>
+                </div>
+              </div>
+              <button type="button" onClick={() => setShowForeignNumberNote(false)} className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-slate-200 text-slate-500 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700" aria-label="Close foreign number note">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="p-5 sm:p-6">
+              <div className="grid gap-4 text-sm font-semibold leading-6 text-slate-600">
+                <p>Numbers are valid for <strong className="font-black text-slate-900">15 minutes</strong>. Please ensure you are ready to request the SMS code immediately after generating the number.</p>
+                <p>If you are unable to get a code from Foreign Numbers, check the Rent Number page for another available route.</p>
+              </div>
+              <button type="button" onClick={() => setShowForeignNumberNote(false)} className="mt-6 h-12 w-full rounded-xl bg-blue-600 px-4 text-sm font-black text-white transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-100">I understand</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       <div className="min-w-0 rounded-lg border border-slate-200 bg-white p-4 shadow-sm shadow-slate-200/70 sm:p-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
