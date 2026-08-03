@@ -22,6 +22,7 @@ import {
   Users,
   Video,
   Wifi,
+  X,
   Zap
 } from "lucide-react";
 
@@ -950,6 +951,7 @@ function BoostAccountBrowser() {
   const [category, setCategory] = useState("All categories");
   const [query, setQuery] = useState("");
   const [selectedService, setSelectedService] = useState<ServiceItem | null>(null);
+  const [showImportantInfo, setShowImportantInfo] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -1001,6 +1003,33 @@ function BoostAccountBrowser() {
 
   return (
     <section className="grid gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(360px,1fr)] xl:items-start">
+      {showImportantInfo ? (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/60 px-4 py-6 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="boost-important-title">
+          <div className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl shadow-slate-950/20">
+            <div className="flex items-start justify-between gap-4 border-b border-slate-200 p-5 sm:p-6">
+              <div className="flex items-center gap-3">
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-blue-50 text-blue-700 ring-1 ring-blue-100"><AlertCircle className="h-5 w-5" /></span>
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-600">Before you order</p>
+                  <h3 id="boost-important-title" className="text-xl font-black text-slate-900">Important information</h3>
+                </div>
+              </div>
+              <button type="button" onClick={() => setShowImportantInfo(false)} className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-slate-200 text-slate-500 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700" aria-label="Close important information">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="p-5 sm:p-6">
+              <ul className="grid gap-4 text-sm font-semibold leading-6 text-slate-600">
+                <li className="flex gap-3"><span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-blue-600" /> Make sure the account or post is public before ordering.</li>
+                <li className="flex gap-3"><span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-blue-600" /> Do not place two orders for the same link at the same time.</li>
+                <li className="flex gap-3"><span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-blue-600" /> Double-check links before buying because incorrect links may not be refundable.</li>
+                <li className="flex gap-3"><span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-blue-600" /> For views, enter the video link instead of a profile link.</li>
+              </ul>
+              <button type="button" onClick={() => setShowImportantInfo(false)} className="mt-6 h-12 w-full rounded-xl bg-blue-600 px-4 text-sm font-black text-white transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-100">I understand</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm shadow-slate-200/70 sm:p-6">
         <div className="flex items-center gap-3">
           <span className="grid h-11 w-11 place-items-center rounded-lg bg-blue-50 text-blue-700 ring-1 ring-blue-100"><ShoppingBag className="h-5 w-5" /></span>
