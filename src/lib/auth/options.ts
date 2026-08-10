@@ -76,6 +76,8 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
         token.role = (user as any).role;
         token.username = (user as any).username;
+        token.name = (user as any).name || (user as any).username;
+        token.email = (user as any).email;
         token.emailVerified = (user as any).emailVerified;
       }
       return token;
@@ -85,6 +87,8 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.id as string;
         session.user.role = token.role as any;
         session.user.username = token.username as string;
+        session.user.name = (token as any).name as string | undefined;
+        session.user.email = (token as any).email as string | undefined;
         session.user.emailVerified = token.emailVerified as string | null;
       }
       return session;

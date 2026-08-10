@@ -119,6 +119,8 @@ export async function fetchLiveCountries(kind: Extract<LiveServiceKind, "foreign
     if (result.status !== "fulfilled") continue;
     for (const country of result.value) {
       const key = normalizeName(country.name);
+      // Exclude Japan from the foreign-numbers country list per product decision
+      if (key === "japan") continue;
       if (!countries.has(key)) countries.set(key, { id: key, name: country.name });
     }
   }
