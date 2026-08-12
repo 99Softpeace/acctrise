@@ -65,7 +65,7 @@ function useWalletBalance() {
     let active = true;
     let refreshing = false;
     const refreshBalance = () => {
-      if (!active || refreshing) return;
+      if (!active || refreshing || document.visibilityState !== "visible") return;
       refreshing = true;
       fetch("/api/wallet/balance", { cache: "no-store" })
         .then((response) => response.json())
@@ -77,7 +77,7 @@ function useWalletBalance() {
       if (document.visibilityState === "visible") refreshBalance();
     };
     refreshBalance();
-    const interval = window.setInterval(refreshBalance, 30_000);
+    const interval = window.setInterval(refreshBalance, 120_000);
     window.addEventListener("focus", refreshBalance);
     document.addEventListener("visibilitychange", refreshWhenVisible);
     return () => {
@@ -261,13 +261,24 @@ function RecentOrdersTable({ compact = false }: { compact?: boolean }) {
   const [orders, setOrders] = useState<Array<{ id: string; orderNumber: string; serviceName: string; targetUrl?: string | null; quantity: number; status: string; statusMessage?: string | null; createdAt: string; fulfillment?: ({ accounts?: string[]; number?: string | number; phonenumber?: string | number } & Record<string, unknown>) | null }>>([]);
   useEffect(() => {
     let active = true;
-    const load = () => fetch("/api/orders?limit=" + (compact ? "3" : "50"), { cache: "no-store" })
-      .then((response) => response.json())
-      .then((data) => { if (active && Array.isArray(data?.data)) setOrders(data.data); })
-      .catch(() => undefined);
+    const load = () => {
+      if (document.visibilityState !== "visible") return Promise.resolve();
+      return fetch("/api/orders?limit=" + (compact ? "3" : "50"), { cache: "no-store" })
+        .then((response) => response.json())
+        .then((data) => { if (active && Array.isArray(data?.data)) setOrders(data.data); })
+        .catch(() => undefined);
+    };
+    const refreshWhenVisible = () => { if (document.visibilityState === "visible") void load(); };
     load();
-    const timer = window.setInterval(load, 10000);
-    return () => { active = false; window.clearInterval(timer); };
+    const timer = window.setInterval(load, 60_000);
+    window.addEventListener("focus", refreshWhenVisible);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refreshWhenVisible);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
   }, [compact]);
   const rows = orders.map((order) => {
     const created = new Date(order.createdAt);

@@ -290,6 +290,7 @@ function CheckoutPanel({ service, variant }: { service: ServiceItem | null; vari
     if (!activeOrderId || (variant !== "foreign-numbers" && variant !== "uk-premium")) return;
     let active = true;
     const load = async () => {
+      if (document.visibilityState !== "visible") return;
       try {
         const response = await fetch("/api/orders?limit=50", { cache: "no-store" });
         const body = await response.json();
@@ -303,8 +304,16 @@ function CheckoutPanel({ service, variant }: { service: ServiceItem | null; vari
       }
     };
     void load();
-    const timer = window.setInterval(load, 5000);
-    return () => { active = false; window.clearInterval(timer); };
+    const refreshWhenVisible = () => { if (document.visibilityState === "visible") void load(); };
+    const timer = window.setInterval(load, 15_000);
+    window.addEventListener("focus", refreshWhenVisible);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refreshWhenVisible);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
   }, [activeOrderId, variant]);
 
 
