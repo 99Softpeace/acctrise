@@ -17,6 +17,7 @@ type FetchLiveServicesOptions = {
   countryName?: string;
   query?: string;
   limit?: number;
+  preview?: boolean;
 };
 
 const USA_COUNTRY_ID = "1";
@@ -132,7 +133,9 @@ export async function fetchLiveServices(kind: LiveServiceKind, options: FetchLiv
   const { definition, adapter } = createAdapter(kind);
   let providerServices: ServiceMapping[];
 
-  if (kind === "esim" && adapter instanceof SMSPoolEsimAdapter) {
+  if (kind === "logs" && options.preview && adapter instanceof BulkAccAdapter) {
+    providerServices = await adapter.fetchServicePreview();
+  } else if (kind === "esim" && adapter instanceof SMSPoolEsimAdapter) {
     providerServices = await adapter.fetchEsimServices();
   } else {
     providerServices = await adapter.fetchServices();

@@ -43,10 +43,12 @@ export async function GET(request: NextRequest) {
     const countryName = request.nextUrl.searchParams.get("countryName") || undefined;
     const query = request.nextUrl.searchParams.get("q") || undefined;
     const limit = Number(request.nextUrl.searchParams.get("limit") || 30);
-    const serviceKey = [kind, countryId || "", countryName || "", query || "", limit].join(":");
+    const preview = kind === "logs" && scope === "preview";
+    const serviceKey = [kind, scope || "", countryId || "", countryName || "", query || "", limit].join(":");
+    const serviceCacheMs = kind === "logs" ? (preview ? 60 * 1000 : 10 * 60 * 1000) : SERVICE_CACHE_MS;
 
     const [result, exchangeRate] = await Promise.all([
-      getCachedLiveValue(`services:${serviceKey}`, SERVICE_CACHE_MS, () => fetchLiveServices(kind, { countryId, countryName, query, limit })),
+      getCachedLiveValue(`services:${serviceKey}`, serviceCacheMs, () => fetchLiveServices(kind, { countryId, countryName, query, limit, preview })),
       getUsdToNgnRate()
     ]);
 

@@ -739,7 +739,7 @@ function LogsMarketplace() {
   const [state, setState] = useState<"loading" | "ready" | "empty" | "error">("loading");
   const [activeCategory, setActiveCategory] = useState("Social Media");
   const [query, setQuery] = useState("");
-  const [showOos, setShowOos] = useState(false);
+  const [showOos, setShowOos] = useState(true);
   const [sortLowFirst, setSortLowFirst] = useState(true);
   const [selectedService, setSelectedService] = useState<ServiceItem | null>(null);
   const [purchaseNotice, setPurchaseNotice] = useState("");
@@ -752,7 +752,7 @@ function LogsMarketplace() {
     async function load() {
       setState("loading");
       try {
-        const response = await fetch("/api/providers/services?kind=logs");
+        const response = await fetch("/api/providers/services?kind=logs&scope=preview");
         const body = await response.json();
         if (cancelled) return;
         if (!response.ok) throw new Error("Logs unavailable");
@@ -760,6 +760,17 @@ function LogsMarketplace() {
 
         setServices(nextServices);
         setState(nextServices.length ? "ready" : "empty");
+
+        // Render the first provider page immediately, then refresh with the complete
+        // cached catalogue without keeping the marketplace behind a loading screen.
+        void fetch("/api/providers/services?kind=logs")
+          .then(async (fullResponse) => ({ fullResponse, fullBody: await fullResponse.json() }))
+          .then(({ fullResponse, fullBody }) => {
+            if (cancelled || !fullResponse.ok || !Array.isArray(fullBody.services)) return;
+            setServices(fullBody.services);
+            setState(fullBody.services.length ? "ready" : "empty");
+          })
+          .catch(() => undefined);
       } catch {
         if (!cancelled) setState("error");
       }
@@ -769,9 +780,11 @@ function LogsMarketplace() {
   }, []);
 
   const counts = useMemo(() => logMarketplaceCategories.reduce<Record<string, number>>((acc, category) => {
-    acc[category.label] = services.filter((service) => logCategoryFor(service) === category.label).length;
+    acc[category.label] = services.filter((service) =>
+      logCategoryFor(service) === category.label && (showOos || service.maxOrder !== 0)
+    ).length;
     return acc;
-  }, {}), [services]);
+  }, {}), [services, showOos]);
 
   const filtered = useMemo(() => {
     const search = query.trim().toLowerCase();
@@ -1373,6 +1386,7 @@ function InlinePurchases({ kind }: { kind: ServiceExplorerKind }) {
 }
 
 export function ServiceExplorer({ kind, mode }: { kind: ServiceExplorerKind; mode: "boosting" | "logs" | "numbers" | "esim" }) {
+
   let marketplace: React.ReactNode;
   if (mode === "boosting" && kind === "boosting") marketplace = <BoostAccountBrowser />;
   else if (mode === "numbers" && (kind === "foreign-numbers" || kind === "uk-premium")) marketplace = <NumberServicePicker kind={kind} />;

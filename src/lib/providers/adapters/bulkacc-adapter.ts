@@ -17,6 +17,11 @@ interface BulkAccProductResponse {
   price: number;
 }
 
+interface BulkAccProductPage {
+  items: BulkAccProductResponse[];
+  totalPages: number;
+}
+
 function cleanProductDescription(value?: string) {
   if (!value) return undefined;
   return value
@@ -66,24 +71,65 @@ export class BulkAccAdapter extends BaseProviderAdapter {
     }
   }
 
+  async fetchServicePreview(): Promise<ServiceMapping[]> {
+    try {
+      const response = await this.client.get("/api/products/list", {
+        params: { apiKey: this.config.apiKey, pageIndex: 1, pageSize: 100 }
+      });
+      const products = response.data?.data?.items;
+      if (response.data?.statusCode !== 200 || !Array.isArray(products)) {
+        throw new Error(response.data?.message || "Bulkacc product preview request failed.");
+      }
+      return products.map((product: BulkAccProductResponse) => ({
+        externalId: product.code,
+        name: product.name,
+        price: Number(product.price || 0),
+        minOrder: product.min || 1,
+        maxOrder: product.inStock,
+        description: cleanProductDescription(product.description) || product.name,
+        categoryName: product.categoryName,
+        groupName: product.groupName,
+        stock: product.inStock
+      }));
+    } catch (error) {
+      this.log("error", "Failed to fetch BulkAcc service preview", error);
+      throw error;
+    }
+  }
   async fetchServices(): Promise<ServiceMapping[]> {
     try {
-      const pageSize = Number(process.env.BULKACC_PAGE_SIZE || 100);
-      const response = await this.client.get("/api/products/list", {
-        params: {
-          apiKey: this.config.apiKey,
-          pageIndex: 1,
-          pageSize: Math.min(Math.max(pageSize, 10), 200)
+      const configuredPageSize = Number(process.env.BULKACC_PAGE_SIZE || 200);
+      const pageSize = Math.min(Math.max(configuredPageSize, 10), 200);
+
+      const fetchPage = async (pageIndex: number): Promise<BulkAccProductPage> => {
+        const response = await this.client.get("/api/products/list", {
+          params: { apiKey: this.config.apiKey, pageIndex, pageSize }
+        });
+
+        if (response.data?.statusCode !== 200) {
+          throw new Error(response.data?.message || `Bulkacc product list page ${pageIndex} failed.`);
         }
-      });
 
-      if (response.data?.statusCode !== 200) {
-        throw new Error(response.data?.message || "Bulkacc product list request failed.");
-      }
+        const data = response.data?.data;
+        if (!Array.isArray(data?.items)) {
+          throw new Error(`Bulkacc product list page ${pageIndex} did not include items.`);
+        }
 
-      const products = response.data?.data?.items;
-      if (!Array.isArray(products)) {
-        throw new Error("Bulkacc product list response did not include items.");
+        return {
+          items: data.items,
+          totalPages: Math.max(1, Number(data.totalPages) || 1)
+        };
+      };
+
+      const firstPage = await fetchPage(1);
+      const products = [...firstPage.items];
+
+      // BulkAcc paginates its catalog. Fetch subsequent pages in small batches so
+      // the marketplace contains the complete live inventory without flooding the API.
+      const pageIndexes = Array.from({ length: firstPage.totalPages - 1 }, (_, index) => index + 2);
+      for (let index = 0; index < pageIndexes.length; index += 10) {
+        const pages = await Promise.all(pageIndexes.slice(index, index + 10).map(fetchPage));
+        pages.forEach((page) => products.push(...page.items));
       }
 
       return products.map((product: BulkAccProductResponse) => ({
