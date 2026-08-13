@@ -70,8 +70,12 @@ export function isDiscordNumber(serviceText?: string): boolean {
 
 export function applyFixedSocialNumberPrice(priceUsd: number, exchangeRate: number, serviceText?: string): number {
   if (!Number.isFinite(exchangeRate) || exchangeRate <= 0) return priceUsd;
-  if (isDiscordNumber(serviceText)) return DISCORD_NUMBER_PRICE_NGN / exchangeRate;
-  if (isMajorSocialNumber(serviceText)) return MAJOR_SOCIAL_NUMBER_PRICE_NGN / exchangeRate;
+  // These advertised prices are floors, not overrides. `priceUsd` already
+  // includes the number-service margin, so retaining the larger value keeps
+  // expensive countries/provider rates profitable while preserving the
+  // familiar minimum price for cheaper numbers.
+  if (isDiscordNumber(serviceText)) return Math.max(priceUsd, DISCORD_NUMBER_PRICE_NGN / exchangeRate);
+  if (isMajorSocialNumber(serviceText)) return Math.max(priceUsd, MAJOR_SOCIAL_NUMBER_PRICE_NGN / exchangeRate);
   return priceUsd;
 }
 
