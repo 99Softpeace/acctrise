@@ -1,4 +1,4 @@
-const DEFAULT_USD_TO_NGN_RATE = 1600;
+const DEFAULT_USD_TO_NGN_RATE = 1359.84;
 const RATE_TTL_MS = 15 * 60 * 1000;
 const DEFAULT_RATE_URL = "https://open.er-api.com/v6/latest/USD";
 

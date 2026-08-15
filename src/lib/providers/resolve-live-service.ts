@@ -1,10 +1,6 @@
 import { connectMongo } from "@/lib/mongodb";
 import { getUsdToNgnRate } from "@/lib/pricing/exchange-rate";
-import {
-  applyFixedSocialNumberPrice,
-  applyNumberMinimumPrice,
-  applyTikTokLikesNgnPriceRange
-} from "@/lib/pricing/profit-margin";
+import { applyTikTokLikesNgnPriceRange } from "@/lib/pricing/profit-margin";
 import { Category } from "@/models/category";
 import { Provider } from "@/models/provider";
 import { ProviderService } from "@/models/provider-service";
@@ -104,11 +100,7 @@ async function resolveNumberService(kind: Extract<LiveServiceKind, "foreign-numb
     { upsert: true, returnDocument: "after" }
   );
   const exchange = await getUsdToNgnRate();
-  const customerPriceUsd = applyNumberMinimumPrice(
-    applyFixedSocialNumberPrice(live.price, exchange.rate, `${live.name} ${live.description || ""}`),
-    exchange.rate,
-    `${live.name} ${live.description || ""}`
-  );
+  const customerPriceUsd = live.price;
   const customerNgnCents = Math.max(Math.round(customerPriceUsd * exchange.rate * 100), 0);
   const service = await Service.findOneAndUpdate(
     { slug: slugify(`numbers-${externalId}`) },
