@@ -77,14 +77,16 @@ function useWalletBalance() {
       if (document.visibilityState === "visible") refreshBalance();
     };
     refreshBalance();
-    const interval = window.setInterval(refreshBalance, 120_000);
+    const interval = window.setInterval(refreshBalance, 600_000);
     window.addEventListener("focus", refreshBalance);
     document.addEventListener("visibilitychange", refreshWhenVisible);
+    window.addEventListener("acctrise:order-created", refreshBalance);
     return () => {
       active = false;
       window.clearInterval(interval);
       window.removeEventListener("focus", refreshBalance);
       document.removeEventListener("visibilitychange", refreshWhenVisible);
+      window.removeEventListener("acctrise:order-created", refreshBalance);
     };
   }, []);
   return "NGN " + Number(balance).toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -261,23 +263,36 @@ function RecentOrdersTable({ compact = false }: { compact?: boolean }) {
   const [orders, setOrders] = useState<Array<{ id: string; orderNumber: string; serviceName: string; targetUrl?: string | null; quantity: number; status: string; statusMessage?: string | null; createdAt: string; fulfillment?: ({ accounts?: string[]; number?: string | number; phonenumber?: string | number } & Record<string, unknown>) | null }>>([]);
   useEffect(() => {
     let active = true;
-    const load = () => {
-      if (document.visibilityState !== "visible") return Promise.resolve();
-      return fetch("/api/orders?limit=" + (compact ? "3" : "50"), { cache: "no-store" })
-        .then((response) => response.json())
-        .then((data) => { if (active && Array.isArray(data?.data)) setOrders(data.data); })
-        .catch(() => undefined);
+    let timer: number | undefined;
+    const schedule = (rows: Array<{ status?: string }>) => {
+      window.clearTimeout(timer);
+      const hasActiveOrder = rows.some((order) => ["PENDING", "PROCESSING"].includes(String(order.status || "")));
+      timer = window.setTimeout(() => void load(), hasActiveOrder ? 60_000 : 600_000);
+    };
+    const load = async () => {
+      if (!active || document.visibilityState !== "visible") return;
+      try {
+        const response = await fetch("/api/orders?limit=" + (compact ? "3" : "50"), { cache: "no-store" });
+        const data = await response.json();
+        if (!active) return;
+        const rows = Array.isArray(data?.data) ? data.data : [];
+        setOrders(rows);
+        schedule(rows);
+      } catch {
+        if (active) timer = window.setTimeout(() => void load(), 60_000);
+      }
     };
     const refreshWhenVisible = () => { if (document.visibilityState === "visible") void load(); };
-    load();
-    const timer = window.setInterval(load, 60_000);
+    void load();
     window.addEventListener("focus", refreshWhenVisible);
     document.addEventListener("visibilitychange", refreshWhenVisible);
+    window.addEventListener("acctrise:order-created", refreshWhenVisible);
     return () => {
       active = false;
-      window.clearInterval(timer);
+      window.clearTimeout(timer);
       window.removeEventListener("focus", refreshWhenVisible);
       document.removeEventListener("visibilitychange", refreshWhenVisible);
+      window.removeEventListener("acctrise:order-created", refreshWhenVisible);
     };
   }, [compact]);
   const rows = orders.map((order) => {

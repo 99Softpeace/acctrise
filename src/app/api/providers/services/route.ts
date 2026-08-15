@@ -10,7 +10,7 @@ const SERVICE_CACHE_MS = 30 * 1000;
 const COUNTRY_CACHE_MS = 5 * 60 * 1000;
 
 function json(data: unknown, init?: ResponseInit) {
-  return NextResponse.json(data, { ...init, headers: { ...init?.headers, "Cache-Control": "private, max-age=30, stale-while-revalidate=60" } });
+  return NextResponse.json(data, { ...init, headers: { "Cache-Control": "private, max-age=30, stale-while-revalidate=60", ...init?.headers } });
 }
 
 export async function GET(request: NextRequest) {
@@ -63,6 +63,8 @@ export async function GET(request: NextRequest) {
       profitMarginPercent: result.profitMarginPercent
     };
 
+    const browserCacheSeconds = kind === "logs" ? 30 : kind === "foreign-numbers" || kind === "uk-premium" ? 60 : 300;
+
     return json({
       success: true,
       kind: result.kind,
@@ -90,7 +92,7 @@ export async function GET(request: NextRequest) {
         rateFetchedAt: exchangeRate.fetchedAt,
         rateFallback: exchangeRate.fallback
       }))
-    });
+    }, { headers: { "Cache-Control": "private, max-age=" + browserCacheSeconds + ", stale-while-revalidate=" + browserCacheSeconds } });
   } catch (error) {
     console.error("[providers/services]", { kind, error });
     return NextResponse.json(

@@ -303,14 +303,22 @@ function CheckoutPanel({ service, variant }: { service: ServiceItem | null; vari
         // Keep the purchased number visible and retry on the next polling interval.
       }
     };
-    void load();
+    let timer: number | undefined;
+    let pollCount = 0;
+    const poll = async () => {
+      await load();
+      if (!active) return;
+      pollCount += 1;
+      const delay = pollCount < 4 ? 15_000 : pollCount < 8 ? 30_000 : 60_000;
+      timer = window.setTimeout(() => void poll(), delay);
+    };
     const refreshWhenVisible = () => { if (document.visibilityState === "visible") void load(); };
-    const timer = window.setInterval(load, 15_000);
+    void poll();
     window.addEventListener("focus", refreshWhenVisible);
     document.addEventListener("visibilitychange", refreshWhenVisible);
     return () => {
       active = false;
-      window.clearInterval(timer);
+      window.clearTimeout(timer);
       window.removeEventListener("focus", refreshWhenVisible);
       document.removeEventListener("visibilitychange", refreshWhenVisible);
     };
@@ -751,25 +759,13 @@ function LogsMarketplace() {
     async function load() {
       setState("loading");
       try {
-        const response = await fetch("/api/providers/services?kind=logs&scope=preview");
+        const response = await fetch("/api/providers/services?kind=logs");
         const body = await response.json();
         if (cancelled) return;
         if (!response.ok) throw new Error("Logs unavailable");
         const nextServices = Array.isArray(body.services) ? body.services : [];
-
         setServices(nextServices);
         setState(nextServices.length ? "ready" : "empty");
-
-        // Render the first provider page immediately, then refresh with the complete
-        // cached catalogue without keeping the marketplace behind a loading screen.
-        void fetch("/api/providers/services?kind=logs")
-          .then(async (fullResponse) => ({ fullResponse, fullBody: await fullResponse.json() }))
-          .then(({ fullResponse, fullBody }) => {
-            if (cancelled || !fullResponse.ok || !Array.isArray(fullBody.services)) return;
-            setServices(fullBody.services);
-            setState(fullBody.services.length ? "ready" : "empty");
-          })
-          .catch(() => undefined);
       } catch {
         if (!cancelled) setState("error");
       }
