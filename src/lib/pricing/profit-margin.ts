@@ -1,15 +1,16 @@
 export const PROFIT_MARGIN_RATE = 0.3;
 export const PROFIT_MARGIN_PERCENT = PROFIT_MARGIN_RATE * 100;
-export const NUMBER_PROFIT_MARGIN_RATE = 0.2;
+export const NUMBER_PROFIT_MARGIN_RATE = 0.54;
 export const NUMBER_PROFIT_MARGIN_PERCENT = NUMBER_PROFIT_MARGIN_RATE * 100;
-export const LOW_COST_NUMBER_PROFIT_MARGIN_RATE = 1;
+export const NUMBER_STANDARD_PRICE_MULTIPLIER = 1.54;
+export const NUMBER_LOW_PRICE_MULTIPLIER = 6.006;
+export const NUMBER_LOW_API_PRICE_THRESHOLD_USD = 0.525;
 export const MAJOR_SOCIAL_NUMBER_PRICE_NGN = 2500;
 export const DISCORD_NUMBER_PRICE_NGN = 5000;
 export const OTHER_SOCIAL_NUMBER_PROFIT_MARGIN_RATE = NUMBER_PROFIT_MARGIN_RATE;
 export const OTHER_SOCIAL_NUMBER_PROFIT_MARGIN_PERCENT = OTHER_SOCIAL_NUMBER_PROFIT_MARGIN_RATE * 100;
-export const NUMBER_LOW_PRICE_THRESHOLD_NGN = 1000;
-export const NUMBER_LOW_PRICE_MINIMUM_NGN = 1200;
-export const NUMBER_LOW_PRICE_MAXIMUM_NGN = 1259;
+export const NUMBER_MINIMUM_PRICE_NGN = 1200;
+
 export const TIKTOK_LIKES_REACTIONS_MINIMUM_NGN_PER_1000 = 1000;
 export const TIKTOK_LIKES_REACTIONS_MAXIMUM_NGN_PER_1000 = 1500;
 
@@ -54,10 +55,12 @@ export function isOtherSocialNumber(serviceText?: string): boolean {
   return /linkedin|youtube|reddit|pinterest|twitch|spotify|tumblr|wechat|line|viber|signal|clubhouse|quora|skype|bigo|imo|kakao|meetme|hinge|tinder|bumble/i.test(serviceText);
 }
 
-export function applyNumberServiceProfitMargin(price: number, _serviceText?: string): number {
+export function applyNumberServiceProfitMargin(price: number): number {
   if (!Number.isFinite(price) || price <= 0) return price;
-  const marginRate = price < 1 ? LOW_COST_NUMBER_PROFIT_MARGIN_RATE : NUMBER_PROFIT_MARGIN_RATE;
-  return Number((price * (1 + marginRate)).toFixed(6));
+  const multiplier = price < NUMBER_LOW_API_PRICE_THRESHOLD_USD
+    ? NUMBER_LOW_PRICE_MULTIPLIER
+    : NUMBER_STANDARD_PRICE_MULTIPLIER;
+  return Number((price * multiplier).toFixed(6));
 }
 
 export function isMajorSocialNumber(serviceText?: string): boolean {
@@ -80,14 +83,9 @@ export function applyFixedSocialNumberPrice(priceUsd: number, exchangeRate: numb
   return priceUsd;
 }
 
-export function applyNumberMinimumPrice(priceUsd: number, exchangeRate: number, serviceText?: string): number {
+export function applyNumberMinimumPrice(priceUsd: number, exchangeRate: number): number {
   if (!Number.isFinite(priceUsd) || priceUsd <= 0 || !Number.isFinite(exchangeRate) || exchangeRate <= 0) return priceUsd;
-  if (priceUsd * exchangeRate >= NUMBER_LOW_PRICE_THRESHOLD_NGN) return priceUsd;
-  const text = serviceText || "number service";
-  let hash = 0;
-  for (const character of text.toLowerCase()) hash = (hash * 31 + character.charCodeAt(0)) >>> 0;
-  const range = NUMBER_LOW_PRICE_MAXIMUM_NGN - NUMBER_LOW_PRICE_MINIMUM_NGN + 1;
-  return (NUMBER_LOW_PRICE_MINIMUM_NGN + (hash % range)) / exchangeRate;
+  return Math.max(priceUsd, NUMBER_MINIMUM_PRICE_NGN / exchangeRate);
 }
 
 export function applyProfitMarginCents(cents: number): number {

@@ -188,9 +188,11 @@ async function fetchNumberServices(kind: Extract<LiveServiceKind, "foreign-numbe
     name,
     services: await adapter.fetchServicesForCountry(countryName, { query: options.query, limit: options.limit || 30 })
   })));
+  const fulfilledResults = results.filter((result): result is PromiseFulfilledResult<{ name: string; services: ServiceMapping[] }> => result.status === "fulfilled");
+  const smsBowerResults = fulfilledResults.filter((result) => result.value.name === "SMSBower" && result.value.services.length > 0);
+  const pricingResults = smsBowerResults.length ? smsBowerResults : fulfilledResults;
   const merged = new Map<string, { service: ServiceMapping; providers: string[] }>();
-  for (const result of results) {
-    if (result.status !== "fulfilled") continue;
+  for (const result of pricingResults) {
     for (const service of result.value.services) {
       const key = normalizeName(service.name);
       const current = merged.get(key);
@@ -205,7 +207,7 @@ async function fetchNumberServices(kind: Extract<LiveServiceKind, "foreign-numbe
     externalId: `${normalizeName(countryName)}:${key}`,
     name: entry.service.name,
     description: entry.service.description,
-    price: applyNumberServiceProfitMargin(entry.service.price, `${entry.service.name} ${entry.service.description || ""}`),
+    price: applyNumberServiceProfitMargin(entry.service.price),
     minOrder: 1,
     maxOrder: 1,
     provider: entry.providers.join(" + "),
@@ -216,7 +218,7 @@ async function fetchNumberServices(kind: Extract<LiveServiceKind, "foreign-numbe
     friendlyLabel: entry.service.friendlyLabel,
     stock: entry.service.stock
   }));
-  return { kind, provider: "GrizzlySMS + SMSBower", services, fetchedAt: new Date().toISOString(), profitMarginPercent: NUMBER_PROFIT_MARGIN_PERCENT };
+  return { kind, provider: smsBowerResults.length ? "SMSBower" : "Available number provider", services, fetchedAt: new Date().toISOString(), profitMarginPercent: NUMBER_PROFIT_MARGIN_PERCENT };
 }
 
 export function isLiveServiceKind(value: string | null): value is LiveServiceKind {

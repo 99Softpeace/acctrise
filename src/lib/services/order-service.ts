@@ -15,6 +15,7 @@ import { User } from "@/models/user";
 import { amountFromCents, deductForOrder, getWallet, mongoId, refundOrder } from "./mongo-wallet-service";
 import { ProviderManager } from "../providers/provider-manager";
 import { ProviderService } from "@/models/provider-service";
+import { getUsdToNgnRate } from "@/lib/pricing/exchange-rate";
 
 export interface CreateOrderRequest {
   userId: string;
@@ -156,15 +157,33 @@ export class OrderService {
       const providers = await this.providerManager.getProvidersForService(request.serviceId);
       if (providers.length === 0) throw new Error("No providers available for this service");
 
+      const numberOrder = ["uk-premium", "foreign-numbers"].includes(String(request.additionalInfo?.kind || ""));
+      const exchangeRate = numberOrder ? (await getUsdToNgnRate()).rate : null;
+      const candidates = (await Promise.all(providers.map(async (provider) => ({
+        provider,
+        mapping: await ProviderService.findOne({ providerId: mongoId(provider.getProviderId(), "provider id"), serviceId })
+      }))))
+        .filter((candidate) => Boolean(candidate.mapping))
+        .sort((left, right) => numberOrder
+          ? Number(left.mapping!.providerPriceCents) - Number(right.mapping!.providerPriceCents)
+          : 0);
+      if (candidates.length === 0) throw new Error("No mapped providers are available for this service");
+
       let orderPlaced = false;
       let lastError: Error | null = null;
 
-      for (const provider of providers) {
+      for (const { provider, mapping } of candidates) {
         try {
-          const mapping = await ProviderService.findOne({ providerId: mongoId(provider.getProviderId(), "provider id"), serviceId });
-          if (!mapping) throw new Error("Provider service mapping is missing");
+          if (numberOrder && exchangeRate) {
+            const maximumSafeProviderUsdCents = order.unitPriceCents / exchangeRate / 1.2;
+            if (Number(mapping!.providerPriceCents) > maximumSafeProviderUsdCents) {
+              lastError = new Error("Available backup provider is too expensive to fulfill this order profitably.");
+              this.log("warn", "Skipping unprofitable number provider", { providerId: provider.getProviderId(), providerPriceCents: mapping!.providerPriceCents });
+              continue;
+            }
+          }
           const response = await provider.placeOrder({
-            serviceId: mapping.externalId,
+            serviceId: mapping!.externalId,
             quantity: request.quantity,
             targetUrl: request.targetUrl,
             targetUsername: request.targetUsername,
@@ -299,13 +318,25 @@ export class OrderService {
 
     try {
       const providers = await this.providerManager.getProvidersForService(order.serviceId.toString());
+      const numberOrder = ["uk-premium", "foreign-numbers"].includes(String(order.additionalInfo?.kind || ""));
+      const exchangeRate = numberOrder ? (await getUsdToNgnRate()).rate : null;
+      const candidates = (await Promise.all(providers.map(async (provider) => ({
+        provider,
+        mapping: await ProviderService.findOne({ providerId: mongoId(provider.getProviderId(), "provider id"), serviceId: order.serviceId })
+      }))))
+        .filter((candidate) => Boolean(candidate.mapping))
+        .sort((left, right) => numberOrder
+          ? Number(left.mapping!.providerPriceCents) - Number(right.mapping!.providerPriceCents)
+          : 0);
 
-      for (const provider of providers) {
+      for (const { provider, mapping } of candidates) {
         try {
-          const mapping = await ProviderService.findOne({ providerId: mongoId(provider.getProviderId(), "provider id"), serviceId: order.serviceId });
-          if (!mapping) continue;
+          if (numberOrder && exchangeRate) {
+            const maximumSafeProviderUsdCents = order.unitPriceCents / exchangeRate / 1.2;
+            if (Number(mapping!.providerPriceCents) > maximumSafeProviderUsdCents) continue;
+          }
           const response = await provider.placeOrder({
-            serviceId: mapping.externalId,
+            serviceId: mapping!.externalId,
             quantity: order.quantity,
             targetUrl: order.targetUrl || undefined,
             targetUsername: order.targetUsername || undefined,
