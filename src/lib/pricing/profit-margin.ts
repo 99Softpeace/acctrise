@@ -1,8 +1,8 @@
 export const PROFIT_MARGIN_RATE = 0.3;
 export const PROFIT_MARGIN_PERCENT = PROFIT_MARGIN_RATE * 100;
-export const NUMBER_PROFIT_MARGIN_RATE = 0.3;
+export const NUMBER_PROFIT_MARGIN_RATE = 0.2;
 export const NUMBER_PROFIT_MARGIN_PERCENT = NUMBER_PROFIT_MARGIN_RATE * 100;
-export const WHATSAPP_NUMBER_PROFIT_MARGIN_RATE = 0.2;
+export const LOW_COST_NUMBER_PROFIT_MARGIN_RATE = 1;
 export const MAJOR_SOCIAL_NUMBER_PRICE_NGN = 2500;
 export const DISCORD_NUMBER_PRICE_NGN = 5000;
 export const OTHER_SOCIAL_NUMBER_PROFIT_MARGIN_RATE = NUMBER_PROFIT_MARGIN_RATE;
@@ -54,18 +54,10 @@ export function isOtherSocialNumber(serviceText?: string): boolean {
   return /linkedin|youtube|reddit|pinterest|twitch|spotify|tumblr|wechat|line|viber|signal|clubhouse|quora|skype|bigo|imo|kakao|meetme|hinge|tinder|bumble/i.test(serviceText);
 }
 
-export function applyNumberServiceProfitMargin(price: number, serviceText?: string): number {
+export function applyNumberServiceProfitMargin(price: number, _serviceText?: string): number {
   if (!Number.isFinite(price) || price <= 0) return price;
-  const marginRate = isWhatsAppNumber(serviceText)
-    ? WHATSAPP_NUMBER_PROFIT_MARGIN_RATE
-    : isOtherSocialNumber(serviceText)
-      ? OTHER_SOCIAL_NUMBER_PROFIT_MARGIN_RATE
-      : NUMBER_PROFIT_MARGIN_RATE;
+  const marginRate = price < 1 ? LOW_COST_NUMBER_PROFIT_MARGIN_RATE : NUMBER_PROFIT_MARGIN_RATE;
   return Number((price * (1 + marginRate)).toFixed(6));
-}
-
-export function isWhatsAppNumber(serviceText?: string): boolean {
-  return Boolean(serviceText && /whats?app/i.test(serviceText));
 }
 
 export function isMajorSocialNumber(serviceText?: string): boolean {
