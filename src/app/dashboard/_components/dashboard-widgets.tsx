@@ -19,7 +19,6 @@ import {
   Rocket,
   Smartphone,
   Wallet,
-  Wifi,
   Zap
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -33,7 +32,6 @@ const serviceCards = [
   { title: "Buy Logs", href: "/dashboard/logs", detail: "Premium accounts and social log inventory.", icon: FileText, meta: "Secure inventory" },
   { title: "Rent Number", href: "/dashboard/rent-number", detail: "Temporary SMS numbers for app verification.", icon: Smartphone, meta: "Multi-provider live" },
   { title: "Foreign Numbers", href: "/dashboard/foreign-numbers", detail: "USA Premium and international verification numbers.", icon: Phone, meta: "Live numbers" },
-  { title: "Buy eSIM", href: "/dashboard/esim", detail: "Travel data plans and regional eSIM options.", icon: Wifi, meta: "Travel ready" },
   { title: "Wallet", href: "/dashboard/wallet", detail: "Funding is paused while PocketFi activation is pending.", icon: Wallet, meta: "PocketFi planned" }
 ];
 
@@ -43,7 +41,6 @@ const quickActions = [
   { label: "Foreign Numbers", href: "/dashboard/foreign-numbers", icon: Clock3, tone: "teal" },
   { label: "Buy Logs", href: "/dashboard/logs", icon: FileText, tone: "yellow" },
   { label: "Tutorials", href: "/dashboard/tutorials", icon: PlayCircle, tone: "indigo" },
-  { label: "eSIM", href: "/dashboard/esim", icon: Smartphone, tone: "pink" }
 ];
 
 
@@ -105,7 +102,6 @@ function orderIconFor(service: string) {
   const normalized = service.toLowerCase();
   if (normalized.includes("rental")) return Smartphone;
   if (normalized.includes("instagram") || normalized.includes("telegram")) return Rocket;
-  if (normalized.includes("esim")) return Wifi;
   if (normalized.includes("log")) return FileText;
   return Package;
 }
@@ -244,21 +240,6 @@ function ServiceCards() {
   );
 }
 
-function EsimOrderDetails({ fulfillment }: { fulfillment?: Record<string, unknown> | null }) {
-  if (!fulfillment?.ac && !fulfillment?.activationCode) return null;
-  const fields = [
-    ["Activation string", fulfillment.ac],
-    ["SM-DP+ address", fulfillment.smdp],
-    ["Activation code", fulfillment.activationCode],
-    ["APN", fulfillment.apn],
-    ["PIN", fulfillment.pin],
-    ["PUK", fulfillment.puk],
-    ["Remaining data", fulfillment.remainingData],
-    ["Total data", fulfillment.totalData]
-  ].filter((entry) => entry[1] !== undefined && entry[1] !== null && entry[1] !== "");
-  return <details className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3"><summary className="cursor-pointer text-xs font-black text-emerald-800">View eSIM activation details</summary><dl className="mt-3 grid gap-2">{fields.map(([label, value]) => <div key={String(label)} className="rounded-md bg-white p-2"><dt className="text-xs font-bold text-emerald-700">{String(label)}</dt><dd className="mt-1 break-all text-xs font-semibold text-slate-900">{String(value)}</dd></div>)}</dl></details>;
-}
-
 function RecentOrdersTable({ compact = false }: { compact?: boolean }) {
   const [orders, setOrders] = useState<Array<{ id: string; orderNumber: string; serviceName: string; targetUrl?: string | null; quantity: number; status: string; statusMessage?: string | null; createdAt: string; fulfillment?: ({ accounts?: string[]; number?: string | number; phonenumber?: string | number } & Record<string, unknown>) | null }>>([]);
   useEffect(() => {
@@ -327,7 +308,7 @@ function RecentOrdersTable({ compact = false }: { compact?: boolean }) {
               </div>
               {order.number ? <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 p-3"><span className="text-xs font-bold text-blue-600">Phone number</span><strong className="mt-1 block text-base text-blue-950">{order.number}</strong><p className="mt-1 text-xs font-semibold text-blue-700">{order.statusMessage || "Waiting for SMS..."}</p></div> : null}
               {order.accounts.length ? <details className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3"><summary className="cursor-pointer text-xs font-black text-emerald-800">View delivered account</summary><div className="mt-2 grid gap-2">{order.accounts.map((account, index) => <pre key={index} className="whitespace-pre-wrap break-all rounded-md bg-white p-2 text-xs text-slate-800">{account}</pre>)}</div></details> : null}
-              <EsimOrderDetails fulfillment={order.fulfillment} />
+
             </article>
           );
         })}
@@ -345,7 +326,7 @@ function RecentOrdersTable({ compact = false }: { compact?: boolean }) {
               return (
                 <tr key={order.id} className="transition hover:bg-slate-50">
                   <td className="px-5 py-4 font-bold text-slate-800">{order.id}</td>
-                  <td className="px-5 py-4 font-semibold text-slate-700"><span className="inline-flex items-center gap-3"><span className="order-service-icon"><OrderIcon className="h-4 w-4" /></span>{order.service}</span>{order.number ? <div className="mt-2 rounded-md bg-blue-50 p-2 text-xs"><span className="font-bold text-blue-600">Number</span><strong className="ml-2 text-blue-950">{order.number}</strong><p className="mt-1 font-semibold text-blue-700">{order.statusMessage || "Waiting for SMS..."}</p></div> : null}{order.accounts.length ? <details className="mt-2"><summary className="cursor-pointer text-xs font-black text-emerald-700">View delivered account</summary><div className="mt-2 grid gap-2">{order.accounts.map((account, index) => <pre key={index} className="max-w-md whitespace-pre-wrap break-all rounded-md bg-emerald-50 p-2 text-xs text-slate-800">{account}</pre>)}</div></details> : null}<EsimOrderDetails fulfillment={order.fulfillment} /></td>
+                  <td className="px-5 py-4 font-semibold text-slate-700"><span className="inline-flex items-center gap-3"><span className="order-service-icon"><OrderIcon className="h-4 w-4" /></span>{order.service}</span>{order.number ? <div className="mt-2 rounded-md bg-blue-50 p-2 text-xs"><span className="font-bold text-blue-600">Number</span><strong className="ml-2 text-blue-950">{order.number}</strong><p className="mt-1 font-semibold text-blue-700">{order.statusMessage || "Waiting for SMS..."}</p></div> : null}{order.accounts.length ? <details className="mt-2"><summary className="cursor-pointer text-xs font-black text-emerald-700">View delivered account</summary><div className="mt-2 grid gap-2">{order.accounts.map((account, index) => <pre key={index} className="max-w-md whitespace-pre-wrap break-all rounded-md bg-emerald-50 p-2 text-xs text-slate-800">{account}</pre>)}</div></details> : null}</td>
                   <td className="px-5 py-4 text-slate-500">{order.link}</td>
                   <td className="px-5 py-4 text-slate-500">{order.quantity}</td>
                   <td className="px-5 py-4"><StatusPill status={order.status} /></td>
@@ -436,10 +417,6 @@ export function ForeignNumbersPage() {
 export function RentNumberPage() { return <NumberPurchasePage rent />; }
 export function UkPremiumPage() { return <NumberPurchasePage premium />; }
 
-export function EsimPage() {
-  return <div className="mx-auto grid max-w-7xl gap-6"><ServiceExplorer kind="esim" mode="esim" /></div>;
-}
-
 export function LogsPage() {
   return <div className="mx-auto grid max-w-7xl gap-6"><ServiceExplorer kind="logs" mode="logs" /></div>;
 }
@@ -480,7 +457,7 @@ function DedicatedAccountCard() {
   return <Surface className="overflow-hidden"><div className="h-1 bg-gradient-to-r from-emerald-400 to-blue-600" /><div className="p-5 sm:p-6"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-600">Fund wallet with virtual account</p><h3 className="mt-2 text-xl font-bold text-slate-900">Your dedicated funding account</h3><p className="mt-2 text-sm leading-6 text-slate-500">Transfer funds to this account whenever you want to fund your Acctrise wallet.</p></div><StatusPill status={account ? "Active" : "PocketFi"} /></div>{loading ? <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-6 text-sm font-semibold text-slate-500">Preparing your dedicated account...</div> : account ? <div className="mt-5 grid gap-4"><div className="grid gap-3 sm:grid-cols-2"><div><span className="text-xs font-bold text-slate-400">Account name</span><strong className="mt-1 block text-slate-900">{account.accountName.replace(/\s*\([^)]*\)\s*$/, "")}</strong></div><div><span className="text-xs font-bold text-slate-400">Bank name</span><strong className="mt-1 block text-slate-900">{account.bankName}</strong></div></div><div className="flex flex-wrap items-center justify-between gap-4 rounded-xl bg-slate-950 p-5 text-white"><div><span className="text-xs font-bold text-slate-400">Account number</span><strong className="mt-1 block text-2xl tracking-widest sm:text-3xl">{account.accountNumber}</strong></div><button type="button" onClick={copyNumber} className="rounded-lg bg-white px-4 py-2 text-sm font-bold text-slate-900">{copied ? "Copied" : "Copy"}</button></div><div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm font-semibold leading-6 text-blue-900">This live account was generated from your verified profile and is unique to your wallet.</div></div> : needsProfile ? <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4"><h4 className="font-bold text-amber-950">Complete your profile once</h4><p className="mt-1 text-sm text-amber-900">PocketFi requires your missing name details before it can issue a real bank account.</p><div className="mt-4 grid gap-3 sm:grid-cols-3">{missing.firstName ? <input value={profile.firstName} onChange={(e) => setProfile((v) => ({ ...v, firstName: e.target.value }))} className="h-11 rounded-lg border border-amber-200 bg-white px-3" placeholder="First name" /> : null}{missing.lastName ? <input value={profile.lastName} onChange={(e) => setProfile((v) => ({ ...v, lastName: e.target.value }))} className="h-11 rounded-lg border border-amber-200 bg-white px-3" placeholder="Last name" /> : null}<button type="button" onClick={completeProfile} disabled={saving} className="h-11 rounded-lg bg-blue-600 px-4 text-sm font-bold text-white disabled:bg-slate-300 sm:col-span-3">{saving ? "Generating account..." : "Save details"}</button></div>{notice ? <p className="mt-3 text-sm font-semibold text-amber-900">{notice}</p> : null}</div> : <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-900">{notice || "Your dedicated account is being prepared. Refresh shortly or contact support."}</div>}</div></Surface>;
 }
 export function WalletPage() {
-  
+
   const [walletRows, setWalletRows] = useState<Array<{ id: string; description?: string | null; paymentMethod?: string | null; amount: string; status: string; type: string; createdAt: string }>>([]);
   useEffect(() => {
     fetch("/api/wallet/transactions?limit=20", { cache: "no-store" }).then((response) => response.json()).then((body) => { if (Array.isArray(body?.transactions)) setWalletRows(body.transactions); }).catch(() => undefined);

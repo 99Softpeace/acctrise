@@ -17,20 +17,15 @@ const services = [
     text: "Rent numbers for OTP verification, including USA premium options and copy-ready codes."
   },
   {
-    icon: Globe2,
-    title: "eSIM plans",
-    text: "Activate travel data plans from the same wallet without jumping between tools."
-  },
-  {
     icon: WalletCards,
     title: "Wallet checkout",
     text: "Fund once, place orders faster, and keep every transaction in one simple dashboard."
   }
 ];
 
-const categories = ["Social growth", "Virtual numbers", "USA premium", "eSIM plans"];
+const categories = ["Social growth", "Virtual numbers", "USA premium"];
 const faqs = [
-  { question: "What services can I buy on Acctrise?", answer: "You can buy social media growth services, rent virtual and USA premium numbers, purchase eSIM plans, and manage everything from one wallet." },
+  { question: "What services can I buy on Acctrise?", answer: "You can buy social media growth services, rent virtual and USA premium numbers, and manage everything from one wallet." },
   { question: "How do I fund my wallet?", answer: "Log in, open Fund Wallet in your dashboard, choose an available payment method, and follow the payment instructions. Your balance updates after confirmation." },
   { question: "How quickly are orders delivered?", answer: "Delivery time depends on the service you choose. You can follow the live status of every purchase from My Orders in your dashboard." },
   { question: "Where will I receive my verification code?", answer: "Keep the number order open after renting it. Your verification code will appear on that screen as soon as the provider delivers it." },
@@ -80,7 +75,7 @@ export default function Home() {
 
         <div className="act-pill"><Sparkles size={14} /> All your digital services in one wallet</div>
         <h1 id="hero-title">Your simple wallet for digital services.</h1>
-        <p>Buy social media services, virtual numbers, USA premium numbers, and eSIM plans from one clean Acctrise dashboard.</p>
+        <p>Buy social media services, virtual numbers, USA premium numbers from one clean Acctrise dashboard.</p>
         <div className="act-hero-actions">
           <Link className="act-primary" href="/auth/signup">Get started <ArrowRight size={16} /></Link>
           <Link className="act-secondary" href="/auth/login">Login</Link>
@@ -134,7 +129,6 @@ export default function Home() {
           <div className="act-preview-balance"><span>Available wallet</span><strong>NGN 0.00</strong></div>
           <div className="act-preview-row"><span>Instagram followers</span><b>Processing</b></div>
           <div className="act-preview-row"><span>USA premium number</span><b>Ready</b></div>
-          <div className="act-preview-row"><span>eSIM plan</span><b>Active</b></div>
         </div>
       </section>
 

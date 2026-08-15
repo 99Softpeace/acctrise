@@ -1,6 +1,5 @@
 import pino from "pino";
 import { BulkAccAdapter } from "@/lib/providers/adapters/bulkacc-adapter";
-import { SMSPoolEsimAdapter } from "@/lib/providers/adapters/sms-pool-esim-adapter";
 import { GrizzlySMSAdapter } from "@/lib/providers/adapters/grizzly-sms-adapter";
 import { SMSBowerAdapter } from "@/lib/providers/adapters/sms-bower-adapter";
 import type { SmsActivateAdapter } from "@/lib/providers/adapters/sms-activate-adapter";
@@ -8,7 +7,7 @@ import { ResellingSMMAdapter } from "@/lib/providers/adapters/smm-adapter";
 import type { BaseProviderAdapter, ProviderConfig, ServiceMapping } from "@/lib/providers/base-adapter";
 import { applyNumberServiceProfitMargin, applyProfitMargin, NUMBER_PROFIT_MARGIN_PERCENT, PROFIT_MARGIN_PERCENT } from "@/lib/pricing/profit-margin";
 
-export type LiveServiceKind = "boosting" | "logs" | "foreign-numbers" | "uk-premium" | "esim";
+export type LiveServiceKind = "boosting" | "logs" | "foreign-numbers" | "uk-premium";
 
 type AdapterClass = new (id: string, config: ProviderConfig, logger?: any) => BaseProviderAdapter;
 
@@ -31,12 +30,11 @@ const numberDefinitions = [
 const definitions: Record<Exclude<LiveServiceKind, "foreign-numbers" | "uk-premium">, {
   id: string;
   name: string;
-  envKey: "BULKACC_API_KEY" | "SMSPOOL_API_KEY" | "JUSTANOTHERPANEL_API_KEY";
+  envKey: "BULKACC_API_KEY" | "JUSTANOTHERPANEL_API_KEY";
   adapter: AdapterClass;
 }> = {
   boosting: { id: "justanotherpanel", name: "JustAnotherPanel", envKey: "JUSTANOTHERPANEL_API_KEY", adapter: ResellingSMMAdapter },
   logs: { id: "bulkacc", name: "Bulkacc", envKey: "BULKACC_API_KEY", adapter: BulkAccAdapter },
-  esim: { id: "smspool", name: "SMSPool", envKey: "SMSPOOL_API_KEY", adapter: SMSPoolEsimAdapter }
 };
 
 export interface LiveCountry {
@@ -107,9 +105,7 @@ function filterServices(kind: LiveServiceKind, services: ServiceMapping[]): Serv
     return services.filter((service) => Number(service.stock ?? service.maxOrder ?? 0) > 0);
   }
 
-  if (kind === "esim") {
-    return services.filter((service) => /esim|e-sim|data plan|data package/i.test(`${service.name} ${service.description || ""}`));
-  }
+
 
   return services;
 }
@@ -139,8 +135,6 @@ export async function fetchLiveServices(kind: LiveServiceKind, options: FetchLiv
 
   if (kind === "logs" && options.preview && adapter instanceof BulkAccAdapter) {
     providerServices = await adapter.fetchServicePreview();
-  } else if (kind === "esim" && adapter instanceof SMSPoolEsimAdapter) {
-    providerServices = await adapter.fetchEsimServices();
   } else {
     providerServices = await adapter.fetchServices();
   }
@@ -226,5 +220,5 @@ async function fetchNumberServices(kind: Extract<LiveServiceKind, "foreign-numbe
 }
 
 export function isLiveServiceKind(value: string | null): value is LiveServiceKind {
-  return Boolean(value && ["boosting", "logs", "foreign-numbers", "uk-premium", "esim"].includes(value));
+  return Boolean(value && ["boosting", "logs", "foreign-numbers", "uk-premium"].includes(value));
 }

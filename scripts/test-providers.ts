@@ -2,7 +2,7 @@ import "dotenv/config";
 import { fetchLiveServices, type LiveServiceKind } from "../src/lib/providers/live-services";
 import { getProviderEnvStatuses } from "../src/lib/providers/env-status";
 
-const kinds: LiveServiceKind[] = ["boosting", "logs", "foreign-numbers", "uk-premium", "esim"];
+const kinds: LiveServiceKind[] = ["boosting", "logs", "foreign-numbers", "uk-premium"];
 
 async function main() {
   const health = await getProviderEnvStatuses({ liveCheck: true });

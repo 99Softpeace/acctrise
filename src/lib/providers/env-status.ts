@@ -1,6 +1,5 @@
 import pino from "pino";
 import { BulkAccAdapter } from "@/lib/providers/adapters/bulkacc-adapter";
-import { SMSPoolEsimAdapter } from "@/lib/providers/adapters/sms-pool-esim-adapter";
 import { ResellingSMMAdapter } from "@/lib/providers/adapters/smm-adapter";
 import type { BaseProviderAdapter, ProviderConfig, ProviderHealth } from "@/lib/providers/base-adapter";
 
@@ -9,11 +8,10 @@ type AdapterClass = new (id: string, config: ProviderConfig, logger?: any) => Ba
 const providerDefinitions: Array<{
   id: string;
   name: string;
-  envKey: "BULKACC_API_KEY" | "SMSPOOL_API_KEY" | "JUSTANOTHERPANEL_API_KEY";
+  envKey: "BULKACC_API_KEY" | "JUSTANOTHERPANEL_API_KEY";
   adapter: AdapterClass;
 }> = [
   { id: "bulkacc", name: "Bulkacc", envKey: "BULKACC_API_KEY", adapter: BulkAccAdapter },
-  { id: "smspool", name: "SMSPool (eSIM only)", envKey: "SMSPOOL_API_KEY", adapter: SMSPoolEsimAdapter },
   { id: "justanotherpanel", name: "JustAnotherPanel", envKey: "JUSTANOTHERPANEL_API_KEY", adapter: ResellingSMMAdapter }
 ];
 

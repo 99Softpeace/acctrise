@@ -1,6 +1,6 @@
 # Acctrise - Premium Digital Services Platform
 
-A sophisticated, enterprise-grade platform for buying and managing social media services, virtual numbers, eSIM, and digital reselling. Built with Next.js 15, TypeScript, and a provider adapter pattern for seamless service integration.
+A sophisticated, enterprise-grade platform for buying and managing social media services, virtual numbers, and digital reselling. Built with Next.js 15, TypeScript, and a provider adapter pattern for seamless service integration.
 
 ## 🎯 Overview
 
@@ -84,7 +84,6 @@ acctrise/
 │   │   │   ├── index.ts               # Provider initialization
 │   │   │   └── adapters/
 │   │   │       ├── smm-adapter.ts
-│   │   │       ├── sms-pool-adapter.ts
 │   │   │       └── bulkacc-adapter.ts
 │   │   ├── services/
 │   │   │   ├── wallet-service.ts      # Wallet operations
@@ -153,7 +152,6 @@ POCKETFI_SECRET_KEY=...
 
 # Provider API keys
 BULKACC_API_KEY=""
-SMSPOOL_API_KEY=""
 RESELLER_SMM_API_KEY=""
 
 # Provider configuration should be encrypted in the database.

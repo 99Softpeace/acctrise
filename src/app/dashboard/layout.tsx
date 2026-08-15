@@ -19,7 +19,6 @@ import {
   Rocket,
   Smartphone,
   Wallet,
-  Wifi,
   ShieldCheck
 } from "lucide-react";
 
@@ -31,7 +30,6 @@ const navItems: NavItem[] = [
   { icon: ReceiptText, label: "Buy Logs", href: "/dashboard/logs" },
   { icon: Smartphone, label: "Rent Number", href: "/dashboard/rent-number" },
   { icon: Phone, label: "Foreign Numbers", href: "/dashboard/foreign-numbers" },
-  { icon: Wifi, label: "Buy eSIM", href: "/dashboard/esim" },
   { icon: Box, label: "My Orders", href: "/dashboard/orders" },
   { icon: Wallet, label: "Fund Wallet", href: "/dashboard/wallet" },
   { icon: BookOpen, label: "Tutorials", href: "/dashboard/tutorials" },

@@ -9,7 +9,6 @@ import { SMSBowerAdapter } from './adapters/sms-bower-adapter';
 import pino from "pino";
 import { ProviderManager } from "./provider-manager";
 import { ResellingSMMAdapter } from "./adapters/smm-adapter";
-import { SMSPoolEsimAdapter } from "./adapters/sms-pool-esim-adapter";
 import { BulkAccAdapter } from "./adapters/bulkacc-adapter";
 
 let providerManager: ProviderManager | null = null;
@@ -25,7 +24,6 @@ export function initializeProviders(logger?: any): ProviderManager {
   providerManager.registerAdapter('smsbower', SMSBowerAdapter);
 
   providerManager.registerAdapter("smm", ResellingSMMAdapter);
-  providerManager.registerAdapter("esim", SMSPoolEsimAdapter);
   providerManager.registerAdapter("logs", BulkAccAdapter);
 
   log.info("Provider system initialized");

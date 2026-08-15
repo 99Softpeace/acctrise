@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ComponentType } from "react";
-import Image from "next/image";
-import QRCode from "qrcode";
 import {
   AlertCircle,
   BriefcaseBusiness,
@@ -26,7 +24,7 @@ import {
   Zap
 } from "lucide-react";
 
-export type ServiceExplorerKind = "boosting" | "logs" | "foreign-numbers" | "uk-premium" | "esim";
+export type ServiceExplorerKind = "boosting" | "logs" | "foreign-numbers" | "uk-premium";
 
 type ServiceItem = {
   externalId: string;
@@ -139,11 +137,6 @@ function inferDelivery(service: ServiceItem) {
   return "Delivery starts after confirmation";
 }
 
-function dataSummary(service: ServiceItem) {
-  const match = service.name.match(/(\d+(?:\.\d+)?)\s*GB/i) || service.description?.match(/(\d+(?:\.\d+)?)\s*GB/i);
-  return match ? `${match[1]} GB` : "Data plan";
-}
-
 function boostCategoryFor(service: ServiceItem) {
   const text = `${service.groupName || ""} ${service.categoryName || ""} ${service.name} ${service.description || ""}`.toLowerCase();
   if (/followers?|fans|subscribers?/.test(text)) return "Followers & subscribers";
@@ -190,19 +183,6 @@ function userSafeError() {
 
 type FulfillmentPayload = Record<string, unknown>;
 
-function EsimQrCode({ activationString }: { activationString: string }) {
-  const [dataUrl, setDataUrl] = useState("");
-  useEffect(() => {
-    let active = true;
-    QRCode.toDataURL(activationString, { width: 256, margin: 2, errorCorrectionLevel: "M" })
-      .then((url) => { if (active) setDataUrl(url); })
-      .catch(() => { if (active) setDataUrl(""); });
-    return () => { active = false; };
-  }, [activationString]);
-  if (!dataUrl) return <div className="grid h-28 w-28 sm:h-32 sm:w-32 place-items-center rounded-lg bg-white text-xs font-bold text-slate-400 ring-1 ring-emerald-200"><Loader2 className="h-5 w-5 animate-spin" /> Generating QR code...</div>;
-  return <div className="mt-3 grid justify-items-center rounded-lg bg-white p-3 ring-1 ring-emerald-200"><Image src={dataUrl} alt="Scannable eSIM activation QR code" width={256} height={256} unoptimized className="h-28 w-28 sm:h-32 sm:w-32" /><p className="mt-2 text-center text-xs font-semibold text-slate-500">Scan this QR code in your phone's eSIM settings.</p></div>;
-}
-
 function FulfillmentDetails({ fulfillment }: { fulfillment: FulfillmentPayload | null }) {
   if (!fulfillment) return null;
   const fields: Array<[string, unknown]> = [
@@ -225,7 +205,6 @@ function FulfillmentDetails({ fulfillment }: { fulfillment: FulfillmentPayload |
   return (
     <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-950">
       <h4 className="font-black">Purchase details</h4>
-      {typeof fulfillment.ac === "string" && fulfillment.ac ? <EsimQrCode activationString={fulfillment.ac} /> : null}
       <dl className="mt-3 grid gap-3 sm:grid-cols-2">
         {fields.map(([label, value]) => <div key={label} className="rounded-md bg-white p-3 ring-1 ring-emerald-100"><dt className="text-xs font-bold text-emerald-700">{label}</dt><dd className="mt-1 break-all font-semibold text-slate-900">{String(value)}</dd></div>)}
       </dl>
@@ -254,7 +233,7 @@ label: string }) {
 }
 
 function ServiceCard({ service, selected, onSelect, variant }: { service: ServiceItem; selected: boolean; onSelect: () => void; variant: ServiceExplorerKind }) {
-  const meta = variant === "esim" ? dataSummary(service) : inferPlatform(service);
+  const meta = inferPlatform(service);
   const country = inferCountry(service);
   return (
     <button
@@ -337,9 +316,8 @@ function CheckoutPanel({ service, variant }: { service: ServiceItem | null; vari
 
   const isBoost = variant === "boosting";
   const isNumber = variant === "foreign-numbers" || variant === "uk-premium";
-  const isEsim = variant === "esim";
   const quantityValue = quantity === "" ? 0 : quantity;
-  const actionLabel = isBoost ? "Create boost order" : isEsim ? "Buy eSIM" : isNumber ? "Buy Number" : "Continue to purchase";
+  const actionLabel = isBoost ? "Create boost order" : isNumber ? "Buy Number" : "Continue to purchase";
   async function purchase() {
     if (isBoost && !targetUrl.trim()) {
       setNotice({ serviceId: service!.externalId, message: "Enter the profile or post link first." });
@@ -394,37 +372,6 @@ function CheckoutPanel({ service, variant }: { service: ServiceItem | null; vari
     );
   }
 
-  if (isEsim) {
-    return (
-      <aside className="rounded-xl border border-blue-100 bg-white p-5 shadow-sm shadow-blue-100/60 lg:sticky lg:top-28">
-        <p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-600">Selected eSIM</p>
-        <h3 className="mt-2 text-lg font-bold tracking-tight text-slate-900">{service.name}</h3>
-        <p className="mt-2 text-sm leading-6 text-slate-600">{service.description || "Travel-ready data plan with activation details delivered after purchase."}</p>
-        <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
-          <div className="rounded-lg bg-slate-50 p-3 ring-1 ring-slate-200"><dt className="text-xs font-bold text-slate-400">Price</dt><dd className="mt-1 font-black text-blue-700">{formatPrice(service.price, displayExchangeRate(service))}</dd></div>
-          <div className="rounded-lg bg-slate-50 p-3 ring-1 ring-slate-200"><dt className="text-xs font-bold text-slate-400">Data</dt><dd className="mt-1 font-bold text-slate-800">{dataSummary(service)}</dd></div>
-          <div className="rounded-lg bg-slate-50 p-3 ring-1 ring-slate-200"><dt className="text-xs font-bold text-slate-400">Coverage</dt><dd className="mt-1 font-bold text-slate-800">{inferCountry(service)}</dd></div>
-          <div className="rounded-lg bg-slate-50 p-3 ring-1 ring-slate-200"><dt className="text-xs font-bold text-slate-400">Activation</dt><dd className="mt-1 font-bold text-slate-800">QR or manual setup</dd></div>
-        </dl>
-        <div className="mt-5 grid gap-4 rounded-lg border border-blue-100 bg-blue-50/70 p-4 sm:grid-cols-[112px_1fr] sm:items-center">
-          <div className="grid h-28 w-28 grid-cols-5 gap-1 rounded-lg border border-blue-200 bg-white p-3 shadow-sm">
-            {Array.from({ length: 25 }).map((_, index) => (
-              <span key={index} className={`rounded-sm ${index % 2 === 0 || [6, 8, 16, 18].includes(index) ? "bg-blue-700" : "bg-blue-100"}`} />
-            ))}
-          </div>
-          <div>
-            <h4 className="text-sm font-black text-slate-900">QR code after purchase</h4>
-            <p className="mt-2 text-sm leading-6 text-slate-600">After a successful purchase, the activation QR code or manual eSIM details will appear here for the customer to scan from their phone settings.</p>
-          </div>
-        </div>
-        <button type="button" onClick={purchase} disabled={submitting} className="mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-bold text-blue-50 shadow-sm shadow-blue-600/20 transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-100">
-          {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />} Buy eSIM
-        </button>
-        {notice?.serviceId === service.externalId ? <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm font-semibold leading-6 text-amber-900">{notice.message}</div> : null}
-        <FulfillmentDetails fulfillment={fulfillment} />
-      </aside>
-    );
-  }
   return (
     <aside className="rounded-xl border border-blue-100 bg-gradient-to-b from-white to-blue-50/40 p-5 shadow-sm shadow-blue-100/60 lg:sticky lg:top-28">
       <span className="rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700 ring-1 ring-emerald-100">{service.availability || "Available"}</span>
@@ -907,84 +854,6 @@ function LogsMarketplace() {
   );
 }
 
-function EsimPlanBrowser() {
-  const [services, setServices] = useState<ServiceItem[]>([]);
-  const [state, setState] = useState<"loading" | "ready" | "empty" | "error">("loading");
-  const [query, setQuery] = useState("");
-  const [selectedService, setSelectedService] = useState<ServiceItem | null>(null);
-  const [visiblePlans, setVisiblePlans] = useState(6);
-
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      setState("loading");
-      try {
-        const response = await fetch("/api/providers/services?kind=esim");
-        const body = await response.json();
-        if (cancelled) return;
-        if (!response.ok) throw new Error("eSIM unavailable");
-        const nextServices = Array.isArray(body.services) ? body.services : [];
-
-        setServices(nextServices);
-        setState(nextServices.length ? "ready" : "empty");
-        setSelectedService(nextServices[0] || null);
-      } catch {
-        if (!cancelled) setState("error");
-      }
-    }
-    load();
-    return () => { cancelled = true; };
-  }, []);
-
-  const filtered = useMemo(() => {
-    const search = query.trim().toLowerCase();
-    return services.filter((service) => !search || `${service.name} ${service.description || ""}`.toLowerCase().includes(search));
-  }, [query, services]);
-
-
-
-  return (
-    <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
-      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm shadow-slate-200/70 sm:p-5">
-        <div className="grid gap-4 lg:grid-cols-[1fr_320px] lg:items-end">
-          <div><p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-600">Travel data</p><h3 className="mt-2 text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">Available eSIM plans</h3><p className="mt-2 text-sm leading-6 text-slate-600">Browse live regional data plans and select one to view the final checkout details.</p></div>
-          <label className="relative block"><Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" /><input value={query} onChange={(event) => { setQuery(event.target.value); setVisiblePlans(6); }} className="h-12 w-full rounded-lg border border-slate-200 bg-slate-50 pl-11 pr-3 text-sm font-semibold text-slate-800 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100" placeholder="Search country or data plan..." /></label>
-        </div>
-
-        {state === "loading" ? <div className="mt-5 grid min-h-52 place-items-center rounded-lg border border-slate-200 bg-slate-50 p-8 text-sm font-semibold text-slate-600"><span className="inline-flex items-center gap-3"><Loader2 className="h-5 w-5 animate-spin text-blue-600" /> Loading eSIM plans...</span></div> : null}
-        {state === "error" ? <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-900">{userSafeError()}</div> : null}
-        {state === "empty" ? <div className="mt-5 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-sm font-semibold text-slate-500">No eSIM plans are available right now.</div> : null}
-
-        {state === "ready" ? (
-          <div className="mt-5 grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">
-            {filtered.slice(0, visiblePlans).map((service) => {
-              const selected = selectedService?.externalId === service.externalId;
-              return (
-                <article key={service.externalId} className={`flex min-h-48 flex-col rounded-lg border bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md ${selected ? "border-blue-500 ring-4 ring-blue-100" : "border-slate-200"}`}>
-                  <div className="flex items-start justify-between gap-3"><span className="rounded-md bg-blue-50 px-2.5 py-1 text-xs font-black text-blue-700 ring-1 ring-blue-100">{dataSummary(service)}</span>{selected ? <CheckCircle2 className="h-5 w-5 text-blue-600" /> : null}</div>
-                  <h4 className="mt-4 line-clamp-2 text-sm font-black leading-5 text-slate-900">{service.name}</h4>
-                  <p className="mt-2 line-clamp-2 text-xs font-semibold leading-5 text-slate-500">{service.description || "Travel-ready data plan"}</p>
-                  <div className="mt-auto pt-4">
-                    <div className="flex items-center justify-between gap-3"><strong className="text-lg font-black text-blue-700">{formatPrice(service.price, displayExchangeRate(service))}</strong><span className="text-xs font-bold text-emerald-600">{service.availability || "Activation details after purchase"}</span></div>
-                    <button type="button" onClick={() => setSelectedService(service)} className={`mt-4 inline-flex h-11 w-full items-center justify-center rounded-lg px-4 text-sm font-bold transition focus:outline-none focus:ring-4 focus:ring-blue-100 ${selected ? "bg-blue-50 text-blue-700 ring-1 ring-blue-100" : "bg-blue-600 text-white shadow-sm shadow-blue-600/20 hover:bg-blue-700"}`}>
-                      {selected ? "Selected" : "Buy eSIM"}
-                    </button>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        ) : null}
-        {state === "ready" && filtered.length > visiblePlans ? <div className="mt-5 flex justify-center"><button type="button" onClick={() => setVisiblePlans((count) => count + 6)} className="h-11 rounded-lg border border-blue-200 bg-blue-50 px-5 text-sm font-bold text-blue-700 transition hover:bg-blue-100">See more plans ({filtered.length - visiblePlans} remaining)</button></div> : null}
-      </div>
-
-
-
-      <CheckoutPanel key={selectedService?.externalId || "empty"} service={selectedService} variant="esim" />
-    </section>
-  );
-}
-
 function BoostAccountBrowser() {
   const [services, setServices] = useState<ServiceItem[]>([]);
   const [state, setState] = useState<"loading" | "ready" | "empty" | "error">("loading");
@@ -1162,7 +1031,7 @@ function BoostAccountBrowser() {
     </section>
   );
 }
-function ServiceCatalogExplorer({ kind, mode }: { kind: ServiceExplorerKind; mode: "boosting" | "logs" | "numbers" | "esim" }) {
+function ServiceCatalogExplorer({ kind, mode }: { kind: ServiceExplorerKind; mode: "boosting" | "logs" | "numbers" }) {
   const [services, setServices] = useState<ServiceItem[]>([]);
   const [state, setState] = useState<"idle" | "loading" | "ready" | "empty" | "error">(mode === "boosting" ? "idle" : "loading");
   const [selectedPlatform, setSelectedPlatform] = useState<PlatformOption | null>(null);
@@ -1222,8 +1091,8 @@ function ServiceCatalogExplorer({ kind, mode }: { kind: ServiceExplorerKind; mod
 
   const activeSelectedService = selectedService && filtered.some((service) => service.externalId === selectedService.externalId) ? selectedService : null;
 
-  const title = mode === "boosting" ? "Choose a platform" : mode === "logs" ? "Premium logs & accounts" : mode === "esim" ? "Available eSIM plans" : "Available verification services";
-  const description = mode === "boosting" ? "Start with a social platform, then choose the exact service that fits your goal." : mode === "logs" ? "Search aged accounts, social media logs, and premium subscriptions with clear filters." : mode === "esim" ? "Browse travel-ready data plans and select the best fit before checkout." : "Search services, choose one, then continue to a clean checkout panel.";
+  const title = mode === "boosting" ? "Choose a platform" : mode === "logs" ? "Premium logs & accounts" : "Available verification services";
+  const description = mode === "boosting" ? "Start with a social platform, then choose the exact service that fits your goal." : mode === "logs" ? "Search aged accounts, social media logs, and premium subscriptions with clear filters." : "Search services, choose one, then continue to a clean checkout panel.";
 
   return (
     <section className="grid gap-5">
@@ -1378,13 +1247,12 @@ function InlinePurchases({ kind }: { kind: ServiceExplorerKind }) {
   );
 }
 
-export function ServiceExplorer({ kind, mode }: { kind: ServiceExplorerKind; mode: "boosting" | "logs" | "numbers" | "esim" }) {
+export function ServiceExplorer({ kind, mode }: { kind: ServiceExplorerKind; mode: "boosting" | "logs" | "numbers" }) {
 
   let marketplace: React.ReactNode;
   if (mode === "boosting" && kind === "boosting") marketplace = <BoostAccountBrowser />;
   else if (mode === "numbers" && (kind === "foreign-numbers" || kind === "uk-premium")) marketplace = <NumberServicePicker kind={kind} />;
   else if (mode === "logs") marketplace = <LogsMarketplace />;
-  else if (mode === "esim") marketplace = <EsimPlanBrowser />;
   else marketplace = <ServiceCatalogExplorer kind={kind} mode={mode} />;
 
   return <div className="grid gap-6">{marketplace}<InlinePurchases kind={kind} /></div>;

@@ -1,7 +1,7 @@
 /**
  * Provider Adapter Pattern
  * Abstract interface for all service providers
- * Supports: SMM, Virtual Numbers, eSIM, etc.
+ * Supports: SMM, virtual numbers, and account products.
  */
 
 export interface ProviderConfig {

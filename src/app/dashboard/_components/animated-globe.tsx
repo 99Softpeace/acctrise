@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 const metricPanels = [
   { label: "Total orders", value: "2.4k+", detail: "+12% this week", className: "network-panel top-left" },
@@ -40,7 +40,6 @@ export function AnimatedGlobe() {
       <div className="network-side-list" aria-hidden="true">
         <span><i className="blue" /> Boosting</span>
         <span><i className="green" /> Numbers</span>
-        <span><i className="amber" /> eSIM</span>
       </div>
 
       <div className="network-globe-stage">

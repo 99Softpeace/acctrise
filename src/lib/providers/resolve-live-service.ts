@@ -25,7 +25,6 @@ const numberProviders: Array<{
 const providerByKind: Record<Exclude<LiveServiceKind, "foreign-numbers" | "uk-premium">, { name: string; slug: string; type: string; envKey: string }> = {
   boosting: { name: "JustAnotherPanel", slug: "justanotherpanel", type: "smm", envKey: "JUSTANOTHERPANEL_API_KEY" },
   logs: { name: "Bulkacc", slug: "bulkacc", type: "logs", envKey: "BULKACC_API_KEY" },
-  esim: { name: "SMSPool", slug: "smspool", type: "esim", envKey: "SMSPOOL_API_KEY" }
 };
 
 function slugify(value: string) {
