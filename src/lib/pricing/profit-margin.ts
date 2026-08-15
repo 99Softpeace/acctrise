@@ -10,6 +10,7 @@ export const DISCORD_NUMBER_PRICE_NGN = 5000;
 export const OTHER_SOCIAL_NUMBER_PROFIT_MARGIN_RATE = NUMBER_PROFIT_MARGIN_RATE;
 export const OTHER_SOCIAL_NUMBER_PROFIT_MARGIN_PERCENT = OTHER_SOCIAL_NUMBER_PROFIT_MARGIN_RATE * 100;
 export const NUMBER_MINIMUM_PRICE_NGN = 1200;
+export const USA_WHATSAPP_PRICE_NGN = 3000;
 
 export const TIKTOK_LIKES_REACTIONS_MINIMUM_NGN_PER_1000 = 1000;
 export const TIKTOK_LIKES_REACTIONS_MAXIMUM_NGN_PER_1000 = 1500;
@@ -70,6 +71,20 @@ export function isMajorSocialNumber(serviceText?: string): boolean {
 
 export function isDiscordNumber(serviceText?: string): boolean {
   return Boolean(serviceText && /discord/i.test(serviceText));
+}
+
+
+export function applyUsaWhatsappPrice(
+  priceUsd: number,
+  exchangeRate: number,
+  kind: string,
+  countryName?: string,
+  serviceText?: string
+): number {
+  const isUsaNumber = (kind === "foreign-numbers" || kind === "uk-premium") && /^(united states|usa|us)$/i.test(countryName?.trim() || "");
+  const isWhatsapp = Boolean(serviceText && /whats?app/i.test(serviceText));
+  if (!isUsaNumber || !isWhatsapp || !Number.isFinite(exchangeRate) || exchangeRate <= 0) return priceUsd;
+  return USA_WHATSAPP_PRICE_NGN / exchangeRate;
 }
 
 export function applyFixedSocialNumberPrice(priceUsd: number, exchangeRate: number, serviceText?: string): number {
