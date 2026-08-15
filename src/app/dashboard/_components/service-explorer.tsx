@@ -739,7 +739,6 @@ function LogsMarketplace() {
   const [state, setState] = useState<"loading" | "ready" | "empty" | "error">("loading");
   const [activeCategory, setActiveCategory] = useState("Social Media");
   const [query, setQuery] = useState("");
-  const [showOos, setShowOos] = useState(true);
   const [sortLowFirst, setSortLowFirst] = useState(true);
   const [selectedService, setSelectedService] = useState<ServiceItem | null>(null);
   const [purchaseNotice, setPurchaseNotice] = useState("");
@@ -781,19 +780,18 @@ function LogsMarketplace() {
 
   const counts = useMemo(() => logMarketplaceCategories.reduce<Record<string, number>>((acc, category) => {
     acc[category.label] = services.filter((service) =>
-      logCategoryFor(service) === category.label && (showOos || service.maxOrder !== 0)
+      logCategoryFor(service) === category.label
     ).length;
     return acc;
-  }, {}), [services, showOos]);
+  }, {}), [services]);
 
   const filtered = useMemo(() => {
     const search = query.trim().toLowerCase();
     return services
       .filter((service) => logCategoryFor(service) === activeCategory)
-      .filter((service) => showOos || service.maxOrder !== 0)
       .filter((service) => !search || `${service.name} ${service.description || ""}`.toLowerCase().includes(search))
       .sort((a, b) => sortLowFirst ? a.price - b.price : b.price - a.price);
-  }, [activeCategory, query, services, showOos, sortLowFirst]);
+  }, [activeCategory, query, services, sortLowFirst]);
 
   function selectLog(service: ServiceItem) {
     setSelectedService(service);
@@ -888,7 +886,6 @@ function LogsMarketplace() {
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 p-4 lg:p-6">
               <div className="flex items-center gap-3"><h4 className="text-xl font-black text-slate-900">{activeCategory}</h4><span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500">{filtered.length} items</span></div>
               <div className="flex flex-wrap gap-2">
-                <label className="inline-flex h-11 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-600"><input type="checkbox" checked={showOos} onChange={(event) => setShowOos(event.target.checked)} className="h-4 w-4 accent-blue-600" /> Show OOS</label>
                 <button type="button" onClick={() => setSortLowFirst((value) => !value)} className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-600">Price: {sortLowFirst ? "Low to High" : "High to Low"}</button>
               </div>
             </div>

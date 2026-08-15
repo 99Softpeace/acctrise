@@ -80,7 +80,7 @@ export class BulkAccAdapter extends BaseProviderAdapter {
       if (response.data?.statusCode !== 200 || !Array.isArray(products)) {
         throw new Error(response.data?.message || "Bulkacc product preview request failed.");
       }
-      return products.map((product: BulkAccProductResponse) => ({
+      return products.filter((product: BulkAccProductResponse) => Number(product.inStock || 0) > 0).map((product: BulkAccProductResponse) => ({
         externalId: product.code,
         name: product.name,
         price: Number(product.price || 0),
@@ -132,7 +132,7 @@ export class BulkAccAdapter extends BaseProviderAdapter {
         pages.forEach((page) => products.push(...page.items));
       }
 
-      return products.map((product: BulkAccProductResponse) => ({
+      return products.filter((product: BulkAccProductResponse) => Number(product.inStock || 0) > 0).map((product: BulkAccProductResponse) => ({
         externalId: product.code,
         name: product.name,
         price: Number(product.price || 0),

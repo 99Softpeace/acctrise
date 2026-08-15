@@ -45,10 +45,11 @@ export async function GET(request: NextRequest) {
     const limit = Number(request.nextUrl.searchParams.get("limit") || 30);
     const preview = kind === "logs" && scope === "preview";
     const serviceKey = [kind, scope || "", countryId || "", countryName || "", query || "", limit].join(":");
-    const serviceCacheMs = kind === "logs" ? (preview ? 60 * 1000 : 10 * 60 * 1000) : SERVICE_CACHE_MS;
+    const serviceCacheMs = kind === "logs" ? 30 * 1000 : SERVICE_CACHE_MS;
+    const liveServiceCacheKey = kind === "logs" ? `services:logs:in-stock:${serviceKey}` : `services:${serviceKey}`;
 
     const [result, exchangeRate] = await Promise.all([
-      getCachedLiveValue(`services:${serviceKey}`, serviceCacheMs, () => fetchLiveServices(kind, { countryId, countryName, query, limit, preview })),
+      getCachedLiveValue(liveServiceCacheKey, serviceCacheMs, () => fetchLiveServices(kind, { countryId, countryName, query, limit, preview })),
       getUsdToNgnRate()
     ]);
 

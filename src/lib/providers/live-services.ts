@@ -103,6 +103,10 @@ function filterServices(kind: LiveServiceKind, services: ServiceMapping[]): Serv
     return services.filter((service) => !/esim|e-sim|data plan|data package/i.test(`${service.name} ${service.description || ""}`));
   }
 
+  if (kind === "logs") {
+    return services.filter((service) => Number(service.stock ?? service.maxOrder ?? 0) > 0);
+  }
+
   if (kind === "esim") {
     return services.filter((service) => /esim|e-sim|data plan|data package/i.test(`${service.name} ${service.description || ""}`));
   }
