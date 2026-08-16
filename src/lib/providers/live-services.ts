@@ -187,16 +187,17 @@ async function fetchNumberServices(kind: Extract<LiveServiceKind, "foreign-numbe
     services: await adapter.fetchServicesForCountry(countryName, { query: options.query, limit: options.limit || 30 })
   })));
   const fulfilledResults = results.filter((result): result is PromiseFulfilledResult<{ name: string; services: ServiceMapping[] }> => result.status === "fulfilled");
-  const smsBowerResults = fulfilledResults.filter((result) => result.value.name === "SMSBower" && result.value.services.length > 0);
-  const pricingResults = smsBowerResults.length ? smsBowerResults : fulfilledResults;
   const merged = new Map<string, { service: ServiceMapping; providers: string[] }>();
-  for (const result of pricingResults) {
+  for (const result of fulfilledResults) {
     for (const service of result.value.services) {
       const key = normalizeName(service.name);
       const current = merged.get(key);
       if (!current) merged.set(key, { service, providers: [result.value.name] });
       else {
-        if (service.price < current.service.price) current.service = service;
+        // Keep one stable customer price for a service shared by both providers.
+        // SMSBower is the baseline, but the higher provider cost wins so failover
+        // to a more expensive GrizzlySMS service can never create a loss.
+        if (service.price > current.service.price) current.service = service;
         if (!current.providers.includes(result.value.name)) current.providers.push(result.value.name);
       }
     }
@@ -216,7 +217,13 @@ async function fetchNumberServices(kind: Extract<LiveServiceKind, "foreign-numbe
     friendlyLabel: entry.service.friendlyLabel,
     stock: entry.service.stock
   }));
-  return { kind, provider: smsBowerResults.length ? "SMSBower" : "Available number provider", services, fetchedAt: new Date().toISOString(), profitMarginPercent: NUMBER_PROFIT_MARGIN_PERCENT };
+  return {
+    kind,
+    provider: fulfilledResults.map((result) => result.value.name).join(" + ") || "Available number provider",
+    services,
+    fetchedAt: new Date().toISOString(),
+    profitMarginPercent: NUMBER_PROFIT_MARGIN_PERCENT
+  };
 }
 
 export function isLiveServiceKind(value: string | null): value is LiveServiceKind {
