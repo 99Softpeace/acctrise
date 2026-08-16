@@ -8,6 +8,7 @@ import { Category } from "@/models/category";
 import { Provider } from "@/models/provider";
 import { ProviderService } from "@/models/provider-service";
 import { Service } from "@/models/service";
+import { fetchJustAnotherPanelUpdates } from "@/lib/providers/justanotherpanel-updates";
 
 type AdapterClass = new (id: string, config: ProviderConfig, logger?: any) => BaseProviderAdapter;
 
@@ -73,61 +74,97 @@ async function syncProviderServices({
   providerType: string;
   services: ServiceMapping[];
 }) {
-  let synced = 0;
-
+  const categoryDefinitions = new Map<string, { name: string; slug: string }>();
   for (const externalService of services) {
     const categoryName = externalService.description?.split(" - ")[0] || providerName;
     const categorySlug = slugify(`${providerType}-${categoryName || "services"}`);
-    const category = await Category.findOneAndUpdate(
-      { slug: categorySlug },
-      {
-        $setOnInsert: {
-          name: categoryName,
-          slug: categorySlug,
-          description: `Synchronized ${providerName} category`
-        }
-      },
-      { returnDocument: "after", upsert: true }
-    );
-
-    const serviceSlug = slugify(`${providerSlug}-${externalService.externalId}-${externalService.name}`);
-    const service = await Service.findOneAndUpdate(
-      { slug: serviceSlug },
-      {
-        $set: {
-          name: externalService.name,
-          description: externalService.description,
-          categoryId: category._id,
-          priceCents: applyProfitMarginCents(cents(externalService.price)),
-          minOrder: externalService.minOrder,
-          maxOrder: externalService.maxOrder,
-          isActive: true
-        }
-      },
-      { returnDocument: "after", upsert: true }
-    );
-
-    await ProviderService.findOneAndUpdate(
-      { providerId, externalId: externalService.externalId },
-      {
-        $set: {
-          providerId,
-          serviceId: service._id,
-          externalId: externalService.externalId,
-          externalName: externalService.name,
-          providerPriceCents: cents(externalService.price),
-          costPriceCents: cents(externalService.price),
-          isActive: true,
-          lastSyncedAt: new Date()
-        }
-      },
-      { returnDocument: "after", upsert: true }
-    );
-
-    synced++;
+    categoryDefinitions.set(categorySlug, { name: categoryName, slug: categorySlug });
   }
 
-  return synced;
+  await Category.bulkWrite(
+    [...categoryDefinitions.values()].map((category) => ({
+      updateOne: {
+        filter: { slug: category.slug },
+        update: {
+          $setOnInsert: {
+            name: category.name,
+            slug: category.slug,
+            description: `Synchronized ${providerName} category`
+          }
+        },
+        upsert: true
+      }
+    })),
+    { ordered: false }
+  );
+  const categoryDocuments = await Category.find({
+    slug: { $in: [...categoryDefinitions.keys()] }
+  }).select("_id slug");
+  const categories = new Map(categoryDocuments.map((category) => [category.slug, category._id]));
+
+  await Service.bulkWrite(
+    services.map((externalService) => {
+      const categoryName = externalService.description?.split(" - ")[0] || providerName;
+      const categorySlug = slugify(`${providerType}-${categoryName || "services"}`);
+      const categoryId = categories.get(categorySlug);
+      if (!categoryId) throw new Error(`Category resolution failed for ${categorySlug}.`);
+      const serviceSlug = slugify(`${providerSlug}-${externalService.externalId}-${externalService.name}`);
+      return {
+        updateOne: {
+          filter: { slug: serviceSlug },
+          update: {
+            $set: {
+              name: externalService.name,
+              description: externalService.description,
+              categoryId,
+              priceCents: applyProfitMarginCents(cents(externalService.price)),
+              minOrder: externalService.minOrder,
+              maxOrder: externalService.maxOrder,
+              isActive: true
+            }
+          },
+          upsert: true
+        }
+      };
+    }),
+    { ordered: false }
+  );
+
+  const serviceSlugs = services.map((externalService) =>
+    slugify(`${providerSlug}-${externalService.externalId}-${externalService.name}`)
+  );
+  const serviceDocuments = await Service.find({ slug: { $in: serviceSlugs } }).select("_id slug");
+  const serviceIds = new Map(serviceDocuments.map((service) => [service.slug, service._id]));
+  const syncedAt = new Date();
+
+  await ProviderService.bulkWrite(
+    services.map((externalService) => {
+      const serviceSlug = slugify(`${providerSlug}-${externalService.externalId}-${externalService.name}`);
+      const serviceId = serviceIds.get(serviceSlug);
+      if (!serviceId) throw new Error(`Service resolution failed for ${serviceSlug}.`);
+      return {
+        updateOne: {
+          filter: { providerId, externalId: externalService.externalId },
+          update: {
+            $set: {
+              providerId,
+              serviceId,
+              externalId: externalService.externalId,
+              externalName: externalService.name,
+              providerPriceCents: cents(externalService.price),
+              costPriceCents: cents(externalService.price),
+              isActive: true,
+              lastSyncedAt: syncedAt
+            }
+          },
+          upsert: true
+        }
+      };
+    }),
+    { ordered: false }
+  );
+
+  return services.length;
 }
 
 export async function seedEnvProviders({ syncServices = true } = {}) {
@@ -190,4 +227,74 @@ export async function seedEnvProviders({ syncServices = true } = {}) {
   }
 
   return results;
+}
+
+export async function syncJustAnotherPanelServices() {
+  await connectMongo();
+  const definition = envProviders.find((provider) => provider.slug === "justanotherpanel");
+  if (!definition) throw new Error("JustAnotherPanel provider definition is missing.");
+
+  const apiKey = getRequiredEnv(definition.envKey);
+  const logger = pino({ level: process.env.LOG_LEVEL || "info" });
+  const provider = await Provider.findOneAndUpdate(
+    { slug: definition.slug },
+    {
+      $set: {
+        name: definition.name,
+        slug: definition.slug,
+        type: definition.type,
+        description: definition.description,
+        status: "ACTIVE",
+        isHealthy: true,
+        syncInterval: 3600,
+        config: { apiKey }
+      }
+    },
+    { returnDocument: "after", upsert: true }
+  );
+
+  try {
+    const updates = await fetchJustAnotherPanelUpdates();
+    const updateServiceIds = new Set(updates.serviceIds);
+    const adapter = new definition.adapter(
+      provider._id.toString(),
+      { apiKey, timeout: 20000 },
+      logger
+    );
+    const fetchedServices = await adapter.fetchServices();
+    const services = fetchedServices.filter((service) => updateServiceIds.has(service.externalId));
+    if (!services.length) {
+      throw new Error("None of the services listed in JustAnotherPanel updates exist in the API catalogue.");
+    }
+    const synced = await syncProviderServices({
+      providerId: provider._id,
+      providerName: provider.name,
+      providerSlug: provider.slug,
+      providerType: provider.type,
+      services
+    });
+
+    const syncedAt = new Date();
+    await Provider.updateOne(
+      { _id: provider._id },
+      { $set: { lastSyncAt: syncedAt, isHealthy: true, status: "ACTIVE" } }
+    );
+
+    return {
+      provider: definition.name,
+      synced,
+      totalAvailable: fetchedServices.length,
+      updatePostsScanned: updates.postsScanned,
+      listedServiceIds: updates.serviceIds.length,
+      unmatchedServiceIds: updates.serviceIds.length - services.length,
+      updatesFetchedAt: updates.fetchedAt,
+      syncedAt: syncedAt.toISOString()
+    };
+  } catch (error) {
+    await Provider.updateOne(
+      { _id: provider._id },
+      { $set: { isHealthy: false, status: "ERROR" } }
+    );
+    throw error;
+  }
 }
