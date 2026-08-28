@@ -1,5 +1,7 @@
 export const PROFIT_MARGIN_RATE = 0.3;
 export const PROFIT_MARGIN_PERCENT = PROFIT_MARGIN_RATE * 100;
+export const LOGS_PROFIT_MARGIN_RATE = 0.5;
+export const LOGS_PROFIT_MARGIN_PERCENT = LOGS_PROFIT_MARGIN_RATE * 100;
 export const NUMBER_PROFIT_MARGIN_RATE = 0.54;
 export const NUMBER_PROFIT_MARGIN_PERCENT = NUMBER_PROFIT_MARGIN_RATE * 100;
 export const NUMBER_STANDARD_PRICE_MULTIPLIER = 1.54;
@@ -45,6 +47,12 @@ export function applyProfitMargin(price: number): number {
   if (!Number.isFinite(price) || price <= 0) return price;
   return Number((price * (1 + PROFIT_MARGIN_RATE)).toFixed(6));
 }
+
+export function applyLogsProfitMargin(price: number): number {
+  if (!Number.isFinite(price) || price <= 0) return price;
+  return Number((price * (1 + LOGS_PROFIT_MARGIN_RATE)).toFixed(6));
+}
+
 
 export function applyNumberProfitMargin(price: number): number {
   if (!Number.isFinite(price) || price <= 0) return price;
@@ -106,4 +114,9 @@ export function applyNumberMinimumPrice(priceUsd: number, exchangeRate: number):
 export function applyProfitMarginCents(cents: number): number {
   if (!Number.isFinite(cents) || cents <= 0) return cents;
   return Math.ceil(cents * (1 + PROFIT_MARGIN_RATE));
+}
+
+export function applyLogsProfitMarginCents(cents: number): number {
+  if (!Number.isFinite(cents) || cents <= 0) return cents;
+  return Math.ceil(cents * (1 + LOGS_PROFIT_MARGIN_RATE));
 }

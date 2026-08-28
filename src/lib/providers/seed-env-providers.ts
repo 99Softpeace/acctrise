@@ -1,7 +1,7 @@
 import pino from "pino";
 import { connectMongo } from "@/lib/mongodb";
 import { BulkAccAdapter } from "@/lib/providers/adapters/bulkacc-adapter";
-import { applyProfitMarginCents } from "@/lib/pricing/profit-margin";
+import { applyLogsProfitMarginCents, applyProfitMarginCents } from "@/lib/pricing/profit-margin";
 import type { BaseProviderAdapter, ProviderConfig, ServiceMapping } from "@/lib/providers/base-adapter";
 import { ResellingSMMAdapter } from "@/lib/providers/adapters/smm-adapter";
 import { Category } from "@/models/category";
@@ -117,7 +117,9 @@ async function syncProviderServices({
               name: externalService.name,
               description: externalService.description,
               categoryId,
-              priceCents: applyProfitMarginCents(cents(externalService.price)),
+              priceCents: providerType === "logs"
+                ? applyLogsProfitMarginCents(cents(externalService.price))
+                : applyProfitMarginCents(cents(externalService.price)),
               minOrder: externalService.minOrder,
               maxOrder: externalService.maxOrder,
               isActive: true

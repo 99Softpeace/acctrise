@@ -5,7 +5,7 @@ import { SMSBowerAdapter } from "@/lib/providers/adapters/sms-bower-adapter";
 import type { SmsActivateAdapter } from "@/lib/providers/adapters/sms-activate-adapter";
 import { ResellingSMMAdapter } from "@/lib/providers/adapters/smm-adapter";
 import type { BaseProviderAdapter, ProviderConfig, ServiceMapping } from "@/lib/providers/base-adapter";
-import { applyNumberServiceProfitMargin, applyProfitMargin, NUMBER_PROFIT_MARGIN_PERCENT, PROFIT_MARGIN_PERCENT } from "@/lib/pricing/profit-margin";
+import { applyLogsProfitMargin, applyNumberServiceProfitMargin, applyProfitMargin, LOGS_PROFIT_MARGIN_PERCENT, NUMBER_PROFIT_MARGIN_PERCENT, PROFIT_MARGIN_PERCENT } from "@/lib/pricing/profit-margin";
 
 export type LiveServiceKind = "boosting" | "logs" | "foreign-numbers" | "uk-premium";
 
@@ -148,7 +148,7 @@ export async function fetchLiveServices(kind: LiveServiceKind, options: FetchLiv
       externalId: service.externalId,
       name: service.name,
       description: service.description,
-      price: applyProfitMargin(service.price),
+      price: kind === "logs" ? applyLogsProfitMargin(service.price) : applyProfitMargin(service.price),
       minOrder: kind === "boosting" ? BOOSTING_MIN_QUANTITY : service.minOrder,
       maxOrder: service.maxOrder,
       provider: definition.name,
@@ -162,7 +162,7 @@ export async function fetchLiveServices(kind: LiveServiceKind, options: FetchLiv
       stock: service.stock
     })),
     fetchedAt: new Date().toISOString(),
-    profitMarginPercent: PROFIT_MARGIN_PERCENT
+    profitMarginPercent: kind === "logs" ? LOGS_PROFIT_MARGIN_PERCENT : PROFIT_MARGIN_PERCENT
   };
 }
 
