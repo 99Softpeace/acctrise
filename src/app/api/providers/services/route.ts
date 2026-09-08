@@ -95,9 +95,10 @@ export async function GET(request: NextRequest) {
     }, { headers: { "Cache-Control": "private, max-age=" + browserCacheSeconds + ", stale-while-revalidate=" + browserCacheSeconds } });
   } catch (error) {
     console.error("[providers/services]", { kind, error });
+    const timedOut = error instanceof Error && error.message === "Boosting provider is taking too long to respond. Please try again shortly.";
     return NextResponse.json(
-      { error: FRIENDLY_PROVIDER_MESSAGE },
-      { status: 502 }
+      { error: timedOut ? error.message : FRIENDLY_PROVIDER_MESSAGE },
+      { status: timedOut ? 503 : 502 }
     );
   }
 }
