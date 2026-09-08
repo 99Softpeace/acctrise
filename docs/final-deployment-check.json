@@ -1,0 +1,22 @@
+[
+  {
+    "path": "/api/health",
+    "status": 200,
+    "location": null
+  },
+  {
+    "path": "/api/auth/verify-email",
+    "status": 307,
+    "location": "https://acctrise-production.up.railway.app/auth/login?verified=missing"
+  },
+  {
+    "path": "/api/auth/providers",
+    "status": 200,
+    "location": null
+  },
+  {
+    "path": "/",
+    "status": 200,
+    "location": null
+  }
+]

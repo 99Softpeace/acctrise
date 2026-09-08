@@ -1,0 +1,163 @@
+{
+  "base": "https://acctrise-production.up.railway.app",
+  "passed": 39,
+  "failed": 0,
+  "results": [
+    {
+      "name": "Public page /",
+      "passed": true
+    },
+    {
+      "name": "Public page /terms",
+      "passed": true
+    },
+    {
+      "name": "Public page /privacy",
+      "passed": true
+    },
+    {
+      "name": "Public page /auth/login",
+      "passed": true
+    },
+    {
+      "name": "Public page /auth/signup",
+      "passed": true
+    },
+    {
+      "name": "Public page /auth/forgot-password",
+      "passed": true
+    },
+    {
+      "name": "Public page /auth/reset-password",
+      "passed": true
+    },
+    {
+      "name": "Health and MongoDB connectivity",
+      "passed": true
+    },
+    {
+      "name": "Protected page /dashboard",
+      "passed": true
+    },
+    {
+      "name": "Protected page /dashboard/wallet",
+      "passed": true
+    },
+    {
+      "name": "Protected page /dashboard/orders",
+      "passed": true
+    },
+    {
+      "name": "Protected page /dashboard/boosting",
+      "passed": true
+    },
+    {
+      "name": "Protected page /dashboard/logs",
+      "passed": true
+    },
+    {
+      "name": "Protected page /dashboard/foreign-numbers",
+      "passed": true
+    },
+    {
+      "name": "Protected page /dashboard/uk-premium",
+      "passed": true
+    },
+    {
+      "name": "Protected page /dashboard/rent-number",
+      "passed": true
+    },
+    {
+      "name": "Protected page /dashboard/tutorials",
+      "passed": true
+    },
+    {
+      "name": "Protected page /dashboard/admin",
+      "passed": true
+    },
+    {
+      "name": "Unauthorized GET /api/orders",
+      "passed": true
+    },
+    {
+      "name": "Unauthorized POST /api/orders",
+      "passed": true
+    },
+    {
+      "name": "Unauthorized GET /api/wallet/balance",
+      "passed": true
+    },
+    {
+      "name": "Unauthorized GET /api/wallet/transactions",
+      "passed": true
+    },
+    {
+      "name": "Unauthorized GET /api/wallet/virtual-account",
+      "passed": true
+    },
+    {
+      "name": "Unauthorized POST /api/wallet/fund",
+      "passed": true
+    },
+    {
+      "name": "Unauthorized GET /api/providers/services?kind=logs",
+      "passed": true
+    },
+    {
+      "name": "Unauthorized GET /api/admin/users",
+      "passed": true
+    },
+    {
+      "name": "Unauthorized GET /api/admin/providers/status",
+      "passed": true
+    },
+    {
+      "name": "Unauthorized GET /api/auth/devices",
+      "passed": true
+    },
+    {
+      "name": "Invalid input /api/auth/register",
+      "passed": true
+    },
+    {
+      "name": "Invalid input /api/auth/forgot-password",
+      "passed": true
+    },
+    {
+      "name": "Invalid input /api/auth/reset-password",
+      "passed": true
+    },
+    {
+      "name": "Auth session",
+      "passed": true
+    },
+    {
+      "name": "Auth provider and callback origin",
+      "passed": true
+    },
+    {
+      "name": "CSRF cookie",
+      "passed": true
+    },
+    {
+      "name": "Email verification missing token redirects locally",
+      "passed": true
+    },
+    {
+      "name": "No cron route in live production revision",
+      "passed": true
+    },
+    {
+      "name": "Unsigned webhook is ignored without processing",
+      "passed": true
+    },
+    {
+      "name": "Missing page is 404",
+      "passed": true
+    },
+    {
+      "name": "Static assets load",
+      "passed": true
+    }
+  ]
+}

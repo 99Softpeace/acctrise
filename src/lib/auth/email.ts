@@ -31,7 +31,4 @@ export async function sendAuthEmail({
   });
 }
 
-export function appUrl(path: string): string {
-  const base = process.env.NEXTAUTH_URL || "http://localhost:3000";
-  return `${base}${path}`;
-}
+export { appUrl } from "./app-url";

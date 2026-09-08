@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getRequestUserId } from "@/lib/auth/request";
+import { appUrl } from "@/lib/auth/app-url";
 import { createFundingTransaction } from "@/lib/services/mongo-wallet-service";
 import { createFundingIntent } from "@/lib/payments";
 
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest) {
       phone: process.env.POCKETFI_FALLBACK_PHONE,
       firstName: "Acctrise",
       lastName: "Customer",
-      callbackUrl: validatedData.callbackUrl || `${request.nextUrl.origin}/dashboard/wallet?payment=processing`,
+      callbackUrl: validatedData.callbackUrl || appUrl("/dashboard/wallet?payment=processing"),
       metadata: { userId, transactionId: transaction.id }
     });
 

@@ -1,7 +1,16 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   typedRoutes: true,
+  async redirects() {
+    return [{
+      source: "/:path*",
+      has: [{ type: "host", value: "acctrise.com" }],
+      destination: "https://www.acctrise.com/:path*",
+      permanent: true
+    }];
+  },
   async headers() {
     return [{ source: "/(.*)", headers: [
       { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
