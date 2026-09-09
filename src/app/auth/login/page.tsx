@@ -16,6 +16,12 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+  function addTutorialPrompt(urlValue: string) {
+    const url = new URL(urlValue, window.location.origin);
+    url.searchParams.set("tutorials", "1");
+    return `${url.pathname}${url.search}${url.hash}`;
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsLoading(true);
@@ -33,7 +39,7 @@ export default function LoginPage() {
     }
 
     setMessage("Opening dashboard...");
-    router.replace((result?.url || callbackUrl) as any);
+    router.replace(addTutorialPrompt(result?.url || callbackUrl) as any);
   }
 
   return (

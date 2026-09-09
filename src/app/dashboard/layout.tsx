@@ -2,8 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState, type ComponentType } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useState, type ComponentType } from "react";
 import { SessionProvider, signOut, useSession } from "next-auth/react";
 import {
   BadgeHelp,
@@ -15,11 +15,13 @@ import {
   X,
   Package,
   Phone,
+  PlayCircle,
   ReceiptText,
   Rocket,
   Smartphone,
   Wallet,
-  ShieldCheck
+  ShieldCheck,
+  Sparkles
 } from "lucide-react";
 
 type NavItem = { icon: ComponentType<{ className?: string }>; label: string; href: string; adminOnly?: boolean };
@@ -52,11 +54,32 @@ function userInitial(value: string) {
 
 function DashboardChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { data: session } = useSession();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [tutorialPromptDismissed, setTutorialPromptDismissed] = useState(false);
   const canSeeAdmin = adminRoles.has(session?.user?.role || "");
   const visibleNavItems = navItems.filter((item) => !item.adminOnly || canSeeAdmin);
   const displayName = compactName(session?.user);
+  const showTutorialPrompt = searchParams.get("tutorials") === "1" && !tutorialPromptDismissed;
+
+  const dismissTutorialPrompt = useCallback(() => {
+    setTutorialPromptDismissed(true);
+    const url = new URL(window.location.href);
+    url.searchParams.delete("tutorials");
+    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+  }, []);
+
+  useEffect(() => {
+    if (!showTutorialPrompt) return;
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") dismissTutorialPrompt();
+    }
+
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [dismissTutorialPrompt, showTutorialPrompt]);
 
   function handleLogout() {
     setMobileMenuOpen(false);
@@ -172,6 +195,27 @@ function DashboardChrome({ children }: { children: React.ReactNode }) {
 
         <main className="min-w-0 max-w-full overflow-x-hidden px-4 py-6 pb-8 sm:px-6 lg:px-8">{children}</main>
       </div>
+
+      {showTutorialPrompt ? (
+        <div className="fixed inset-0 z-[100] grid place-items-center bg-slate-950/60 p-4 backdrop-blur-sm" role="presentation">
+          <section className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl sm:p-8" role="dialog" aria-modal="true" aria-labelledby="tutorial-prompt-title" aria-describedby="tutorial-prompt-description">
+            <div className="grid h-12 w-12 place-items-center rounded-2xl bg-blue-600 text-white shadow-lg shadow-blue-600/25">
+              <Sparkles className="h-6 w-6" />
+            </div>
+            <p className="mt-5 text-xs font-extrabold uppercase tracking-[0.16em] text-blue-600">Welcome to Acctrise</p>
+            <h2 id="tutorial-prompt-title" className="mt-2 text-2xl font-black tracking-tight text-slate-950">New to Acctrise?</h2>
+            <p id="tutorial-prompt-description" className="mt-3 text-sm leading-6 text-slate-600">Watch our quick tutorials to learn how to get numbers, buy logs, and boost an account.</p>
+            <div className="mt-7 grid gap-3 sm:grid-cols-2">
+              <Link href="/dashboard/tutorials" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-extrabold text-white transition hover:bg-blue-700" onClick={dismissTutorialPrompt}>
+                <PlayCircle className="h-4 w-4" /> Watch tutorials
+              </Link>
+              <button type="button" className="min-h-11 rounded-xl border border-slate-200 px-4 text-sm font-bold text-slate-600 transition hover:bg-slate-50" onClick={dismissTutorialPrompt}>
+                Maybe later
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
       </div>
   );
 }
@@ -179,7 +223,9 @@ function DashboardChrome({ children }: { children: React.ReactNode }) {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <SessionProvider>
-      <DashboardChrome>{children}</DashboardChrome>
+      <Suspense fallback={<div className="min-h-screen bg-slate-50" />}>
+        <DashboardChrome>{children}</DashboardChrome>
+      </Suspense>
     </SessionProvider>
   );
 }

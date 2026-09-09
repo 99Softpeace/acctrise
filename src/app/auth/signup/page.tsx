@@ -49,7 +49,7 @@ export default function SignupPage() {
       return;
     }
 
-    router.push("/dashboard");
+    router.push("/dashboard?tutorials=1");
     router.refresh();
   }
 
