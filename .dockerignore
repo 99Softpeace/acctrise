@@ -1,0 +1,14 @@
+.git
+.github
+.agents
+.vercel
+.railway
+.next
+node_modules
+.env
+.env.*
+.data
+.tmp
+*.log
+*.tsbuildinfo
+docs

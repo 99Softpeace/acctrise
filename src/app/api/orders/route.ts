@@ -13,7 +13,7 @@ import { z } from "zod";
 import { clientIp, enforceRateLimit, RateLimitError } from "@/lib/security/rate-limit";
 
 const FRIENDLY_PROVIDER_MESSAGE = "This service is available, but fulfillment is temporarily unavailable. Please contact support.";
-const USER_SAFE_ERRORS = [/insufficient wallet balance/i, /minimum order quantity/i, /maximum order quantity/i, /service is currently unavailable/i, /unauthorized/i];
+const USER_SAFE_ERRORS = [/insufficient wallet balance/i, /minimum order quantity/i, /maximum order quantity/i, /service is currently unavailable/i, /unauthorized/i, /^Boosting provider is taking too long to respond\. Please try again shortly\.$/];
 
 const createOrderSchema = z.object({
   serviceId: z.string().optional(),

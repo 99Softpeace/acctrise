@@ -5,6 +5,8 @@
 
 import { BaseProviderAdapter, ProviderConfig, OrderRequest, OrderResponse, OrderStatus, ServiceMapping, ProviderHealth } from "../base-adapter";
 import axios, { AxiosInstance } from "axios";
+import { createHash } from "node:crypto";
+import { getCachedLiveValue } from "../../cache/live-service-cache";
 
 interface SMMServiceResponse {
   service: number | string;
@@ -51,6 +53,11 @@ export class ResellingSMMAdapter extends BaseProviderAdapter {
   }
 
   async fetchServices(): Promise<ServiceMapping[]> {
+    const catalogKey = createHash("sha256").update(`${this.baseUrl}\n${this.config.apiKey}`).digest("hex");
+    return getCachedLiveValue(`smm-catalog:${catalogKey}`, 60_000, () => this.loadServices());
+  }
+
+  private async loadServices(): Promise<ServiceMapping[]> {
     try {
       const response = await this.request({ action: "services" });
 
@@ -164,9 +171,26 @@ export class ResellingSMMAdapter extends BaseProviderAdapter {
     return ["wallet"];
   }
 
-  private request(values: Record<string, string>) {
+  private async request(values: Record<string, string>) {
     const form = new URLSearchParams({ key: this.config.apiKey, ...values });
-    return this.client.post("/api/v2", form);
+    const readOnly = ["services", "balance", "status"].includes(values.action);
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await this.client.post("/api/v2", form);
+      } catch (error) {
+        if (!axios.isAxiosError(error)) throw error;
+        const transient = ["ECONNABORTED", "ETIMEDOUT", "ECONNRESET", "EAI_AGAIN"].includes(error.code || "") ||
+          [502, 503, 504].includes(error.response?.status || 0);
+        if (readOnly && transient && attempt === 0) continue;
+        // Do not propagate Axios request bodies, which contain the provider key.
+        const failure = new Error(transient
+          ? "Boosting provider is taking too long to respond. Please try again shortly."
+          : "Boosting provider request failed.") as Error & { code?: string; status?: number };
+        failure.code = error.code;
+        failure.status = error.response?.status;
+        throw failure;
+      }
+    }
   }
 
   private getDefaultBaseUrl() {
