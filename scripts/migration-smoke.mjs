@@ -81,8 +81,8 @@ await check("Email verification missing token redirects locally", async () => {
   assert.equal(destination.origin, base.origin);
   assert.equal(destination.pathname, "/auth/login");
 });
-await check("No cron route in live production revision", async () => {
-  assert.equal((await request("/api/cron/sync-boosting")).status, 404);
+await check("Cron route rejects unauthenticated requests", async () => {
+  assert.equal((await request("/api/cron/sync-boosting")).status, 401);
 });
 await check("Unsigned webhook is ignored without processing", async () => {
   const response = await request("/api/webhooks/payments", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
