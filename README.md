@@ -363,20 +363,18 @@ await resend.emails.send({
 
 ## 🚢 Deployment
 
-### Docker
+### Railway
 ```bash
-docker build -t acctrise .
-docker run -p 3000:3000 acctrise
+# The production service builds with the committed Dockerfile and railway.json.
+# Railway is connected to the main branch and deploys successful pushes.
+npm run build
+npx @railway/cli up --service acctrise --environment production
 ```
 
-### Vercel
-```bash
-# Connect GitHub repo to Vercel
-# Env vars configured in Vercel dashboard
-vercel deploy
-```
+The production health check is `/api/health`. Configure runtime secrets in Railway,
+set `NEXTAUTH_URL=https://www.acctrise.com`, and keep `NEXTAUTH_SECRET` stable across deployments.
 
-### Manual Deployment
+### Local production check
 ```bash
 npm run build
 npm start
