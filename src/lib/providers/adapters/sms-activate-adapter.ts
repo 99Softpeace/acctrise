@@ -67,7 +67,7 @@ export abstract class SmsActivateAdapter extends BaseProviderAdapter {
 
   async fetchServicesForCountry(countryName: string, options: CountryServiceOptions = {}): Promise<ServiceMapping[]> {
     const [countries, services] = await Promise.all([this.fetchCountryList(), this.fetchServiceList()]);
-    const country = bestNameMatch(countries, countryName);
+    const country = bestCountryNameMatch(countries, countryName);
     if (!country) return [];
     const prices = await this.request('getPrices', { country: country.id });
     const query = normalized(options.query || '');
@@ -81,7 +81,7 @@ export abstract class SmsActivateAdapter extends BaseProviderAdapter {
 
   async resolveService(countryName: string, serviceName: string): Promise<ResolvedSmsActivateService | null> {
     const [countries, services] = await Promise.all([this.fetchCountryList(), this.fetchServiceList()]);
-    const country = bestNameMatch(countries, countryName);
+    const country = bestCountryNameMatch(countries, countryName);
     const service = bestNameMatch(services, serviceName);
     if (!country || !service) return null;
     const prices = await this.request('getPrices', { country: country.id, service: service.id });
@@ -98,15 +98,28 @@ export abstract class SmsActivateAdapter extends BaseProviderAdapter {
   async placeOrder(request: OrderRequest): Promise<OrderResponse> {
     const [country, service] = splitExternalId(request.serviceId);
     let value: any;
-    try {
-      value = await this.request('getNumberV2', { country, service });
-    } catch (error) {
-      if (axios.isAxiosError(error) && (!error.response || error.code === 'ECONNABORTED')) {
-        const uncertain = new Error(`${this.providerName} purchase outcome is unknown; automatic failover was stopped.`) as Error & { failoverSafe: boolean };
-        uncertain.failoverSafe = false;
-        throw uncertain;
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      try {
+        value = await this.request('getNumberV2', { country, service });
+        break;
+      } catch (error) {
+        const providerError = error as Error & { code?: string };
+        if (providerError.code === 'NO_NUMBERS' && attempt < 3) {
+          await new Promise((resolve) => setTimeout(resolve, attempt * 250));
+          continue;
+        }
+        if (providerError.code === 'NO_NUMBERS') {
+          const unavailable = new Error('Number allocation is temporarily sold out. Your wallet payment was refunded. Refresh and choose another service.') as Error & { code?: string };
+          unavailable.code = providerError.code;
+          throw unavailable;
+        }
+        if (axios.isAxiosError(error) && (!error.response || error.code === 'ECONNABORTED')) {
+          const uncertain = new Error(`${this.providerName} purchase outcome is unknown; automatic failover was stopped.`) as Error & { failoverSafe: boolean };
+          uncertain.failoverSafe = false;
+          throw uncertain;
+        }
+        throw error;
       }
-      throw error;
     }
     if (!value || typeof value !== 'object') throw new Error(`${this.providerName} returned an invalid response.`);
     const activationId = value.activationId ?? value.activation_id;
@@ -189,7 +202,10 @@ export abstract class SmsActivateAdapter extends BaseProviderAdapter {
     const response = await this.client.get('', { params: { api_key: this.config.apiKey, action, ...params } });
     const raw = String(response.data ?? '').trim();
     if (/^(BAD_|NO_|ERROR|WRONG_|EARLY_CANCEL_DENIED)/i.test(raw)) {
-      throw new Error(`${this.providerName}: ${raw.split(':')[0]}`);
+      const code = raw.split(':')[0];
+      const providerError = new Error(`${this.providerName}: ${code}`) as Error & { code?: string };
+      providerError.code = code;
+      throw providerError;
     }
     if (!parseJson) return raw;
     try { return JSON.parse(raw); } catch { return raw; }
@@ -211,6 +227,19 @@ function bestNameMatch(items: NamedCode[], wanted: string): NamedCode | null {
   return items.find((item) => normalized(item.name) === target)
     || items.find((item) => normalized(item.name).includes(target) || target.includes(normalized(item.name)))
     || null;
+}
+
+function bestCountryNameMatch(items: NamedCode[], wanted: string): NamedCode | null {
+  const exact = bestNameMatch(items, wanted);
+  if (exact) return exact;
+  const target = countryAlias(normalized(wanted));
+  return items.find((item) => countryAlias(normalized(item.name)) === target) || null;
+}
+
+function countryAlias(value: string): string {
+  if (value === 'usa' || value === 'unitedstates') return 'unitedstates';
+  if (value === 'uk' || value === 'greatbritain' || value === 'unitedkingdom') return 'unitedkingdom';
+  return value;
 }
 
 function readOffer(value: any, country: string, service: string): { price: number; stock: number } | null {

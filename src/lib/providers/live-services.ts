@@ -119,7 +119,7 @@ export async function fetchLiveCountries(kind: Extract<LiveServiceKind, "foreign
   for (const result of results) {
     if (result.status !== "fulfilled") continue;
     for (const country of result.value) {
-      const key = normalizeName(country.name);
+      const key = normalizeLiveServiceName(country.name);
       // Exclude Japan from the foreign-numbers country list per product decision
       if (key === "japan") continue;
       if (!countries.has(key)) countries.set(key, { id: key, name: country.name });
@@ -174,8 +174,11 @@ function createNumberAdapters(): Array<{ name: string; adapter: SmsActivateAdapt
   });
 }
 
-function normalizeName(value: string) {
-  return value.toLowerCase().replace(/\b(inc|app|messenger|verification)\b/g, "").replace(/[^a-z0-9]+/g, "");
+export function normalizeLiveServiceName(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/\b(inc|app|messenger|verification)\b/g, "")
+    .replace(/[^\p{L}\p{N}]+/gu, "");
 }
 
 async function fetchNumberServices(kind: Extract<LiveServiceKind, "foreign-numbers" | "uk-premium">, options: FetchLiveServicesOptions): Promise<LiveServicesResult> {
@@ -190,7 +193,7 @@ async function fetchNumberServices(kind: Extract<LiveServiceKind, "foreign-numbe
   const merged = new Map<string, { service: ServiceMapping; providers: string[] }>();
   for (const result of fulfilledResults) {
     for (const service of result.value.services) {
-      const key = normalizeName(service.name);
+      const key = normalizeLiveServiceName(service.name);
       const current = merged.get(key);
       if (!current) merged.set(key, { service, providers: [result.value.name] });
       else {
@@ -203,14 +206,14 @@ async function fetchNumberServices(kind: Extract<LiveServiceKind, "foreign-numbe
     }
   }
   const services = [...merged.entries()].map(([key, entry]) => ({
-    externalId: `${normalizeName(countryName)}:${key}`,
+    externalId: `${normalizeLiveServiceName(countryName)}:${key}`,
     name: entry.service.name,
     description: entry.service.description,
     price: applyNumberServiceProfitMargin(entry.service.price),
     minOrder: 1,
     maxOrder: 1,
     provider: entry.providers.join(" + "),
-    countryId: options.countryId || normalizeName(countryName),
+    countryId: options.countryId || normalizeLiveServiceName(countryName),
     countryName,
     serviceId: key,
     availability: entry.service.availability,

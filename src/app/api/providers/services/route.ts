@@ -48,8 +48,11 @@ export async function GET(request: NextRequest) {
     const serviceCacheMs = kind === "logs" ? 30 * 1000 : SERVICE_CACHE_MS;
     const liveServiceCacheKey = kind === "logs" ? `services:logs:in-stock:${serviceKey}` : `services:${serviceKey}`;
 
+    const numberService = kind === "foreign-numbers" || kind === "uk-premium";
     const [result, exchangeRate] = await Promise.all([
-      getCachedLiveValue(liveServiceCacheKey, serviceCacheMs, () => fetchLiveServices(kind, { countryId, countryName, query, limit, preview })),
+      numberService
+        ? fetchLiveServices(kind, { countryId, countryName, query, limit, preview })
+        : getCachedLiveValue(liveServiceCacheKey, serviceCacheMs, () => fetchLiveServices(kind, { countryId, countryName, query, limit, preview })),
       getUsdToNgnRate()
     ]);
 
@@ -63,7 +66,7 @@ export async function GET(request: NextRequest) {
       profitMarginPercent: result.profitMarginPercent
     };
 
-    const browserCacheSeconds = kind === "logs" ? 30 : kind === "foreign-numbers" || kind === "uk-premium" ? 60 : 300;
+    const browserCacheSeconds = kind === "logs" ? 30 : 300;
 
     return json({
       success: true,
@@ -92,7 +95,7 @@ export async function GET(request: NextRequest) {
         rateFetchedAt: exchangeRate.fetchedAt,
         rateFallback: exchangeRate.fallback
       }))
-    }, { headers: { "Cache-Control": "private, max-age=" + browserCacheSeconds + ", stale-while-revalidate=" + browserCacheSeconds } });
+    }, { headers: { "Cache-Control": numberService ? "private, no-store" : "private, max-age=" + browserCacheSeconds + ", stale-while-revalidate=" + browserCacheSeconds } });
   } catch (error) {
     console.error("[providers/services]", { kind, error });
     const timedOut = error instanceof Error && error.message === "Boosting provider is taking too long to respond. Please try again shortly.";

@@ -13,7 +13,11 @@ import { z } from "zod";
 import { clientIp, enforceRateLimit, RateLimitError } from "@/lib/security/rate-limit";
 
 const FRIENDLY_PROVIDER_MESSAGE = "This service is available, but fulfillment is temporarily unavailable. Please contact support.";
-const USER_SAFE_ERRORS = [/insufficient wallet balance/i, /minimum order quantity/i, /maximum order quantity/i, /service is currently unavailable/i, /unauthorized/i, /^Boosting provider is taking too long to respond\. Please try again shortly\.$/];
+const USER_SAFE_ERRORS = [/insufficient wallet balance/i, /minimum order quantity/i, /maximum order quantity/i, /service is currently unavailable/i, /selected service is no longer available/i, /number is no longer available/i, /number allocation is temporarily sold out/i, /no (untried )?backup provider/i, /backup provider is too expensive/i, /select a valid (country|verification service)/i, /unauthorized/i, /^Boosting provider is taking too long to respond\. Please try again shortly\.$/];
+
+function isDatabaseUnavailable(error: unknown) {
+  return error instanceof Error && (error.name === "MongoServerSelectionError" || /ENOTFOUND|ECONNREFUSED|database.*unreachable/i.test(error.message));
+}
 
 const createOrderSchema = z.object({
   serviceId: z.string().optional(),
@@ -93,6 +97,9 @@ export async function POST(request: NextRequest) {
     }
 
     console.error("[orders/create]", error);
+    if (isDatabaseUnavailable(error)) {
+      return NextResponse.json({ error: "The database is temporarily unreachable. Please retry in a moment." }, { status: 503 });
+    }
     const message = error instanceof Error && USER_SAFE_ERRORS.some((pattern) => pattern.test(error.message))
       ? error.message
       : FRIENDLY_PROVIDER_MESSAGE;
@@ -139,11 +146,18 @@ export async function GET(request: NextRequest) {
         if (numberOrder && waitedTwoMinutes && ["pending", "processing"].includes(status.status) && !status.data?.code && !status.data?.sms) {
           const cancelled = await adapter.refundOrder(providerOrder.externalOrderId);
           if (cancelled) {
-            status = {
-              ...status,
-              status: "refunded",
-              message: "No SMS code arrived within two minutes. Your wallet payment has been refunded."
-            };
+            try {
+              await orderService.failoverNumberOrder(order.id, providerOrder.providerId.toString());
+              refreshed = true;
+              continue;
+            } catch (failoverError) {
+              console.warn("[orders/status-failover]", { orderId: order.id, error: failoverError instanceof Error ? failoverError.message : "Backup provider failed" });
+              status = {
+                ...status,
+                status: "refunded",
+                message: "No SMS code arrived and no backup provider could allocate a replacement. Your wallet payment has been refunded."
+              };
+            }
           }
         }
         const fulfillment = {
@@ -190,6 +204,9 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("[orders/list]", error);
+    if (isDatabaseUnavailable(error)) {
+      return NextResponse.json({ error: "The database is temporarily unreachable. Please retry in a moment." }, { status: 503 });
+    }
     const message = error instanceof Error && USER_SAFE_ERRORS.some((pattern) => pattern.test(error.message))
       ? error.message
       : FRIENDLY_PROVIDER_MESSAGE;

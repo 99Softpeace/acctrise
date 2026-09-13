@@ -68,6 +68,14 @@ function orderNumber(): string {
   return `AC-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
 }
 
+function isFixedPriceUsaWhatsappNumber(additionalInfo: Record<string, any> | undefined, serviceName: string): boolean {
+  const kind = String(additionalInfo?.kind || "");
+  const countryName = String(additionalInfo?.countryName || "");
+  return ["uk-premium", "foreign-numbers"].includes(kind)
+    && /^(united states|usa|us)$/i.test(countryName)
+    && /whats?app/i.test(serviceName);
+}
+
 function serializeOrder(order: any, extras: Partial<OrderWithDetails> = {}): OrderWithDetails {
   return {
     id: order._id.toString(),
@@ -158,6 +166,7 @@ export class OrderService {
       if (providers.length === 0) throw new Error("No providers available for this service");
 
       const numberOrder = ["uk-premium", "foreign-numbers"].includes(String(request.additionalInfo?.kind || ""));
+      const fixedPriceUsaWhatsapp = isFixedPriceUsaWhatsappNumber(request.additionalInfo, service.name);
       const exchangeRate = numberOrder ? (await getUsdToNgnRate()).rate : null;
       const candidates = (await Promise.all(providers.map(async (provider) => ({
         provider,
@@ -171,12 +180,14 @@ export class OrderService {
 
       let orderPlaced = false;
       let lastError: Error | null = null;
+      const attemptedProviderIds: string[] = [];
 
       for (const { provider, mapping } of candidates) {
         try {
+          attemptedProviderIds.push(provider.getProviderId());
           if (numberOrder && exchangeRate) {
             const maximumSafeProviderUsdCents = order.unitPriceCents / exchangeRate / 1.2;
-            if (Number(mapping!.providerPriceCents) > maximumSafeProviderUsdCents) {
+            if (!fixedPriceUsaWhatsapp && Number(mapping!.providerPriceCents) > maximumSafeProviderUsdCents) {
               lastError = new Error("Available backup provider is too expensive to fulfill this order profitably.");
               this.log("warn", "Skipping unprofitable number provider", { providerId: provider.getProviderId(), providerPriceCents: mapping!.providerPriceCents });
               continue;
@@ -197,7 +208,7 @@ export class OrderService {
             externalOrderId: response.externalOrderId,
             status: response.status || "pending",
             statusMessage: response.message || null,
-            logs: response.data || null
+            logs: { ...(response.data || {}), attemptedProviderIds }
           });
 
           order.status = response.status === "completed" ? "COMPLETED" : "PROCESSING";
@@ -236,6 +247,96 @@ export class OrderService {
     }
 
     return serializeOrder(order);
+  }
+
+  async failoverNumberOrder(orderId: string, failedProviderId: string): Promise<OrderWithDetails> {
+    await connectMongo();
+    const order = await Order.findById(orderId);
+    if (!order) throw new Error("Order not found");
+
+    const providerOrder = await ProviderOrder.findOne({ orderId: order._id });
+    if (!providerOrder) throw new Error("Provider order not found");
+    const service = await Service.findById(order.serviceId);
+    if (!service) throw new Error("Service not found");
+    const fixedPriceUsaWhatsapp = isFixedPriceUsaWhatsappNumber(order.additionalInfo, service.name);
+
+    const failedExternalOrderId = providerOrder.externalOrderId;
+    const previousLogs = providerOrder.logs && typeof providerOrder.logs === "object" ? providerOrder.logs as Record<string, any> : {};
+    const attemptedProviderIds = new Set<string>([
+      ...((Array.isArray(previousLogs.attemptedProviderIds) ? previousLogs.attemptedProviderIds : []).map(String)),
+      failedProviderId
+    ]);
+    const providers = await this.providerManager.getProvidersForService(order.serviceId.toString());
+    const exchangeRate = (await getUsdToNgnRate()).rate;
+    const candidates = (await Promise.all(providers.map(async (provider) => ({
+      provider,
+      mapping: await ProviderService.findOne({ providerId: mongoId(provider.getProviderId(), "provider id"), serviceId: order.serviceId })
+    }))))
+      .filter(({ provider, mapping }) => Boolean(mapping) && !attemptedProviderIds.has(provider.getProviderId()))
+      .sort((left, right) => Number(left.mapping!.providerPriceCents) - Number(right.mapping!.providerPriceCents));
+
+    if (!candidates.length) throw new Error("No untried backup provider is available for this number.");
+    let lastError: Error | null = null;
+
+    for (const { provider, mapping } of candidates) {
+      const providerId = provider.getProviderId();
+      attemptedProviderIds.add(providerId);
+      try {
+        const maximumSafeProviderUsdCents = order.unitPriceCents / exchangeRate / 1.2;
+        if (!fixedPriceUsaWhatsapp && Number(mapping!.providerPriceCents) > maximumSafeProviderUsdCents) {
+          lastError = new Error("Available backup provider is too expensive to fulfill this order profitably.");
+          continue;
+        }
+
+        const response = await provider.placeOrder({
+          serviceId: mapping!.externalId,
+          quantity: order.quantity,
+          targetUrl: order.targetUrl || undefined,
+          targetUsername: order.targetUsername || undefined,
+          targetPhone: order.targetPhone || undefined,
+          additionalInfo: order.additionalInfo || {}
+        });
+        const failoverHistory = Array.isArray(previousLogs.failoverHistory) ? previousLogs.failoverHistory : [];
+
+        providerOrder.providerId = mongoId(providerId, "provider id");
+        providerOrder.externalOrderId = response.externalOrderId;
+        providerOrder.status = response.status || "pending";
+        providerOrder.statusMessage = response.message || null;
+        providerOrder.lastCheckedAt = new Date();
+        providerOrder.logs = {
+          ...(response.data || {}),
+          attemptedProviderIds: [...attemptedProviderIds],
+          failoverHistory: [...failoverHistory, {
+            providerId: failedProviderId,
+            externalOrderId: failedExternalOrderId,
+            failedAt: new Date().toISOString()
+          }]
+        };
+        await providerOrder.save();
+
+        order.status = response.status === "completed" ? "COMPLETED" : "PROCESSING";
+        order.startDate = new Date();
+        order.statusMessage = response.message
+          ? `Switched to backup provider. ${response.message}`
+          : "Switched to backup provider and waiting for SMS.";
+        if (order.status === "COMPLETED") order.completedAt = new Date();
+        await order.save();
+
+        await OrderLog.create({
+          orderId: order._id,
+          action: "PROVIDER_FAILOVER",
+          details: { fromProviderId: failedProviderId, toProviderId: providerId, externalOrderId: response.externalOrderId }
+        });
+        this.log("info", `Number order switched to backup provider: ${order.orderNumber}`, { fromProviderId: failedProviderId, toProviderId: providerId });
+        return serializeOrder(order);
+      } catch (error) {
+        if ((error as Error & { failoverSafe?: boolean })?.failoverSafe === false) throw error;
+        lastError = error as Error;
+        this.log("warn", "Number backup provider failed", { providerId, error: lastError.message });
+      }
+    }
+
+    throw lastError || new Error("No backup provider could allocate a number.");
   }
 
   async updateOrderStatus(request: UpdateOrderStatusRequest): Promise<OrderWithDetails> {
