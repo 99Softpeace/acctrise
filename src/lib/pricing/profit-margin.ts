@@ -12,7 +12,7 @@ export const DISCORD_NUMBER_PRICE_NGN = 5000;
 export const OTHER_SOCIAL_NUMBER_PROFIT_MARGIN_RATE = NUMBER_PROFIT_MARGIN_RATE;
 export const OTHER_SOCIAL_NUMBER_PROFIT_MARGIN_PERCENT = OTHER_SOCIAL_NUMBER_PROFIT_MARGIN_RATE * 100;
 export const NUMBER_MINIMUM_PRICE_NGN = 1200;
-export const USA_WHATSAPP_PRICE_NGN = 3000;
+export const USA_WHATSAPP_PRICE_NGN = 3500;
 export const NUMBER_PROVIDER_MAX_PRICE_USD = 1;
 // SMSBower's maxPrice is inclusive, so use 3.99 to enforce "below $4".
 export const USA_WHATSAPP_PROVIDER_MAX_PRICE_USD = 3.99;
@@ -111,7 +111,7 @@ export function applyUsaWhatsappPrice(
   serviceText?: string
 ): number {
   if (!isUsaWhatsappNumber(kind, countryName, serviceText) || !Number.isFinite(exchangeRate) || exchangeRate <= 0) return priceUsd;
-  return USA_WHATSAPP_PRICE_NGN / exchangeRate;
+  return Math.max(priceUsd, USA_WHATSAPP_PRICE_NGN / exchangeRate);
 }
 
 export function applyFixedSocialNumberPrice(priceUsd: number, exchangeRate: number, serviceText?: string): number {
