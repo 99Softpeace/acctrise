@@ -1,6 +1,6 @@
 import { connectMongo } from "@/lib/mongodb";
 import { getUsdToNgnRate } from "@/lib/pricing/exchange-rate";
-import { applyNumberServiceProfitMargin, applyTikTokLikesNgnPriceRange, applyUsaWhatsappPrice } from "@/lib/pricing/profit-margin";
+import { applyNumberServiceProfitMargin, applyTikTokLikesNgnPriceRange, applyUsaWhatsappPrice, isNumberProviderPriceAllowed } from "@/lib/pricing/profit-margin";
 import { Category } from "@/models/category";
 import { Provider } from "@/models/provider";
 import { ProviderService } from "@/models/provider-service";
@@ -101,7 +101,9 @@ async function resolveNumberService(kind: Extract<LiveServiceKind, "foreign-numb
     try {
       const adapter = new definition.Adapter(definition.slug, { apiKey, timeout: 20000 });
       const mapping = await adapter.resolveService(resolvedCountryName, serviceName);
-      return mapping ? { definition, apiKey, mapping } : null;
+      return mapping && isNumberProviderPriceAllowed(mapping.price, kind, resolvedCountryName, serviceName)
+        ? { definition, apiKey, mapping }
+        : null;
     } catch (error) {
       console.warn("[number-provider-resolution]", { provider: definition.slug, error: error instanceof Error ? error.message : "Resolution failed" });
       return null;
@@ -128,14 +130,17 @@ async function resolveNumberService(kind: Extract<LiveServiceKind, "foreign-numb
 
   // Match catalog pricing and keep known backup costs as a floor when one
   // provider temporarily times out during checkout resolution.
+  const allowedKnownMappings = knownMappings.filter((mapping) =>
+    isNumberProviderPriceAllowed(Number(mapping.providerPriceCents) / 100, kind, resolvedCountryName, serviceName)
+  );
   const providerPriceUsd = Math.max(
     ...resolvedMappings.map(({ mapping }) => mapping.price),
-    ...knownMappings.map((mapping) => Number(mapping.providerPriceCents) / 100)
+    ...allowedKnownMappings.map((mapping) => Number(mapping.providerPriceCents) / 100)
   );
   const livePriceUsd = applyNumberServiceProfitMargin(providerPriceUsd);
   const stock = Math.max(
     ...resolvedMappings.map(({ mapping }) => mapping.stock),
-    ...knownMappings.map((mapping) => Number(mapping.stock || 0))
+    ...allowedKnownMappings.map((mapping) => Number(mapping.stock || 0))
   );
 
   const categorySlug = slugify(`live-${kind}`);

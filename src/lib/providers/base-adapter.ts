@@ -27,6 +27,7 @@ export interface RateLimit {
 export interface OrderRequest {
   serviceId: string;
   quantity: number;
+  maxPriceUsd?: number;
   targetUrl?: string;
   targetUsername?: string;
   targetPhone?: string;

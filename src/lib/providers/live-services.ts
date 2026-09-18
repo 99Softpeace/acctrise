@@ -5,7 +5,7 @@ import { SMSBowerAdapter } from "@/lib/providers/adapters/sms-bower-adapter";
 import type { SmsActivateAdapter } from "@/lib/providers/adapters/sms-activate-adapter";
 import { ResellingSMMAdapter } from "@/lib/providers/adapters/smm-adapter";
 import type { BaseProviderAdapter, ProviderConfig, ServiceMapping } from "@/lib/providers/base-adapter";
-import { applyLogsProfitMargin, applyNumberServiceProfitMargin, applyProfitMargin, LOGS_PROFIT_MARGIN_PERCENT, NUMBER_PROFIT_MARGIN_PERCENT, PROFIT_MARGIN_PERCENT } from "@/lib/pricing/profit-margin";
+import { applyLogsProfitMargin, applyNumberServiceProfitMargin, applyProfitMargin, isNumberProviderPriceAllowed, LOGS_PROFIT_MARGIN_PERCENT, NUMBER_PROFIT_MARGIN_PERCENT, PROFIT_MARGIN_PERCENT } from "@/lib/pricing/profit-margin";
 
 export type LiveServiceKind = "boosting" | "logs" | "foreign-numbers" | "uk-premium";
 
@@ -193,6 +193,7 @@ async function fetchNumberServices(kind: Extract<LiveServiceKind, "foreign-numbe
   const merged = new Map<string, { service: ServiceMapping; providers: string[] }>();
   for (const result of fulfilledResults) {
     for (const service of result.value.services) {
+      if (!isNumberProviderPriceAllowed(service.price, kind, countryName, service.name)) continue;
       const key = normalizeLiveServiceName(service.name);
       const current = merged.get(key);
       if (!current) merged.set(key, { service, providers: [result.value.name] });

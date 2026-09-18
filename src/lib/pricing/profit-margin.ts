@@ -13,6 +13,9 @@ export const OTHER_SOCIAL_NUMBER_PROFIT_MARGIN_RATE = NUMBER_PROFIT_MARGIN_RATE;
 export const OTHER_SOCIAL_NUMBER_PROFIT_MARGIN_PERCENT = OTHER_SOCIAL_NUMBER_PROFIT_MARGIN_RATE * 100;
 export const NUMBER_MINIMUM_PRICE_NGN = 1200;
 export const USA_WHATSAPP_PRICE_NGN = 3000;
+export const NUMBER_PROVIDER_MAX_PRICE_USD = 1;
+// SMSBower's maxPrice is inclusive, so use 3.99 to enforce "below $4".
+export const USA_WHATSAPP_PROVIDER_MAX_PRICE_USD = 3.99;
 
 export const TIKTOK_LIKES_REACTIONS_MINIMUM_NGN_PER_1000 = 1000;
 export const TIKTOK_LIKES_REACTIONS_MAXIMUM_NGN_PER_1000 = 1500;
@@ -81,6 +84,24 @@ export function isDiscordNumber(serviceText?: string): boolean {
   return Boolean(serviceText && /discord/i.test(serviceText));
 }
 
+export function isUsaWhatsappNumber(kind: string, countryName?: string, serviceText?: string): boolean {
+  const isNumberKind = kind === "foreign-numbers" || kind === "uk-premium";
+  const isUsa = /^(united states|usa|us)$/i.test(countryName?.trim() || "");
+  return isNumberKind && isUsa && Boolean(serviceText && /whats?app/i.test(serviceText));
+}
+
+export function getNumberProviderMaxPriceUsd(kind: string, countryName?: string, serviceText?: string): number {
+  return isUsaWhatsappNumber(kind, countryName, serviceText)
+    ? USA_WHATSAPP_PROVIDER_MAX_PRICE_USD
+    : NUMBER_PROVIDER_MAX_PRICE_USD;
+}
+
+export function isNumberProviderPriceAllowed(priceUsd: number, kind: string, countryName?: string, serviceText?: string): boolean {
+  return Number.isFinite(priceUsd)
+    && priceUsd > 0
+    && priceUsd <= getNumberProviderMaxPriceUsd(kind, countryName, serviceText);
+}
+
 
 export function applyUsaWhatsappPrice(
   priceUsd: number,
@@ -89,9 +110,7 @@ export function applyUsaWhatsappPrice(
   countryName?: string,
   serviceText?: string
 ): number {
-  const isUsaNumber = (kind === "foreign-numbers" || kind === "uk-premium") && /^(united states|usa|us)$/i.test(countryName?.trim() || "");
-  const isWhatsapp = Boolean(serviceText && /whats?app/i.test(serviceText));
-  if (!isUsaNumber || !isWhatsapp || !Number.isFinite(exchangeRate) || exchangeRate <= 0) return priceUsd;
+  if (!isUsaWhatsappNumber(kind, countryName, serviceText) || !Number.isFinite(exchangeRate) || exchangeRate <= 0) return priceUsd;
   return USA_WHATSAPP_PRICE_NGN / exchangeRate;
 }
 

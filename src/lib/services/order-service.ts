@@ -16,6 +16,7 @@ import { amountFromCents, deductForOrder, getWallet, mongoId, refundOrder } from
 import { ProviderManager } from "../providers/provider-manager";
 import { ProviderService } from "@/models/provider-service";
 import { getUsdToNgnRate } from "@/lib/pricing/exchange-rate";
+import { getNumberProviderMaxPriceUsd } from "@/lib/pricing/profit-margin";
 
 export interface CreateOrderRequest {
   userId: string;
@@ -167,6 +168,9 @@ export class OrderService {
 
       const numberOrder = ["uk-premium", "foreign-numbers"].includes(String(request.additionalInfo?.kind || ""));
       const fixedPriceUsaWhatsapp = isFixedPriceUsaWhatsappNumber(request.additionalInfo, service.name);
+      const maxProviderPriceUsd = numberOrder
+        ? getNumberProviderMaxPriceUsd(String(request.additionalInfo?.kind || ""), String(request.additionalInfo?.countryName || ""), service.name)
+        : null;
       const exchangeRate = numberOrder ? (await getUsdToNgnRate()).rate : null;
       const candidates = (await Promise.all(providers.map(async (provider) => ({
         provider,
@@ -186,6 +190,11 @@ export class OrderService {
         try {
           attemptedProviderIds.push(provider.getProviderId());
           if (numberOrder && exchangeRate) {
+            if (maxProviderPriceUsd && Number(mapping!.providerPriceCents) > maxProviderPriceUsd * 100) {
+              lastError = new Error("The available number is above the allowed provider price limit.");
+              this.log("warn", "Skipping number above provider price limit", { providerId: provider.getProviderId(), providerPriceCents: mapping!.providerPriceCents, maxProviderPriceUsd });
+              continue;
+            }
             const maximumSafeProviderUsdCents = order.unitPriceCents / exchangeRate / 1.2;
             if (!fixedPriceUsaWhatsapp && Number(mapping!.providerPriceCents) > maximumSafeProviderUsdCents) {
               lastError = new Error("Available backup provider is too expensive to fulfill this order profitably.");
@@ -196,6 +205,7 @@ export class OrderService {
           const response = await provider.placeOrder({
             serviceId: mapping!.externalId,
             quantity: request.quantity,
+            maxPriceUsd: maxProviderPriceUsd || undefined,
             targetUrl: request.targetUrl,
             targetUsername: request.targetUsername,
             targetPhone: request.targetPhone,
@@ -259,6 +269,7 @@ export class OrderService {
     const service = await Service.findById(order.serviceId);
     if (!service) throw new Error("Service not found");
     const fixedPriceUsaWhatsapp = isFixedPriceUsaWhatsappNumber(order.additionalInfo, service.name);
+    const maxProviderPriceUsd = getNumberProviderMaxPriceUsd(String(order.additionalInfo?.kind || ""), String(order.additionalInfo?.countryName || ""), service.name);
 
     const failedExternalOrderId = providerOrder.externalOrderId;
     const previousLogs = providerOrder.logs && typeof providerOrder.logs === "object" ? providerOrder.logs as Record<string, any> : {};
@@ -282,6 +293,10 @@ export class OrderService {
       const providerId = provider.getProviderId();
       attemptedProviderIds.add(providerId);
       try {
+        if (Number(mapping!.providerPriceCents) > maxProviderPriceUsd * 100) {
+          lastError = new Error("The available number is above the allowed provider price limit.");
+          continue;
+        }
         const maximumSafeProviderUsdCents = order.unitPriceCents / exchangeRate / 1.2;
         if (!fixedPriceUsaWhatsapp && Number(mapping!.providerPriceCents) > maximumSafeProviderUsdCents) {
           lastError = new Error("Available backup provider is too expensive to fulfill this order profitably.");
@@ -291,6 +306,7 @@ export class OrderService {
         const response = await provider.placeOrder({
           serviceId: mapping!.externalId,
           quantity: order.quantity,
+          maxPriceUsd: maxProviderPriceUsd,
           targetUrl: order.targetUrl || undefined,
           targetUsername: order.targetUsername || undefined,
           targetPhone: order.targetPhone || undefined,
@@ -400,6 +416,8 @@ export class OrderService {
     await connectMongo();
     const order = await Order.findById(orderId);
     if (!order) throw new Error("Order not found");
+    const service = await Service.findById(order.serviceId);
+    if (!service) throw new Error("Service not found");
 
     if (order.status === "COMPLETED" || order.status === "REFUNDED") {
       throw new Error("Cannot retry a completed or refunded order");
@@ -420,6 +438,10 @@ export class OrderService {
     try {
       const providers = await this.providerManager.getProvidersForService(order.serviceId.toString());
       const numberOrder = ["uk-premium", "foreign-numbers"].includes(String(order.additionalInfo?.kind || ""));
+      const fixedPriceUsaWhatsapp = isFixedPriceUsaWhatsappNumber(order.additionalInfo, service.name);
+      const maxProviderPriceUsd = numberOrder
+        ? getNumberProviderMaxPriceUsd(String(order.additionalInfo?.kind || ""), String(order.additionalInfo?.countryName || ""), service.name)
+        : null;
       const exchangeRate = numberOrder ? (await getUsdToNgnRate()).rate : null;
       const candidates = (await Promise.all(providers.map(async (provider) => ({
         provider,
@@ -433,12 +455,14 @@ export class OrderService {
       for (const { provider, mapping } of candidates) {
         try {
           if (numberOrder && exchangeRate) {
+            if (maxProviderPriceUsd && Number(mapping!.providerPriceCents) > maxProviderPriceUsd * 100) continue;
             const maximumSafeProviderUsdCents = order.unitPriceCents / exchangeRate / 1.2;
-            if (Number(mapping!.providerPriceCents) > maximumSafeProviderUsdCents) continue;
+            if (!fixedPriceUsaWhatsapp && Number(mapping!.providerPriceCents) > maximumSafeProviderUsdCents) continue;
           }
           const response = await provider.placeOrder({
             serviceId: mapping!.externalId,
             quantity: order.quantity,
+            maxPriceUsd: maxProviderPriceUsd || undefined,
             targetUrl: order.targetUrl || undefined,
             targetUsername: order.targetUsername || undefined,
             targetPhone: order.targetPhone || undefined,

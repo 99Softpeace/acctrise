@@ -100,7 +100,11 @@ export abstract class SmsActivateAdapter extends BaseProviderAdapter {
     let value: any;
     for (let attempt = 1; attempt <= 3; attempt += 1) {
       try {
-        value = await this.request('getNumberV2', { country, service });
+        const params: Record<string, string> = { country, service };
+        if (Number.isFinite(request.maxPriceUsd) && request.maxPriceUsd! > 0) {
+          params.maxPrice = String(request.maxPriceUsd);
+        }
+        value = await this.request('getNumberV2', params);
         break;
       } catch (error) {
         const providerError = error as Error & { code?: string };
